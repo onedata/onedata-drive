@@ -1,4 +1,5 @@
 bin/
 obj/
 syncRoot/
-.CONFIG.json
+.vs/
+local-config.json
