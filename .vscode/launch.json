@@ -1,0 +1,17 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "customDebug",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/Debug/net8.0-windows10.0.19041.0/cloudSync.dll",
+            "console": "integratedTerminal",
+            "preLaunchTask": "build Debug",
+            "args": ["-p", "C:\\Users\\User\\Desktop\\win-client\\.CONFIG.json", "-d"],
+        }
+    ]
+}
