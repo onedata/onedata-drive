@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "CloudSyncGUI (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "CloudSyncGUI (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

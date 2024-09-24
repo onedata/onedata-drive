@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Vanara.PInvoke.CldApi" Version="3.4.17" />
+    <PackageReference Include="Vanara.PInvoke.CldApi" Version="4.0.4" />
   </ItemGroup>
 
   <ItemGroup>
