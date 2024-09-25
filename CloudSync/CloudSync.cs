@@ -35,7 +35,8 @@ public static class CloudSync
 
         try
         {
-            CloudProvider.RegisterWithShell(configuration.root_path).Wait();
+            //CloudProvider.RegisterWithShell(configuration.root_path).Wait();
+            CloudProvider.RegisterWithShell(configuration.root_path);
             Console.WriteLine("ShellRegister -> OK");
 
             CloudProvider.ConnectCallbacks(configuration.root_path);

@@ -12,13 +12,18 @@ public static class CloudProvider
     public static string ID = @"TestStorageProvider";
     public static string ACCOUNT = @"TestAccount";
 
-    public async static Task RegisterWithShell(string folderPath)
+    public static void RegisterWithShell(string folderPath)
     {
         StorageProviderSyncRootInfo info = new();
         info.DisplayNameResource = "Onedata";
         info.Id = GetSyncRootId();
-        info.Path = await StorageFolder.GetFolderFromPathAsync(folderPath);
-        string icon = Directory.GetCurrentDirectory() + "\\favicon.ico,0";
+        //info.Path = await StorageFolder.GetFolderFromPathAsync(folderPath);
+
+        Task<StorageFolder> x = StorageFolder.GetFolderFromPathAsync(folderPath).AsTask();
+        x.Wait();
+        info.Path = x.Result;
+
+        string icon = "C:\\Users\\User\\Desktop\\win-client\\CloudSync\\bin\\Debug\\net8.0-windows10.0.19041.0" + "\\favicon.ico,0";
         Console.WriteLine("Icon path {0}", icon);
         info.IconResource = icon;
         info.HydrationPolicy = StorageProviderHydrationPolicy.Full;

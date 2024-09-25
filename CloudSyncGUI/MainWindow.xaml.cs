@@ -32,7 +32,7 @@ namespace CloudSyncGUI
         private void myButton_Click(object sender, RoutedEventArgs e)
         {
             myButton.Content = "Clicked";
-            //CloudProvider.RegisterWithShell("C:\\Users\\User\\Desktop\\root").Wait();
+            CloudProvider.RegisterWithShell("C:\\Users\\User\\Desktop\\root");
             Thread.Sleep(10000);
             CloudProvider.UnregisterSafely();
         }
