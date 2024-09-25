@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
 
-class FileWatcher
+public class FileWatcher
 {
     private FileSystemWatcher watcher;
 

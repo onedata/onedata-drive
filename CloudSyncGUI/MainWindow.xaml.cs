@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 
@@ -31,6 +32,9 @@ namespace CloudSyncGUI
         private void myButton_Click(object sender, RoutedEventArgs e)
         {
             myButton.Content = "Clicked";
+            //CloudProvider.RegisterWithShell("C:\\Users\\User\\Desktop\\root").Wait();
+            Thread.Sleep(10000);
+            CloudProvider.UnregisterSafely();
         }
     }
 }

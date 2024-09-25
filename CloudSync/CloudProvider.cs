@@ -7,7 +7,7 @@ using Windows.Storage;
 using Windows.Storage.Provider;
 using static Vanara.PInvoke.CldApi;
 
-static class CloudProvider
+public static class CloudProvider
 {
     public static string ID = @"TestStorageProvider";
     public static string ACCOUNT = @"TestAccount";

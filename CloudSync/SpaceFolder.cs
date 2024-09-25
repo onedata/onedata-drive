@@ -1,4 +1,4 @@
-class SpaceFolder
+public class SpaceFolder
 {
     public string name;
     public string dirId;
@@ -26,7 +26,7 @@ class SpaceFolder
     }
 }
 
-class ProviderInfo
+public class ProviderInfo
 {
     public string providerId = "";
     public string providerDomain = "";

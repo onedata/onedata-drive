@@ -1,7 +1,7 @@
 ﻿using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
 
-class CloudSync
+public static class CloudSync
 {
     public static Config configuration = new();
     public static Dictionary<string, SpaceFolder> spaces = new();
