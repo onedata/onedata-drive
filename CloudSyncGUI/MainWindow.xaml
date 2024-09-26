@@ -13,11 +13,16 @@
     </StackPanel-->
 
     <StackPanel  BorderThickness="1" BorderBrush="Red" CornerRadius="4" Padding="3">
+        <Button x:Name="testBtn" Background="DarkTurquoise" Click="testBtn_Click">For testing</Button>
         <TextBox x:Name="tokenTbx" PlaceholderText="TOKEN"></TextBox>
         <TextBox x:Name="zoneHostTbx" PlaceholderText="Onezone hostname"></TextBox>
         <TextBox x:Name="rootPathTbx" PlaceholderText="root folder path"></TextBox>
         <Button x:Name="connectBtn" Click="ConnectButton_Click" Background="DarkBlue">Connect</Button>
-        <TextBlock x:Name="statusTbl" Text="Not Connected"></TextBlock>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+            <TextBlock x:Name="statusLabel" Margin="0,0,5,0">Status:</TextBlock>
+            <TextBlock x:Name="statusTbl" Text="Not Connected" ></TextBlock>
+        </StackPanel>
+        
 
         <!-- Note: Syntax highlighting updates on 'Load'. -->
     </StackPanel>

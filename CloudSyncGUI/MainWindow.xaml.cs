@@ -33,6 +33,7 @@ namespace CloudSyncGUI
 
         private async void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
+            statusTbl.Text = "In progress";
             Config config = new() {
                 zone_host = zoneHostTbx.Text,
                 provider_token = tokenTbx.Text,
@@ -45,11 +46,7 @@ namespace CloudSyncGUI
                 return;
             }
 
-            int status = await Task.Run(() => CloudSync.Run(config, delete: true));
-            if (status == 0)
-            {
-                statusTbl.Text = "Connected";
-            }
+            await LaunchCloudSyncAsync(config);
             //myButton.Content = "Clicked";
             /*
             CloudProvider.RegisterWithShell("C:\\Users\\User\\Desktop\\root");
@@ -61,6 +58,28 @@ namespace CloudSyncGUI
         private void OnWindowClosed(object sender, WindowEventArgs e)
         {
             CloudSync.Stop();
+        }
+
+        private async void testBtn_Click(object sender, RoutedEventArgs e)
+        {
+            statusTbl.Text = "In progress";
+            Config config = new();
+            config.Init("C:\\Users\\User\\Desktop\\win-client\\local-config.json");
+            await LaunchCloudSyncAsync(config);
+
+        }
+
+        private async Task LaunchCloudSyncAsync(Config config)
+        {
+            int status = await Task.Run(() => CloudSync.Run(config, delete: true));
+            if (status == 0)
+            {
+                statusTbl.Text = "Connected";
+            }
+            else
+            {
+                statusTbl.Text = "Something went wrong";
+            }
         }
     }
 }
