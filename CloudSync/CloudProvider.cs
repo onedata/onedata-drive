@@ -17,8 +17,8 @@ public static class CloudProvider
         StorageProviderSyncRootInfo info = new();
         info.DisplayNameResource = "Onedata";
         info.Id = GetSyncRootId();
-        //info.Path = await StorageFolder.GetFolderFromPathAsync(folderPath);
 
+        //info.Path = await StorageFolder.GetFolderFromPathAsync(folderPath);
         Task<StorageFolder> x = StorageFolder.GetFolderFromPathAsync(folderPath).AsTask();
         x.Wait();
         info.Path = x.Result;

@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
+using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 
@@ -27,14 +28,39 @@ namespace CloudSyncGUI
         public MainWindow()
         {
             this.InitializeComponent();
+            this.Closed += OnWindowClosed;
         }
 
-        private void myButton_Click(object sender, RoutedEventArgs e)
+        private async void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
-            myButton.Content = "Clicked";
+            Config config = new() {
+                zone_host = zoneHostTbx.Text,
+                provider_token = tokenTbx.Text,
+                root_path = rootPathTbx.Text
+            };
+
+            if (!config.IsComplete())
+            {
+                statusTbl.Text = "Wrong data";
+                return;
+            }
+
+            int status = await Task.Run(() => CloudSync.Run(config, delete: true));
+            if (status == 0)
+            {
+                statusTbl.Text = "Connected";
+            }
+            //myButton.Content = "Clicked";
+            /*
             CloudProvider.RegisterWithShell("C:\\Users\\User\\Desktop\\root");
             Thread.Sleep(10000);
             CloudProvider.UnregisterSafely();
+            */
+        }
+
+        private void OnWindowClosed(object sender, WindowEventArgs e)
+        {
+            CloudSync.Stop();
         }
     }
 }

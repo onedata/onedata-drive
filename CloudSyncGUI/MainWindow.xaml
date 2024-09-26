@@ -8,7 +8,17 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+    <!--StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
         <Button x:Name="myButton" Click="myButton_Click">Click Me</Button>
+    </StackPanel-->
+
+    <StackPanel  BorderThickness="1" BorderBrush="Red" CornerRadius="4" Padding="3">
+        <TextBox x:Name="tokenTbx" PlaceholderText="TOKEN"></TextBox>
+        <TextBox x:Name="zoneHostTbx" PlaceholderText="Onezone hostname"></TextBox>
+        <TextBox x:Name="rootPathTbx" PlaceholderText="root folder path"></TextBox>
+        <Button x:Name="connectBtn" Click="ConnectButton_Click" Background="DarkBlue">Connect</Button>
+        <TextBlock x:Name="statusTbl" Text="Not Connected"></TextBlock>
+
+        <!-- Note: Syntax highlighting updates on 'Load'. -->
     </StackPanel>
 </Window>

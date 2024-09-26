@@ -1,16 +1,20 @@
-﻿using Vanara.PInvoke;
+﻿using System.Diagnostics;
+using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
 
 public static class CloudSync
 {
-    public static Config configuration = new();
+    //public static Config configuration = new();
+    public static Config configuration;
     public static Dictionary<string, SpaceFolder> spaces = new();
     public static FileWatcher watcher = new();
-    public static int Run(string path = "", bool delete = false)
+    //public static int Run(string path = "", bool delete = false)
+    public static int Run(Config config, bool delete = false)
     {
-        Console.WriteLine("CLOUD SYNC START");
+        Debug.WriteLine("CLOUD SYNC START");
         try
         {
+            /*
             if (path.Length >= 1)
             {
                 configuration = LoadConfig(path);
@@ -19,17 +23,19 @@ public static class CloudSync
             {
                 configuration = LoadConfig();
             }
-            Console.WriteLine("Load config -> OK");
+            Debug.WriteLine("Load config -> OK");
+            */
+            configuration = config;
 
             RestClient.Init(configuration);
-            Console.WriteLine("Init Rest Client -> OK");
+            Debug.WriteLine("Init Rest Client -> OK");
 
             InitSyncRootDir(delete);
-            Console.WriteLine("SyncRoot directory -> OK: " + configuration.root_path);
+            Debug.WriteLine("SyncRoot directory -> OK: " + configuration.root_path);
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Error: {e}");
+            Debug.WriteLine($"Error: {e}");
             return 1;
         }
 
@@ -37,15 +43,15 @@ public static class CloudSync
         {
             //CloudProvider.RegisterWithShell(configuration.root_path).Wait();
             CloudProvider.RegisterWithShell(configuration.root_path);
-            Console.WriteLine("ShellRegister -> OK");
+            Debug.WriteLine("ShellRegister -> OK");
 
             CloudProvider.ConnectCallbacks(configuration.root_path);
-            Console.WriteLine("ConnectCallbacks -> OK");
+            Debug.WriteLine("ConnectCallbacks -> OK");
 
             InitSpaceFolders();
 
             // get placeholders withing space folders
-            Console.WriteLine("CREATING PLACEHOLDERS WITHIN SPACES");
+            Debug.WriteLine("CREATING PLACEHOLDERS WITHIN SPACES");
             foreach (SpaceFolder spaceFolder in spaces.Values)
             {   
                 var task5 = RestClient.GetFilesAndSubdirs(spaceFolder.dirId, spaceFolder.providerInfos);
@@ -54,40 +60,57 @@ public static class CloudSync
 
                 ChildrenPlaceholders(children, spaceFolder.name, spaceFolder);
             }
-            Console.WriteLine("Placeholders created");
+            Debug.WriteLine("Placeholders created");
 
             // start file watcher
             watcher = new(configuration.root_path);
-            Console.WriteLine("FILEWATCHER START");
+            Debug.WriteLine("FILEWATCHER START");
 
+            /*
             // console waits for key hit -> so the program does not terminate
-            Console.WriteLine("DONE: R -> refresh placeholders, ENTER -> terminate app");
+            Debug.WriteLine("DONE: R -> refresh placeholders, ENTER -> terminate app");
             
             // handle user command
             ConsoleLogic();
 
             // end gracefully
-            Console.WriteLine("Turning CloudSync Off");
+            Debug.WriteLine("Turning CloudSync Off");
             watcher.Dispose();
-            Console.WriteLine("FileWatcher Stop");
+            Debug.WriteLine("FileWatcher Stop");
+            */
         }
         catch (Exception e)
         {
-            Console.WriteLine("CLOUD SYNC FAIL.");
-            Console.WriteLine(e.ToString());
+            Debug.WriteLine("CLOUD SYNC FAIL.");
+            Debug.WriteLine(e.ToString());
             return 1;
         }
+        /*
         finally
         {
             CloudProvider.DisconectCallbacks();
-            Console.WriteLine("Callbacks disconected");
+            Debug.WriteLine("Callbacks disconected");
             CloudProvider.UnregisterSafely();
-            Console.WriteLine("SyncRoot unregistered");
+            Debug.WriteLine("SyncRoot unregistered");
         }
+        */
+
+        /*
         RestClient.Dispose();
-        Console.WriteLine("RestClient dispose");
-        Console.WriteLine("TERMINATED NORMALLY (use \"Ctrl + C\" if needed)");
+        Debug.WriteLine("RestClient dispose");
+        Debug.WriteLine("TERMINATED NORMALLY (use \"Ctrl + C\" if needed)");
+        */
         return 0;
+    }
+
+    public static void Stop()
+    {
+        CloudProvider.DisconectCallbacks();
+        Debug.WriteLine("Callbacks disconected");
+        CloudProvider.UnregisterSafely();
+        Debug.WriteLine("SyncRoot unregistered");
+        RestClient.Dispose();
+        watcher.Dispose();
     }
 
     public static int Repair(string syncRootId = "")
@@ -98,7 +121,7 @@ public static class CloudSync
 
     public static void InitSpaceFolders()
     {
-        Console.WriteLine("CREATING SPACE FOLDERS");
+        Debug.WriteLine("CREATING SPACE FOLDERS");
         using (PlaceholderCreateInfo info = new())
         {
             var taskTA = RestClient.InferAccessTokenScope();
@@ -145,7 +168,7 @@ public static class CloudSync
                                 fileInfo.mtime,
                                 fileInfo.ctime);
                             info.Add(Placeholders.createDirInfo(placeholderData));
-                            Console.WriteLine("Space: {0}", spaceName);
+                            Debug.WriteLine("Space: {0}", spaceName);
 
                             placeholderAdded = true;
 
@@ -159,8 +182,8 @@ public static class CloudSync
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine(e);
-                        Console.WriteLine("Trying another provider.");
+                        Debug.WriteLine(e);
+                        Debug.WriteLine("Trying another provider.");
                     }
                 }
                 if (placeholderAdded)
@@ -176,11 +199,11 @@ public static class CloudSync
             HRESULT hres =  CfCreatePlaceholders(configuration.root_path, infoArr, (uint)infoArr.Length, CF_CREATE_FLAGS.CF_CREATE_FLAG_NONE, out entries_processed);
             if (hres != HRESULT.S_OK)
             {
-                Console.WriteLine();
-                Console.WriteLine("FAILED to init space folders (CfCreatePlaceholders): ");
+                Debug.WriteLine("");
+                Debug.WriteLine("FAILED to init space folders (CfCreatePlaceholders): ");
                 Console.Write("     {0}", hres);
             }
-            Console.WriteLine("Placeholder create OK -> (number of spaces) {0}", entries_processed);
+            Debug.WriteLine("Placeholder create OK -> (number of spaces) {0}", entries_processed);
         }
     }
 
@@ -218,13 +241,13 @@ public static class CloudSync
                 HRESULT hres = CfCreatePlaceholders(configuration.root_path + rootDir + @"\", infoArr, (uint)infoArr.Length, CF_CREATE_FLAGS.CF_CREATE_FLAG_NONE, out entries_processed);
                 if (hres != HRESULT.S_OK)
                 {
-                    //Console.WriteLine();
-                    Console.WriteLine("FAILED to init content of space folders (CfCreatePlaceholders): ");
+                    //Debug.WriteLine();
+                    Debug.WriteLine("FAILED to init content of space folders (CfCreatePlaceholders): ");
                     Console.Write("     {0}", hres);
                 }
             }
-            Console.WriteLine("Placeholder create in dir:{0} -> {1} / {2}", configuration.root_path + rootDir + @"\", entries_processed, infoArr.Length);
-            Console.WriteLine();
+            Debug.WriteLine("Placeholder create in dir:{0} -> {1} / {2}", configuration.root_path + rootDir + @"\", entries_processed, infoArr.Length);
+            Debug.WriteLine("");
         }
 
         foreach (SpaceFolder dir in childDirs)
@@ -239,9 +262,9 @@ public static class CloudSync
             }
             catch (Exception e)
             {   
-                Console.WriteLine("Folder: {0}", dir.name);
-                Console.WriteLine(e);
-                Console.WriteLine();
+                Debug.WriteLine("Folder: {0}", dir.name);
+                Debug.WriteLine(e);
+                Debug.WriteLine("");
             }
         }
     }
@@ -253,7 +276,7 @@ public static class CloudSync
             configPath = Directory.GetCurrentDirectory() + @"\" + "config.json";
         }
 
-        Console.WriteLine("Reading configuration from: {0}", configPath);
+        Debug.WriteLine("Reading configuration from: {0}", configPath);
 
         Config config = new();
         config.Init(configPath);
@@ -274,7 +297,7 @@ public static class CloudSync
         if (!Directory.Exists(configuration.root_path))
         {
             _ = Directory.CreateDirectory(configuration.root_path);
-            Console.WriteLine("Creating new SyncRoot Directory.");
+            Debug.WriteLine("Creating new SyncRoot Directory.");
         }
         
         // test root folder permissions
@@ -293,20 +316,20 @@ public static class CloudSync
         while (!terminateApp)
         {
             ConsoleKeyInfo key = Console.ReadKey();
-            Console.WriteLine();
+            Debug.WriteLine("");
             if (key.Key == ConsoleKey.R)
             {
-                Console.WriteLine("R was hit");
+                Debug.WriteLine("R was hit");
                 RefreshPlaceholders();
             }
             else if (key.Key == ConsoleKey.Enter)
             {
-                Console.WriteLine("ENTER was hit -> terminate app");
+                Debug.WriteLine("ENTER was hit -> terminate app");
                 terminateApp = true;
             }
             else
             {
-                Console.WriteLine("Unknown command: R -> refresh placeholders, ENTER -> terminate app");
+                Debug.WriteLine("Unknown command: R -> refresh placeholders, ENTER -> terminate app");
             }
         }
     }
@@ -314,25 +337,25 @@ public static class CloudSync
     public static void RefreshPlaceholders()
     {
         watcher.Pause();
-        Console.WriteLine("REFRESHING PLACEHOLDERS");
+        Debug.WriteLine("REFRESHING PLACEHOLDERS");
         
         foreach (SpaceFolder space in spaces.Values)
         {
             try
             {
-                Console.WriteLine("{0} - Refreshing placeholders", space.name);
+                Debug.WriteLine("{0} - Refreshing placeholders", space.name);
                 string folderPath = configuration.root_path + space.name;
                 RefreshFolder(folderPath, space);
-                Console.WriteLine("{0} - Placeholders refreshed", space.name);
+                Debug.WriteLine("{0} - Placeholders refreshed", space.name);
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
-                Console.WriteLine("Refresh FAILED: {0}", space.name);
+                Debug.WriteLine(e);
+                Debug.WriteLine("Refresh FAILED: {0}", space.name);
             }
             
         }
-        Console.WriteLine("Refresh placeholders FINISHED");
+        Debug.WriteLine("Refresh placeholders FINISHED");
 
         watcher.Resume();
     }
@@ -360,9 +383,9 @@ public static class CloudSync
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
-                Console.WriteLine("Failed to refresh folder {0}", folderPath);
-                Console.WriteLine();
+                Debug.WriteLine(e.Message);
+                Debug.WriteLine("Failed to refresh folder {0}", folderPath);
+                Debug.WriteLine("");
                 return;
             }
             
@@ -434,8 +457,8 @@ public static class CloudSync
                 {
                     Console.Write("FAILED to create new placeholders (CfCreatePlaceholders): {0}", hres);
                 }
-                Console.WriteLine("Placeholder create in dir:{0} -> {1} / {2}", folderPath, entries_processed, infoArr.Length);
-                Console.WriteLine();
+                Debug.WriteLine("Placeholder create in dir:{0} -> {1} / {2}", folderPath, entries_processed, infoArr.Length);
+                Debug.WriteLine("");
             }
         }
         // check files -> if unsync -> delete
@@ -461,8 +484,8 @@ public static class CloudSync
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
-                    Console.WriteLine("Failed to Delete {0}", file);
+                    Debug.WriteLine(e);
+                    Debug.WriteLine("Failed to Delete {0}", file);
                 }
             }
         }
@@ -477,8 +500,8 @@ public static class CloudSync
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
-                    Console.WriteLine("Failed to Delete {0}", dir);
+                    Debug.WriteLine(e);
+                    Debug.WriteLine("Failed to Delete {0}", dir);
                 }
             }
         }
