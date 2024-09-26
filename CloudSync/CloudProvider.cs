@@ -23,7 +23,7 @@ public static class CloudProvider
         x.Wait();
         info.Path = x.Result;
 
-        string icon = "C:\\Users\\User\\Desktop\\win-client\\CloudSync\\bin\\Debug\\net8.0-windows10.0.19041.0" + "\\favicon.ico,0";
+        string icon = "C:\\Users\\User\\Desktop\\win-client\\CloudSync\\bin\\Debug\\net8.0-windows10.0.26100.0" + "\\favicon.ico,0";
         Console.WriteLine("Icon path {0}", icon);
         info.IconResource = icon;
         info.HydrationPolicy = StorageProviderHydrationPolicy.Full;
