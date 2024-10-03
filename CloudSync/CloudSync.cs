@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
+using static Vanara.PInvoke.SearchApi;
 
 public static class CloudSync
 {
@@ -41,6 +42,9 @@ public static class CloudSync
 
         try
         {
+            AddFolderToSearchIndexer(configuration.root_path);
+
+
             //CloudProvider.RegisterWithShell(configuration.root_path).Wait();
             CloudProvider.RegisterWithShell(configuration.root_path);
             Debug.WriteLine("ShellRegister -> OK");
@@ -111,6 +115,19 @@ public static class CloudSync
         Debug.WriteLine("SyncRoot unregistered");
         RestClient.Dispose();
         watcher.Dispose();
+    }
+
+    public static void AddFolderToSearchIndexer(string rootPath)
+    {
+        string url = @"file:" + rootPath;
+
+        ISearchManager searchManager = (ISearchManager) new CSearchManager();
+        ISearchCatalogManager searchCatalogManager = searchManager.GetCatalog("SystemIndex");
+        ISearchCrawlScopeManager searchCrawlScopeManager = searchCatalogManager.GetCrawlScopeManager();
+        searchCrawlScopeManager.AddDefaultScopeRule(url, true, FOLLOW_FLAGS.FF_INDEXCOMPLEXURLS);
+        searchCrawlScopeManager.SaveAll();
+
+        Debug.WriteLine("AddFolderToSearchIndexer with path: " + url);
     }
 
     public static int Repair(string syncRootId = "")
