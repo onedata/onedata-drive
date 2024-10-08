@@ -5,29 +5,21 @@ using static Vanara.PInvoke.SearchApi;
 
 public static class CloudSync
 {
-    //public static Config configuration = new();
-    public static Config configuration;
+    public static Config configuration = new();
     public static Dictionary<string, SpaceFolder> spaces = new();
     public static FileWatcher watcher = new();
-    //public static int Run(string path = "", bool delete = false)
+    /// <summary>
+    /// Method to start CloudSync
+    /// </summary>
+    /// <param name="config">Configuration of CloudSync</param>
+    /// <param name="delete">If true, already existing root directory and its contents will be deleted</param>
+    /// <returns></returns>
     public static int Run(Config config, bool delete = false)
     {
         Debug.WriteLine("CLOUD SYNC START");
+        configuration = config;
         try
         {
-            /*
-            if (path.Length >= 1)
-            {
-                configuration = LoadConfig(path);
-            }
-            else 
-            {
-                configuration = LoadConfig();
-            }
-            Debug.WriteLine("Load config -> OK");
-            */
-            configuration = config;
-
             RestClient.Init(configuration);
             Debug.WriteLine("Init Rest Client -> OK");
 
@@ -43,9 +35,8 @@ public static class CloudSync
         try
         {
             AddFolderToSearchIndexer(configuration.root_path);
+            Debug.Print("Add Folder To Search Indexer -> OK");
 
-
-            //CloudProvider.RegisterWithShell(configuration.root_path).Wait();
             CloudProvider.RegisterWithShell(configuration.root_path);
             Debug.WriteLine("ShellRegister -> OK");
 
@@ -68,42 +59,15 @@ public static class CloudSync
 
             // start file watcher
             watcher = new(configuration.root_path);
-            Debug.WriteLine("FILEWATCHER START");
-
-            /*
-            // console waits for key hit -> so the program does not terminate
-            Debug.WriteLine("DONE: R -> refresh placeholders, ENTER -> terminate app");
-            
-            // handle user command
-            ConsoleLogic();
-
-            // end gracefully
-            Debug.WriteLine("Turning CloudSync Off");
-            watcher.Dispose();
-            Debug.WriteLine("FileWatcher Stop");
-            */
+            Debug.WriteLine("Filewatcher Start -> OK");
         }
         catch (Exception e)
         {
+            Stop();
             Debug.WriteLine("CLOUD SYNC FAIL.");
             Debug.WriteLine(e.ToString());
             return 1;
         }
-        /*
-        finally
-        {
-            CloudProvider.DisconectCallbacks();
-            Debug.WriteLine("Callbacks disconected");
-            CloudProvider.UnregisterSafely();
-            Debug.WriteLine("SyncRoot unregistered");
-        }
-        */
-
-        /*
-        RestClient.Dispose();
-        Debug.WriteLine("RestClient dispose");
-        Debug.WriteLine("TERMINATED NORMALLY (use \"Ctrl + C\" if needed)");
-        */
         return 0;
     }
 

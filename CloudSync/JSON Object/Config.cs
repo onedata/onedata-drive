@@ -10,9 +10,19 @@ public class Config
     {
         string json = File.ReadAllText(path);
         Config temp = JsonSerializer.Deserialize<Config>(json) ?? new();
-        zone_host = temp.zone_host;
-        provider_token = temp.provider_token;
-        root_path = temp.root_path;
+        Init(temp.zone_host, temp.root_path, temp.provider_token);
+    }
+
+    public void Init(string host, string path, string token)
+    {
+        zone_host = host;
+        provider_token = token;
+        root_path = path;
+
+        if (root_path.Last() != '\\')
+        {
+            root_path += "\\";
+        }
     }
 
     public bool IsComplete()
