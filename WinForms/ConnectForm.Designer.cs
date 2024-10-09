@@ -73,7 +73,7 @@
             headerPanel.Location = new Point(0, 0);
             headerPanel.Margin = new Padding(2, 3, 2, 3);
             headerPanel.Name = "headerPanel";
-            headerPanel.Size = new Size(806, 128);
+            headerPanel.Size = new Size(784, 128);
             headerPanel.TabIndex = 3;
             // 
             // headingLabel
@@ -204,6 +204,8 @@
             // deleteRoot_checkBox
             // 
             deleteRoot_checkBox.AutoSize = true;
+            deleteRoot_checkBox.Checked = true;
+            deleteRoot_checkBox.CheckState = CheckState.Checked;
             deleteRoot_checkBox.Location = new Point(146, 357);
             deleteRoot_checkBox.Margin = new Padding(2, 3, 2, 3);
             deleteRoot_checkBox.Name = "deleteRoot_checkBox";
@@ -266,7 +268,7 @@
             // 
             AutoScaleDimensions = new SizeF(8F, 19F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(806, 557);
+            ClientSize = new Size(784, 557);
             Controls.Add(loadFromFile_button);
             Controls.Add(status_label);
             Controls.Add(disconect_button);
@@ -285,11 +287,12 @@
             Controls.Add(headerPanel);
             Controls.Add(label1);
             Font = new Font("Microsoft YaHei", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Margin = new Padding(2, 3, 2, 3);
-            MinimumSize = new Size(822, 596);
+            MinimumSize = new Size(800, 596);
             Name = "ConnectForm";
             Text = "Onedata Drive";
-            Load += Form1_Load;
+            FormClosed += ConnectForm_FormClosed;
             headerPanel.ResumeLayout(false);
             headerPanel.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)logoPictureBox).EndInit();
