@@ -77,7 +77,7 @@ public static class CloudSync
         Debug.WriteLine("Callbacks disconected");
         CloudProvider.UnregisterSafely();
         Debug.WriteLine("SyncRoot unregistered");
-        RestClient.Dispose();
+        RestClient.Stop();
         watcher.Dispose();
     }
 

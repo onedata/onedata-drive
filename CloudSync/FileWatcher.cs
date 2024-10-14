@@ -5,10 +5,12 @@ using static Vanara.PInvoke.CldApi;
 public class FileWatcher
 {
     private FileSystemWatcher watcher;
+    private bool disposed = true;
 
     public FileWatcher()
     {
         watcher = new();
+        disposed = false;
     }
 
     public FileWatcher(string rootDir)
@@ -30,6 +32,7 @@ public class FileWatcher
         watcher.IncludeSubdirectories = true;
 
         watcher.EnableRaisingEvents = true;
+        disposed = false;
     }
 
     public void OnCreated(object sender, FileSystemEventArgs e)
@@ -353,8 +356,11 @@ public class FileWatcher
 
     public void Dispose()
     {
-        watcher.EnableRaisingEvents = false;
-        watcher.Dispose();
+        if (!disposed)
+        {
+            watcher.EnableRaisingEvents = false;
+            watcher.Dispose();
+        }
     }
 
     public void Pause()

@@ -9,13 +9,41 @@ namespace WinForms
 
         private async void connect_button_Click(object sender, EventArgs e)
         {
-            Config config = new();
-            config.Init(
-                path: rootPath_textBox.Text,
-                token: providerToken_textBox.Text,
-                host: zoneHost_textBox.Text);
-            label1.Text = "In progress";
-            await LaunchCloudSyncAsync(config);
+            bool valid = true;
+            err_rootPath_label.Visible = false;
+            err_providerToken_label.Visible = false;
+            err_zoneHost_label.Visible = false;
+
+            if (providerToken_textBox.Text == "")
+            {
+                err_providerToken_label.Visible = true;
+                valid = false;
+            }
+            if (zoneHost_textBox.Text == "")
+            {
+                err_zoneHost_label.Visible = true;
+                valid = false;
+            }
+            if (rootPath_textBox.Text == "")
+            {
+                err_rootPath_label.Visible = true;
+                valid = false;
+            }
+
+            if (valid)
+            {
+                Config config = new();
+                config.Init(
+                    path: rootPath_textBox.Text,
+                    token: providerToken_textBox.Text,
+                    host: zoneHost_textBox.Text);
+                statusValue_label.Text = "In progress";
+                await LaunchCloudSyncAsync(config);
+            }
+            else 
+            {
+                statusValue_label.Text = "Invalid values";
+            }
         }
 
         private async Task LaunchCloudSyncAsync(Config config)
@@ -23,18 +51,18 @@ namespace WinForms
             int status = await Task.Run(() => CloudSync.Run(config, delete: deleteRoot_checkBox.Checked));
             if (status == 0)
             {
-                label1.Text = "Connected";
+                statusValue_label.Text = "Connected";
             }
             else
             {
-                label1.Text = "Something went wrong";
+                statusValue_label.Text = "Something went wrong";
             }
         }
 
         private void disconect_button_Click(object sender, EventArgs e)
         {
             CloudSync.Stop();
-            label1.Text = "Disconected";
+            statusValue_label.Text = "Disconected";
         }
 
         private void folderBrowser_button_Click(object sender, EventArgs e)
@@ -56,11 +84,11 @@ namespace WinForms
                     zoneHost_textBox.Text = config.zone_host;
                     rootPath_textBox.Text = config.root_path;
                     providerToken_textBox.Text = config.provider_token;
-                    label1.Text = "file read OK";
+                    statusValue_label.Text = "file read OK";
                 }
                 catch (Exception)
                 {
-                    label1.Text = "Failed to read file";
+                    statusValue_label.Text = "Failed to read file";
                 }
 
             }

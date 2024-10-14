@@ -19,7 +19,7 @@ public class Config
         provider_token = token;
         root_path = path;
 
-        if (root_path.Last() != '\\')
+        if (root_path.Length != 0 && root_path.Last() != '\\')
         {
             root_path += "\\";
         }

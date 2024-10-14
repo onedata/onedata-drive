@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ConnectForm));
-            label1 = new Label();
+            statusValue_label = new Label();
             headerPanel = new Panel();
             headingLabel = new Label();
             logoPictureBox = new PictureBox();
@@ -54,15 +54,15 @@
             ((System.ComponentModel.ISupportInitialize)logoPictureBox).BeginInit();
             SuspendLayout();
             // 
-            // label1
+            // statusValue_label
             // 
-            label1.AutoSize = true;
-            label1.Location = new Point(97, 529);
-            label1.Margin = new Padding(2, 0, 2, 0);
-            label1.Name = "label1";
-            label1.Size = new Size(57, 19);
-            label1.TabIndex = 2;
-            label1.Text = "nothing";
+            statusValue_label.AutoSize = true;
+            statusValue_label.Location = new Point(97, 529);
+            statusValue_label.Margin = new Padding(2, 0, 2, 0);
+            statusValue_label.Name = "statusValue_label";
+            statusValue_label.Size = new Size(57, 19);
+            statusValue_label.TabIndex = 2;
+            statusValue_label.Text = "nothing";
             // 
             // headerPanel
             // 
@@ -125,9 +125,9 @@
             err_zoneHost_label.Location = new Point(146, 185);
             err_zoneHost_label.Margin = new Padding(2, 0, 2, 0);
             err_zoneHost_label.Name = "err_zoneHost_label";
-            err_zoneHost_label.Size = new Size(45, 19);
+            err_zoneHost_label.Size = new Size(48, 19);
             err_zoneHost_label.TabIndex = 6;
-            err_zoneHost_label.Text = "label3";
+            err_zoneHost_label.Text = "Empty";
             err_zoneHost_label.Visible = false;
             // 
             // err_rootPath_label
@@ -137,9 +137,9 @@
             err_rootPath_label.Location = new Point(146, 318);
             err_rootPath_label.Margin = new Padding(2, 0, 2, 0);
             err_rootPath_label.Name = "err_rootPath_label";
-            err_rootPath_label.Size = new Size(45, 19);
+            err_rootPath_label.Size = new Size(48, 19);
             err_rootPath_label.TabIndex = 9;
-            err_rootPath_label.Text = "label4";
+            err_rootPath_label.Text = "Empty";
             err_rootPath_label.Visible = false;
             // 
             // rootPath_textBox
@@ -167,9 +167,9 @@
             err_providerToken_label.Location = new Point(146, 252);
             err_providerToken_label.Margin = new Padding(2, 0, 2, 0);
             err_providerToken_label.Name = "err_providerToken_label";
-            err_providerToken_label.Size = new Size(45, 19);
+            err_providerToken_label.Size = new Size(48, 19);
             err_providerToken_label.TabIndex = 12;
-            err_providerToken_label.Text = "label6";
+            err_providerToken_label.Text = "Empty";
             err_providerToken_label.Visible = false;
             // 
             // providerToken_textBox
@@ -286,7 +286,7 @@
             Controls.Add(zoneHost_textBox);
             Controls.Add(zoneHost_label);
             Controls.Add(headerPanel);
-            Controls.Add(label1);
+            Controls.Add(statusValue_label);
             Font = new Font("Microsoft YaHei", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Margin = new Padding(2, 3, 2, 3);
@@ -302,7 +302,7 @@
         }
 
         #endregion
-        private Label label1;
+        private Label statusValue_label;
         private Panel headerPanel;
         private PictureBox logoPictureBox;
         private Label headingLabel;

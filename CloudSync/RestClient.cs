@@ -345,12 +345,10 @@ static class RestClient
         throw new Exception("Failed to get FileInfo");
     }
 
-    public static void Dispose()
+    public static void Stop()
     {
         client.CancelPendingRequests();
-        client.Dispose();
 
         clientNoHeaders.CancelPendingRequests();
-        clientNoHeaders.Dispose();
     }
 }
