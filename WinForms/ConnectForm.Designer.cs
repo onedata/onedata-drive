@@ -33,15 +33,15 @@
             headerPanel = new Panel();
             headingLabel = new Label();
             logoPictureBox = new PictureBox();
-            zoneHost_label = new Label();
-            zoneHost_textBox = new TextBox();
-            err_zoneHost_label = new Label();
-            err_rootPath_label = new Label();
-            rootPath_textBox = new TextBox();
-            rootPath_label = new Label();
-            err_providerToken_label = new Label();
-            providerToken_textBox = new TextBox();
-            providerToken_label = new Label();
+            onezone_label = new Label();
+            onezone_textBox = new TextBox();
+            err_onezone_label = new Label();
+            err_rootFolder_label = new Label();
+            rootFolder_textBox = new TextBox();
+            rootFolder_label = new Label();
+            err_oneproviderToken_label = new Label();
+            oneproviderToken_textBox = new TextBox();
+            oneproviderToken_label = new Label();
             folderBrowser_button = new Button();
             rootPath_folderBrowserDialog = new FolderBrowserDialog();
             deleteRoot_checkBox = new CheckBox();
@@ -100,99 +100,100 @@
             logoPictureBox.TabIndex = 0;
             logoPictureBox.TabStop = false;
             // 
-            // zoneHost_label
+            // onezone_label
             // 
-            zoneHost_label.AutoSize = true;
-            zoneHost_label.Location = new Point(31, 157);
-            zoneHost_label.Margin = new Padding(2, 0, 2, 0);
-            zoneHost_label.Name = "zoneHost_label";
-            zoneHost_label.Size = new Size(73, 19);
-            zoneHost_label.TabIndex = 4;
-            zoneHost_label.Text = "Zone Host";
+            onezone_label.AutoSize = true;
+            onezone_label.Location = new Point(31, 157);
+            onezone_label.Margin = new Padding(2, 0, 2, 0);
+            onezone_label.Name = "onezone_label";
+            onezone_label.Size = new Size(64, 19);
+            onezone_label.TabIndex = 4;
+            onezone_label.Text = "Onezone";
             // 
-            // zoneHost_textBox
+            // onezone_textBox
             // 
-            zoneHost_textBox.Location = new Point(146, 153);
-            zoneHost_textBox.Margin = new Padding(2, 3, 2, 3);
-            zoneHost_textBox.Name = "zoneHost_textBox";
-            zoneHost_textBox.Size = new Size(474, 25);
-            zoneHost_textBox.TabIndex = 5;
+            onezone_textBox.Location = new Point(175, 153);
+            onezone_textBox.Margin = new Padding(2, 3, 2, 3);
+            onezone_textBox.Name = "onezone_textBox";
+            onezone_textBox.Size = new Size(474, 25);
+            onezone_textBox.TabIndex = 5;
             // 
-            // err_zoneHost_label
+            // err_onezone_label
             // 
-            err_zoneHost_label.AutoSize = true;
-            err_zoneHost_label.ForeColor = Color.FromArgb(192, 0, 0);
-            err_zoneHost_label.Location = new Point(146, 185);
-            err_zoneHost_label.Margin = new Padding(2, 0, 2, 0);
-            err_zoneHost_label.Name = "err_zoneHost_label";
-            err_zoneHost_label.Size = new Size(48, 19);
-            err_zoneHost_label.TabIndex = 6;
-            err_zoneHost_label.Text = "Empty";
-            err_zoneHost_label.Visible = false;
+            err_onezone_label.AutoSize = true;
+            err_onezone_label.ForeColor = Color.FromArgb(192, 0, 0);
+            err_onezone_label.Location = new Point(175, 185);
+            err_onezone_label.Margin = new Padding(2, 0, 2, 0);
+            err_onezone_label.Name = "err_onezone_label";
+            err_onezone_label.Size = new Size(48, 19);
+            err_onezone_label.TabIndex = 6;
+            err_onezone_label.Text = "Empty";
+            err_onezone_label.Visible = false;
             // 
-            // err_rootPath_label
+            // err_rootFolder_label
             // 
-            err_rootPath_label.AutoSize = true;
-            err_rootPath_label.ForeColor = Color.FromArgb(192, 0, 0);
-            err_rootPath_label.Location = new Point(146, 318);
-            err_rootPath_label.Margin = new Padding(2, 0, 2, 0);
-            err_rootPath_label.Name = "err_rootPath_label";
-            err_rootPath_label.Size = new Size(48, 19);
-            err_rootPath_label.TabIndex = 9;
-            err_rootPath_label.Text = "Empty";
-            err_rootPath_label.Visible = false;
+            err_rootFolder_label.AutoSize = true;
+            err_rootFolder_label.ForeColor = Color.FromArgb(192, 0, 0);
+            err_rootFolder_label.Location = new Point(175, 318);
+            err_rootFolder_label.Margin = new Padding(2, 0, 2, 0);
+            err_rootFolder_label.Name = "err_rootFolder_label";
+            err_rootFolder_label.Size = new Size(48, 19);
+            err_rootFolder_label.TabIndex = 9;
+            err_rootFolder_label.Text = "Empty";
+            err_rootFolder_label.Visible = false;
             // 
-            // rootPath_textBox
+            // rootFolder_textBox
             // 
-            rootPath_textBox.Location = new Point(146, 289);
-            rootPath_textBox.Margin = new Padding(2, 3, 2, 3);
-            rootPath_textBox.Name = "rootPath_textBox";
-            rootPath_textBox.Size = new Size(474, 25);
-            rootPath_textBox.TabIndex = 8;
+            rootFolder_textBox.Location = new Point(175, 289);
+            rootFolder_textBox.Margin = new Padding(2, 3, 2, 3);
+            rootFolder_textBox.Name = "rootFolder_textBox";
+            rootFolder_textBox.ReadOnly = true;
+            rootFolder_textBox.Size = new Size(474, 25);
+            rootFolder_textBox.TabIndex = 8;
             // 
-            // rootPath_label
+            // rootFolder_label
             // 
-            rootPath_label.AutoSize = true;
-            rootPath_label.Location = new Point(31, 290);
-            rootPath_label.Margin = new Padding(2, 0, 2, 0);
-            rootPath_label.Name = "rootPath_label";
-            rootPath_label.Size = new Size(70, 19);
-            rootPath_label.TabIndex = 7;
-            rootPath_label.Text = "Root Path";
+            rootFolder_label.AutoSize = true;
+            rootFolder_label.Location = new Point(31, 290);
+            rootFolder_label.Margin = new Padding(2, 0, 2, 0);
+            rootFolder_label.Name = "rootFolder_label";
+            rootFolder_label.Size = new Size(80, 19);
+            rootFolder_label.TabIndex = 7;
+            rootFolder_label.Text = "Root Folder";
             // 
-            // err_providerToken_label
+            // err_oneproviderToken_label
             // 
-            err_providerToken_label.AutoSize = true;
-            err_providerToken_label.ForeColor = Color.FromArgb(192, 0, 0);
-            err_providerToken_label.Location = new Point(146, 252);
-            err_providerToken_label.Margin = new Padding(2, 0, 2, 0);
-            err_providerToken_label.Name = "err_providerToken_label";
-            err_providerToken_label.Size = new Size(48, 19);
-            err_providerToken_label.TabIndex = 12;
-            err_providerToken_label.Text = "Empty";
-            err_providerToken_label.Visible = false;
+            err_oneproviderToken_label.AutoSize = true;
+            err_oneproviderToken_label.ForeColor = Color.FromArgb(192, 0, 0);
+            err_oneproviderToken_label.Location = new Point(175, 252);
+            err_oneproviderToken_label.Margin = new Padding(2, 0, 2, 0);
+            err_oneproviderToken_label.Name = "err_oneproviderToken_label";
+            err_oneproviderToken_label.Size = new Size(48, 19);
+            err_oneproviderToken_label.TabIndex = 12;
+            err_oneproviderToken_label.Text = "Empty";
+            err_oneproviderToken_label.Visible = false;
             // 
-            // providerToken_textBox
+            // oneproviderToken_textBox
             // 
-            providerToken_textBox.Location = new Point(146, 222);
-            providerToken_textBox.Margin = new Padding(2, 3, 2, 3);
-            providerToken_textBox.Name = "providerToken_textBox";
-            providerToken_textBox.Size = new Size(474, 25);
-            providerToken_textBox.TabIndex = 11;
+            oneproviderToken_textBox.Location = new Point(175, 222);
+            oneproviderToken_textBox.Margin = new Padding(2, 3, 2, 3);
+            oneproviderToken_textBox.Name = "oneproviderToken_textBox";
+            oneproviderToken_textBox.Size = new Size(474, 25);
+            oneproviderToken_textBox.TabIndex = 11;
             // 
-            // providerToken_label
+            // oneproviderToken_label
             // 
-            providerToken_label.AutoSize = true;
-            providerToken_label.Location = new Point(31, 223);
-            providerToken_label.Margin = new Padding(2, 0, 2, 0);
-            providerToken_label.Name = "providerToken_label";
-            providerToken_label.Size = new Size(101, 19);
-            providerToken_label.TabIndex = 10;
-            providerToken_label.Text = "Provider Token";
+            oneproviderToken_label.AutoSize = true;
+            oneproviderToken_label.Location = new Point(31, 223);
+            oneproviderToken_label.Margin = new Padding(2, 0, 2, 0);
+            oneproviderToken_label.Name = "oneproviderToken_label";
+            oneproviderToken_label.Size = new Size(127, 19);
+            oneproviderToken_label.TabIndex = 10;
+            oneproviderToken_label.Text = "Oneprovider Token";
             // 
             // folderBrowser_button
             // 
-            folderBrowser_button.Location = new Point(626, 290);
+            folderBrowser_button.Location = new Point(655, 290);
             folderBrowser_button.Margin = new Padding(2, 3, 2, 3);
             folderBrowser_button.Name = "folderBrowser_button";
             folderBrowser_button.Size = new Size(31, 24);
@@ -206,7 +207,7 @@
             deleteRoot_checkBox.AutoSize = true;
             deleteRoot_checkBox.Checked = true;
             deleteRoot_checkBox.CheckState = CheckState.Checked;
-            deleteRoot_checkBox.Location = new Point(146, 357);
+            deleteRoot_checkBox.Location = new Point(175, 357);
             deleteRoot_checkBox.Margin = new Padding(2, 3, 2, 3);
             deleteRoot_checkBox.Name = "deleteRoot_checkBox";
             deleteRoot_checkBox.Size = new Size(186, 23);
@@ -276,15 +277,15 @@
             Controls.Add(connect_button);
             Controls.Add(deleteRoot_checkBox);
             Controls.Add(folderBrowser_button);
-            Controls.Add(err_providerToken_label);
-            Controls.Add(providerToken_textBox);
-            Controls.Add(providerToken_label);
-            Controls.Add(err_rootPath_label);
-            Controls.Add(rootPath_textBox);
-            Controls.Add(rootPath_label);
-            Controls.Add(err_zoneHost_label);
-            Controls.Add(zoneHost_textBox);
-            Controls.Add(zoneHost_label);
+            Controls.Add(err_oneproviderToken_label);
+            Controls.Add(oneproviderToken_textBox);
+            Controls.Add(oneproviderToken_label);
+            Controls.Add(err_rootFolder_label);
+            Controls.Add(rootFolder_textBox);
+            Controls.Add(rootFolder_label);
+            Controls.Add(err_onezone_label);
+            Controls.Add(onezone_textBox);
+            Controls.Add(onezone_label);
             Controls.Add(headerPanel);
             Controls.Add(statusValue_label);
             Font = new Font("Microsoft YaHei", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
@@ -306,15 +307,15 @@
         private Panel headerPanel;
         private PictureBox logoPictureBox;
         private Label headingLabel;
-        private Label zoneHost_label;
-        private TextBox zoneHost_textBox;
-        private Label err_zoneHost_label;
-        private Label err_rootPath_label;
-        private TextBox rootPath_textBox;
-        private Label rootPath_label;
-        private Label err_providerToken_label;
-        private TextBox providerToken_textBox;
-        private Label providerToken_label;
+        private Label onezone_label;
+        private TextBox onezone_textBox;
+        private Label err_onezone_label;
+        private Label err_rootFolder_label;
+        private TextBox rootFolder_textBox;
+        private Label rootFolder_label;
+        private Label err_oneproviderToken_label;
+        private TextBox oneproviderToken_textBox;
+        private Label oneproviderToken_label;
         private Button folderBrowser_button;
         private FolderBrowserDialog rootPath_folderBrowserDialog;
         private CheckBox deleteRoot_checkBox;
