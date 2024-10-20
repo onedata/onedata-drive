@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 
 namespace WinForms
@@ -44,12 +45,12 @@ namespace WinForms
                     path: rootFolder_textBox.Text,
                     token: oneproviderToken_textBox.Text,
                     host: onezone_textBox.Text);
-                statusValue_label.Text = "In progress";
+                statusMessage.Text = "In progress";
                 await LaunchCloudSyncAsync(config);
             }
-            else 
+            else
             {
-                statusValue_label.Text = "Invalid values";
+                statusMessage.Text = "Invalid values";
             }
         }
 
@@ -58,18 +59,20 @@ namespace WinForms
             int status = await Task.Run(() => CloudSync.Run(config, delete: deleteRoot_checkBox.Checked));
             if (status == 0)
             {
-                statusValue_label.Text = "Connected";
+                statusMessage.Text = "Connected";
+                SetStatus(running: true);
             }
             else
             {
-                statusValue_label.Text = "Something went wrong";
+                statusMessage.Text = "Something went wrong";
             }
         }
 
         private void disconect_button_Click(object sender, EventArgs e)
         {
             CloudSync.Stop();
-            statusValue_label.Text = "Disconected";
+            statusMessage.Text = "Disconected";
+            SetStatus(running: false);
         }
 
         private void folderBrowser_button_Click(object sender, EventArgs e)
@@ -92,11 +95,11 @@ namespace WinForms
                     onezone_textBox.Text = config.zone_host;
                     rootFolder_textBox.Text = config.root_path;
                     oneproviderToken_textBox.Text = config.provider_token;
-                    statusValue_label.Text = "file read OK";
+                    statusMessage.Text = "file read OK";
                 }
                 catch (Exception)
                 {
-                    statusValue_label.Text = "Failed to read file";
+                    statusMessage.Text = "Failed to read file";
                 }
 
             }
@@ -105,6 +108,34 @@ namespace WinForms
         private void ConnectForm_FormClosed(object sender, FormClosedEventArgs e)
         {
             CloudSync.Stop();
+        }
+
+        private void advanced_button_Click(object sender, EventArgs e)
+        {
+            if (advanced_panel.Visible == true)
+            {
+                advanced_panel.Hide();
+            }
+            else
+            {
+                advanced_panel.Show();
+            }
+        }
+
+        private void ConnectForm_Closing(object sender, FormClosingEventArgs e)
+        {
+            string message = "Are you sure you want to quit? This will disconect Onedata Drive";
+            if (statusImageGreen.Visible &&
+                MessageBox.Show(message, "Onedata Drive", MessageBoxButtons.YesNo) == DialogResult.No)
+            {
+                e.Cancel = true;
+            }
+        }
+
+        private void SetStatus(bool running)
+        {
+            statusImageGreen.Visible = running;
+            statusImageRed.Visible = !running;
         }
     }
 }
