@@ -42,13 +42,14 @@
             oneproviderToken_textBox = new TextBox();
             oneproviderToken_label = new Label();
             folderBrowser_button = new Button();
-            rootPath_folderBrowserDialog = new FolderBrowserDialog();
+            rootFolder_folderBrowserDialog = new FolderBrowserDialog();
             deleteRoot_checkBox = new CheckBox();
             connect_button = new Button();
             disconect_button = new Button();
             loadFromFile_button = new Button();
             config_openFileDialog = new OpenFileDialog();
             form_panel = new Panel();
+            rootFolderErase_button = new Button();
             advanced_button = new Button();
             advanced_panel = new Panel();
             controls_panel = new Panel();
@@ -208,7 +209,7 @@
             deleteRoot_checkBox.AutoSize = true;
             deleteRoot_checkBox.Checked = true;
             deleteRoot_checkBox.CheckState = CheckState.Checked;
-            deleteRoot_checkBox.Location = new Point(194, 17);
+            deleteRoot_checkBox.Location = new Point(194, 9);
             deleteRoot_checkBox.Margin = new Padding(2, 3, 2, 3);
             deleteRoot_checkBox.Name = "deleteRoot_checkBox";
             deleteRoot_checkBox.Size = new Size(186, 23);
@@ -219,7 +220,7 @@
             // connect_button
             // 
             connect_button.BackColor = Color.FromArgb(236, 60, 60);
-            connect_button.Location = new Point(528, 16);
+            connect_button.Location = new Point(528, 29);
             connect_button.Margin = new Padding(2, 3, 2, 3);
             connect_button.Name = "connect_button";
             connect_button.Size = new Size(118, 49);
@@ -231,7 +232,7 @@
             // disconect_button
             // 
             disconect_button.BackColor = Color.White;
-            disconect_button.Location = new Point(391, 16);
+            disconect_button.Location = new Point(391, 29);
             disconect_button.Margin = new Padding(2, 3, 2, 3);
             disconect_button.Name = "disconect_button";
             disconect_button.Size = new Size(118, 49);
@@ -243,7 +244,7 @@
             // loadFromFile_button
             // 
             loadFromFile_button.BackColor = SystemColors.Window;
-            loadFromFile_button.Location = new Point(194, 56);
+            loadFromFile_button.Location = new Point(194, 48);
             loadFromFile_button.Margin = new Padding(2, 3, 2, 3);
             loadFromFile_button.Name = "loadFromFile_button";
             loadFromFile_button.Size = new Size(194, 33);
@@ -259,6 +260,7 @@
             // 
             // form_panel
             // 
+            form_panel.Controls.Add(rootFolderErase_button);
             form_panel.Controls.Add(advanced_button);
             form_panel.Controls.Add(onezone_textBox);
             form_panel.Controls.Add(onezone_label);
@@ -273,8 +275,19 @@
             form_panel.Dock = DockStyle.Top;
             form_panel.Location = new Point(0, 128);
             form_panel.Name = "form_panel";
-            form_panel.Size = new Size(767, 258);
+            form_panel.Size = new Size(767, 252);
             form_panel.TabIndex = 20;
+            // 
+            // rootFolderErase_button
+            // 
+            rootFolderErase_button.Location = new Point(674, 153);
+            rootFolderErase_button.Margin = new Padding(2, 3, 2, 3);
+            rootFolderErase_button.Name = "rootFolderErase_button";
+            rootFolderErase_button.Size = new Size(31, 24);
+            rootFolderErase_button.TabIndex = 16;
+            rootFolderErase_button.Text = "X";
+            rootFolderErase_button.UseVisualStyleBackColor = true;
+            rootFolderErase_button.Click += rootFolderErase_button_Click;
             // 
             // advanced_button
             // 
@@ -282,7 +295,7 @@
             advanced_button.FlatStyle = FlatStyle.Flat;
             advanced_button.Image = (Image)resources.GetObject("advanced_button.Image");
             advanced_button.ImageAlign = ContentAlignment.MiddleRight;
-            advanced_button.Location = new Point(78, 221);
+            advanced_button.Location = new Point(78, 217);
             advanced_button.Name = "advanced_button";
             advanced_button.Size = new Size(110, 34);
             advanced_button.TabIndex = 15;
@@ -296,9 +309,9 @@
             advanced_panel.Controls.Add(loadFromFile_button);
             advanced_panel.Controls.Add(deleteRoot_checkBox);
             advanced_panel.Dock = DockStyle.Top;
-            advanced_panel.Location = new Point(0, 386);
+            advanced_panel.Location = new Point(0, 380);
             advanced_panel.Name = "advanced_panel";
-            advanced_panel.Size = new Size(767, 99);
+            advanced_panel.Size = new Size(767, 94);
             advanced_panel.TabIndex = 21;
             advanced_panel.Visible = false;
             // 
@@ -307,15 +320,15 @@
             controls_panel.Controls.Add(connect_button);
             controls_panel.Controls.Add(disconect_button);
             controls_panel.Dock = DockStyle.Top;
-            controls_panel.Location = new Point(0, 485);
+            controls_panel.Location = new Point(0, 474);
             controls_panel.Name = "controls_panel";
-            controls_panel.Size = new Size(767, 77);
+            controls_panel.Size = new Size(767, 97);
             controls_panel.TabIndex = 22;
             // 
             // statusStrip
             // 
             statusStrip.Items.AddRange(new ToolStripItem[] { statusImageRed, statusImageGreen, statusLabel, statusMessage });
-            statusStrip.Location = new Point(0, 562);
+            statusStrip.Location = new Point(0, 571);
             statusStrip.Name = "statusStrip";
             statusStrip.Size = new Size(767, 22);
             statusStrip.TabIndex = 23;
@@ -392,7 +405,7 @@
         private TextBox oneproviderToken_textBox;
         private Label oneproviderToken_label;
         private Button folderBrowser_button;
-        private FolderBrowserDialog rootPath_folderBrowserDialog;
+        private FolderBrowserDialog rootFolder_folderBrowserDialog;
         private CheckBox deleteRoot_checkBox;
         private Button connect_button;
         private Button disconect_button;
@@ -409,5 +422,6 @@
         private ToolStripStatusLabel statusMessage;
         private ToolStripStatusLabel statusImageRed;
         private ToolStripStatusLabel statusImageGreen;
+        private Button rootFolderErase_button;
     }
 }

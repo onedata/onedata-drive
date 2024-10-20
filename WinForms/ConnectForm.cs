@@ -6,12 +6,15 @@ namespace WinForms
     public partial class ConnectForm : Form
     {
         private const string ROOT_DIR = "Onedata Drive";
+        private string defaultRootPath;
         public ConnectForm()
         {
             InitializeComponent();
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            rootFolder_textBox.Text = appData + "\\" + ROOT_DIR;
-            rootPath_folderBrowserDialog.InitialDirectory = appData;
+            defaultRootPath = appData + "\\" + ROOT_DIR;
+            //rootFolder_textBox.Text = defaultRootPath;
+            rootFolder_textBox.PlaceholderText = defaultRootPath;
+            rootFolder_folderBrowserDialog.InitialDirectory = appData;
             Debug.WriteLine("User Home Directory: " + appData);
         }
 
@@ -32,17 +35,12 @@ namespace WinForms
                 err_onezone_label.Visible = true;
                 valid = false;
             }
-            if (rootFolder_textBox.Text == "")
-            {
-                err_rootFolder_label.Visible = true;
-                valid = false;
-            }
 
             if (valid)
             {
                 Config config = new();
                 config.Init(
-                    path: rootFolder_textBox.Text,
+                    path: rootFolder_textBox.Text.Length == 0 ? defaultRootPath : rootFolder_textBox.Text,
                     token: oneproviderToken_textBox.Text,
                     host: onezone_textBox.Text);
                 statusMessage.Text = "In progress";
@@ -77,9 +75,9 @@ namespace WinForms
 
         private void folderBrowser_button_Click(object sender, EventArgs e)
         {
-            if (rootPath_folderBrowserDialog.ShowDialog() == DialogResult.OK)
+            if (rootFolder_folderBrowserDialog.ShowDialog() == DialogResult.OK)
             {
-                rootFolder_textBox.Text = rootPath_folderBrowserDialog.SelectedPath
+                rootFolder_textBox.Text = rootFolder_folderBrowserDialog.SelectedPath
                     + "\\" + ROOT_DIR;
             }
         }
@@ -93,8 +91,15 @@ namespace WinForms
                 {
                     config.Init(config_openFileDialog.FileName);
                     onezone_textBox.Text = config.zone_host;
-                    rootFolder_textBox.Text = config.root_path;
                     oneproviderToken_textBox.Text = config.provider_token;
+                    if (config.root_path.Length == 0)
+                    {
+                        rootFolder_textBox.Text = "";
+                    }
+                    else
+                    {
+                        rootFolder_textBox.Text = config.root_path;
+                    }
                     statusMessage.Text = "file read OK";
                 }
                 catch (Exception)
@@ -136,6 +141,11 @@ namespace WinForms
         {
             statusImageGreen.Visible = running;
             statusImageRed.Visible = !running;
+        }
+
+        private void rootFolderErase_button_Click(object sender, EventArgs e)
+        {
+            rootFolder_textBox.Text = "";
         }
     }
 }
