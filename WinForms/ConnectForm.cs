@@ -10,12 +10,12 @@ namespace WinForms
     {
         private const string ROOT_DIR = "Onedata Drive";
         private string exePath { get; } = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
-        private string appDataPath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        //private string appDataPath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         private string defaultRootPath 
         {
             get
             {
-                return appDataPath + "\\" + "Onedata Drive";
+                return exePath + "\\" + "Onedata Drive";
             }
         }
         private string lastConfigPath
@@ -31,7 +31,7 @@ namespace WinForms
             InitializeComponent();
             disconect_button.Enabled = false;
             rootFolder_textBox.PlaceholderText = defaultRootPath;
-            rootFolder_folderBrowserDialog.InitialDirectory = appDataPath;
+            rootFolder_folderBrowserDialog.InitialDirectory = exePath;
             LoadLastConfig();
         }
 
