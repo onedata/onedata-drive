@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using Vanara.Extensions.Reflection;
@@ -23,8 +25,11 @@ public static class CloudProvider
         x.Wait();
         info.Path = x.Result;
 
-        string icon = "C:\\Users\\User\\Desktop\\win-client\\CloudSync\\bin\\Debug\\net8.0-windows10.0.26100.0" + "\\favicon.ico,0";
-        Console.WriteLine("Icon path {0}", icon);
+        //string icon = "C:\\Users\\User\\Desktop\\win-client\\CloudSync\\bin\\Debug\\net8.0-windows10.0.26100.0" + "\\favicon.ico,0";
+        string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
+        string icon = exeDir + "\\favicon.ico,0";
+
+        Debug.Print("Icon path: {0}", icon);
         info.IconResource = icon;
         info.HydrationPolicy = StorageProviderHydrationPolicy.Full;
         info.HydrationPolicyModifier = StorageProviderHydrationPolicyModifier.None;
@@ -39,10 +44,10 @@ public static class CloudProvider
         info.Context = CryptographicBuffer.ConvertStringToBinary(folderPath, BinaryStringEncoding.Utf8);
 
         StorageProviderSyncRootManager.Register(info);
-        Console.WriteLine("SyncRoot ID: {0}", info.Id);
+        Debug.Print("SyncRoot ID: {0}", info.Id);
 
         var info2 = StorageProviderSyncRootManager.GetCurrentSyncRoots();
-        Console.WriteLine("Number of syncRoots: " + info2.Count);
+        Debug.Print("Number of syncRoots: " + info2.Count);
     }
 
     public static void UnregisterSafely(string syncRootId = "")
@@ -55,12 +60,12 @@ public static class CloudProvider
 
         var info = StorageProviderSyncRootManager.GetCurrentSyncRoots();
         int matchingSyncRootsCount = info.Where(x => x.Id == syncRootId).ToArray().Length;
-        Console.WriteLine("Total number of syncRoots before unregister: " + info.Count);
-        Console.WriteLine("Number of matching syncRoots before unregister: " + matchingSyncRootsCount);
+        Debug.Print("Total number of syncRoots before unregister: " + info.Count);
+        Debug.Print("Number of matching syncRoots before unregister: " + matchingSyncRootsCount);
 
         if (info.Where(x => x.Id == syncRootId).ToArray().Length < 1)
         {
-            Console.WriteLine("Can not unregister syncRoot with id \"{0}\", because it does not exist", syncRootId);
+            Debug.Print("Can not unregister syncRoot with id \"{0}\", because it does not exist", syncRootId);
             return;
         }
 
@@ -68,8 +73,8 @@ public static class CloudProvider
 
         info = StorageProviderSyncRootManager.GetCurrentSyncRoots();
         matchingSyncRootsCount = info.Where(x => x.Id == syncRootId).ToArray().Length;
-        Console.WriteLine("Total number of syncRoots after unregister: " + info.Count);
-        Console.WriteLine("Number of matching syncRoots before unregister: " + matchingSyncRootsCount);
+        Debug.Print("Total number of syncRoots after unregister: " + info.Count);
+        Debug.Print("Number of matching syncRoots before unregister: " + matchingSyncRootsCount);
 
     }
 
@@ -152,7 +157,7 @@ public static class CloudProvider
         );
         if (hresConnectSyncRoot != HRESULT.S_OK)
         {
-            Console.WriteLine("HRES CfConnectSyncRoot: {0}", hresConnectSyncRoot);
+            Debug.Print("HRES CfConnectSyncRoot: {0}", hresConnectSyncRoot);
             throw new Exception("Failed to connect callbacks");
         }
     }
@@ -164,13 +169,13 @@ public static class CloudProvider
 
     public static void OnFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
     {
-        Console.WriteLine("FETCH PLACEHOLDERS");
+        Debug.Print("FETCH PLACEHOLDERS");
         return;
     }
 
     public static void OnFetchData(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
     {
-        Console.WriteLine("FETCH DATA");
+        Debug.Print("FETCH DATA");
         PrintInfo(CallbackInfo, CallbackParameters);
         
         CF_OPERATION_INFO oi = new()
@@ -246,7 +251,7 @@ public static class CloudProvider
 
                 var hres = CfExecute(oi,ref op);
                 if (hres != HRESULT.S_OK) {
-                    Console.WriteLine("Fetch data CfExecute FAIL: {0}", hres);
+                    Debug.Print("Fetch data CfExecute FAIL: {0}", hres);
                     return;
                 }
             } while(read == CHUNK);
@@ -254,8 +259,8 @@ public static class CloudProvider
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
-            Console.WriteLine("FAILED TO FETCH DATA");
+            Debug.Print(e.Message);
+            Debug.Print("FAILED TO FETCH DATA");
             td = new()
             {
                 CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED),
@@ -272,20 +277,20 @@ public static class CloudProvider
         finally
         {
             Marshal.FreeHGlobal(unmanagedPointer);
-            Console.WriteLine();
+            Debug.Print("");
         }
     }
 
     public static void OnCancelFetchData(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
     {
         // TODO (not needed)
-        Console.WriteLine("OnCancelFetchData");
+        Debug.Print("OnCancelFetchData");
         return;
     }
 
     public static void OnDelete(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
     {
-        Console.WriteLine("DELETE");
+        Debug.Print("DELETE");
         PrintInfo(CallbackInfo, CallbackParameters);
 
         //nint file_identity = CallbackInfo.FileIdentity;
@@ -305,7 +310,7 @@ public static class CloudProvider
             if (CloudSync.configuration.root_path + Utils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath) ==
                 CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath)
             {
-                Console.WriteLine("Can not delete SPACE");
+                Debug.Print("Can not delete SPACE");
                 throw new Exception("Can not delete space folder");
             }
             var task = RestClient.Delete(
@@ -328,9 +333,9 @@ public static class CloudProvider
 
         var hres = CfExecute(oi,ref op);
         if (hres != HRESULT.S_OK) {
-            Console.WriteLine("Delete CfExecute FAIL {0}", hres);
+            Debug.Print("Delete CfExecute FAIL {0}", hres);
         }
-        Console.WriteLine();
+        Debug.Print("");
         return;
     }
 
@@ -339,7 +344,7 @@ public static class CloudProvider
         Thread.Sleep(100);
 
         // TODO: server api does not exist
-        Console.WriteLine("RENAME");
+        Debug.Print("RENAME");
         PrintInfo(CallbackInfo, CallbackParameters);
 
         string fileIdentity = Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int) CallbackInfo.FileIdentityLength/2) ?? "";
@@ -348,8 +353,8 @@ public static class CloudProvider
         string sourcePath = CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath;
         string recycleBin = CallbackInfo.VolumeDosName + @"\$Recycle.Bin\";
 
-        Console.WriteLine("Source path: {0}", sourcePath);
-        Console.WriteLine("Target path: {0}", targetPath);
+        Debug.Print("Source path: {0}", sourcePath);
+        Debug.Print("Target path: {0}", targetPath);
         
         CF_OPERATION_INFO oi = new()
         {
@@ -370,7 +375,7 @@ public static class CloudProvider
             if (targetPath.StartsWith(spacePath))
             {
 
-                Console.WriteLine("Move/rename file within space");
+                Debug.Print("Move/rename file within space");
 
                 string src = sourcePath.Remove(0, spacePath.Length).Replace('\\','/');
                 string dest = targetPath.Remove(0, spacePath.Length).Replace('\\','/');
@@ -378,24 +383,24 @@ public static class CloudProvider
                 var task = RestClient.Move(providerInfos, src, dest, Utils.GetSpaceName(sourcePath));
                 task.Wait();
 
-                Console.WriteLine("File was renamed/moved on cloud");
+                Debug.Print("File was renamed/moved on cloud");
 
             }
             else if (targetPath.StartsWith(recycleBin))
             {
                 // success
-                Console.WriteLine("Move to recycle bin.");
+                Debug.Print("Move to recycle bin.");
             }
             else if (targetPath.StartsWith(CloudSync.configuration.root_path) && !targetPath.StartsWith(spacePath))
             {
                 // fail
-                Console.WriteLine("Can not move file to different space. Try to copy the file.");
+                Debug.Print("Can not move file to different space. Try to copy the file.");
                 throw new Exception();
             }
             else
             {
                 // success
-                Console.WriteLine("Move file outside SyncRoot -> File deleted on cloud");
+                Debug.Print("Move file outside SyncRoot -> File deleted on cloud");
                 List<ProviderInfo> providerInfos = CloudSync.spaces[Utils.GetSpaceName(sourcePath)].providerInfos;
                 var taskRemove = RestClient.Delete(providerInfos, fileIdentity);
                 taskRemove.Wait();
@@ -403,8 +408,8 @@ public static class CloudProvider
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
-            Console.WriteLine("Move/Rename FAIL");
+            Debug.Print(e.Message);
+            Debug.Print("Move/Rename FAIL");
             status = new NTStatus((uint)1);
         }
         
@@ -418,13 +423,13 @@ public static class CloudProvider
 
         var hres = CfExecute(oi,ref op);
         if (hres != HRESULT.S_OK) {
-            Console.WriteLine("Rename CfExecute FAIL {0}", hres);
+            Debug.Print("Rename CfExecute FAIL {0}", hres);
         }
 
         Thread.Sleep(250);
         CloudSync.watcher.Resume();
 
-        Console.WriteLine();
+        Debug.Print("");
         return;
     }
 
@@ -438,13 +443,13 @@ public static class CloudProvider
             CfCloseHandle(protectedHandle);
             if (hresSync == HRESULT.S_OK)
             {
-                Console.WriteLine("Set InSync OK");
+                Debug.Print("Set InSync OK");
             }
             else 
             {
-                Console.WriteLine("Open: {0}", hresOpen);
-                Console.WriteLine("SetInSync: {0}", hresSync);
-                Console.WriteLine("Set InSync FAIL");
+                Debug.Print("Open: {0}", hresOpen);
+                Debug.Print("SetInSync: {0}", hresSync);
+                Debug.Print("Set InSync FAIL");
             }
         }
     }
@@ -452,18 +457,18 @@ public static class CloudProvider
     public static void OnDeleteCompletion(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
     {
         // TODO
-        Console.WriteLine("DELETE COMPLETITION");
+        Debug.Print("DELETE COMPLETITION");
         PrintInfo(CallbackInfo, CallbackParameters);
         // free memory (allocated during placeholder creation)
         // Marshal.FreeCoTaskMem(CallbackInfo.FileIdentity);
 
-        Console.WriteLine();
+        Debug.Print("");
         return;
     }
 
     private static void PrintInfo(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
     {
-        Console.WriteLine("File identity {0}", Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int) CallbackInfo.FileIdentityLength/2));
-        Console.WriteLine("File path: {0}", CallbackInfo.NormalizedPath);
+        Debug.Print("File identity {0}", Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int) CallbackInfo.FileIdentityLength/2));
+        Debug.Print("File path: {0}", CallbackInfo.NormalizedPath);
     }
 }

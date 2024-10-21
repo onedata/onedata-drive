@@ -1,11 +1,16 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Reflection;
+using System.Text.Json;
+using Windows.Media.Audio;
 
 namespace WinForms
 {
     public partial class ConnectForm : Form
     {
         private const string ROOT_DIR = "Onedata Drive";
+        private const string LAST_FORM = "last_form.json";
+        private string exeDir { get; } = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
         private string defaultRootPath;
         public ConnectForm()
         {
@@ -15,7 +20,8 @@ namespace WinForms
             //rootFolder_textBox.Text = defaultRootPath;
             rootFolder_textBox.PlaceholderText = defaultRootPath;
             rootFolder_folderBrowserDialog.InitialDirectory = appData;
-            Debug.WriteLine("User Home Directory: " + appData);
+            Debug.Print("User Home Directory: " + appData);
+            LoadLastForm();
         }
 
         private async void connect_button_Click(object sender, EventArgs e)
@@ -44,6 +50,7 @@ namespace WinForms
                     token: oneproviderToken_textBox.Text,
                     host: onezone_textBox.Text);
                 statusMessage.Text = "In progress";
+                SaveLastForm();
                 await LaunchCloudSyncAsync(config);
             }
             else
@@ -146,6 +153,43 @@ namespace WinForms
         private void rootFolderErase_button_Click(object sender, EventArgs e)
         {
             rootFolder_textBox.Text = "";
+        }
+
+        private void LoadLastForm()
+        {
+            string lastFormPath = exeDir + "\\" + LAST_FORM;
+            if (File.Exists(lastFormPath))
+            {
+                try
+                {
+                    Config lastConfig = new();
+                    lastConfig.Init(lastFormPath);
+                    SetForm(lastConfig);
+                }
+                catch { return; }
+            }
+        }
+
+        private void SetForm(Config config)
+        {
+            rootFolder_textBox.Text = config.root_path;
+            onezone_textBox.Text = config.zone_host;
+            oneproviderToken_textBox.Text = config.provider_token;
+        }
+
+        private void SaveLastForm()
+        {
+            try
+            {
+                Config config = new();
+                config.Init(
+                    host: onezone_textBox.Text,
+                    token: oneproviderToken_textBox.Text,
+                    path: rootFolder_textBox.Text);
+                string json = JsonSerializer.Serialize(config);
+                File.WriteAllText(exeDir + "\\" + LAST_FORM, json);
+            }
+            catch { return; }
         }
     }
 }
