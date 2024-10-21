@@ -306,6 +306,8 @@
             // 
             // advanced_panel
             // 
+            advanced_panel.BackColor = SystemColors.Control;
+            advanced_panel.BorderStyle = BorderStyle.FixedSingle;
             advanced_panel.Controls.Add(loadFromFile_button);
             advanced_panel.Controls.Add(deleteRoot_checkBox);
             advanced_panel.Dock = DockStyle.Top;

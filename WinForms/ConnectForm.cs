@@ -29,6 +29,7 @@ namespace WinForms
         public ConnectForm()
         {
             InitializeComponent();
+            disconect_button.Enabled = false;
             rootFolder_textBox.PlaceholderText = defaultRootPath;
             rootFolder_folderBrowserDialog.InitialDirectory = appDataPath;
             LoadLastConfig();
@@ -61,7 +62,15 @@ namespace WinForms
                     host: onezone_textBox.Text);
                 statusMessage.Text = "In progress";
                 SaveLastConfig();
-                await LaunchCloudSyncAsync(config);
+                if (await LaunchCloudSyncAsync(config) == 0)
+                {
+                    statusMessage.Text = "Connected";
+                    SetStatus(running: true);
+                }
+                else
+                {
+                    statusMessage.Text = "Failed to connect";
+                }
             }
             else
             {
@@ -69,18 +78,10 @@ namespace WinForms
             }
         }
 
-        private async Task LaunchCloudSyncAsync(Config config)
+        private async Task<int> LaunchCloudSyncAsync(Config config)
         {
             int status = await Task.Run(() => CloudSync.Run(config, delete: deleteRoot_checkBox.Checked));
-            if (status == 0)
-            {
-                statusMessage.Text = "Connected";
-                SetStatus(running: true);
-            }
-            else
-            {
-                statusMessage.Text = "Something went wrong";
-            }
+            return status;
         }
 
         private void disconect_button_Click(object sender, EventArgs e)
@@ -151,6 +152,16 @@ namespace WinForms
         {
             statusImageGreen.Visible = running;
             statusImageRed.Visible = !running;
+
+            disconect_button.Enabled = running;
+            connect_button.Enabled = !running;
+
+            oneproviderToken_textBox.Enabled = !running;
+            onezone_textBox.Enabled = !running;
+            rootFolder_textBox.Enabled = !running;
+            folderBrowser_button.Enabled = !running;
+            rootFolderErase_button.Enabled = !running;
+            advanced_panel.Enabled = !running;
         }
 
         private void rootFolderErase_button_Click(object sender, EventArgs e)
