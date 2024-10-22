@@ -8,6 +8,7 @@ namespace WinForms
 {
     public partial class ConnectForm : Form
     {
+        private bool connectClicked = false;
         private const string ROOT_DIR = "Onedata Drive";
         private string exePath { get; } = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
         //private string appDataPath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -37,6 +38,13 @@ namespace WinForms
 
         private async void connect_button_Click(object sender, EventArgs e)
         {
+            // prohibit double click
+            if (connectClicked)
+            {
+                return;
+            }
+            connectClicked = true;
+
             bool valid = true;
             err_rootFolder_label.Visible = false;
             err_oneproviderToken_label.Visible = false;
@@ -76,6 +84,8 @@ namespace WinForms
             {
                 statusMessage.Text = "Invalid values";
             }
+
+            connectClicked = false;
         }
 
         private async Task<int> LaunchCloudSyncAsync(Config config)
