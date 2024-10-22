@@ -150,7 +150,7 @@ namespace WinForms
 
         private void ConnectForm_Closing(object sender, FormClosingEventArgs e)
         {
-            string message = "Are you sure you want to quit? This will disconect Onedata Drive";
+            string message = "Are you sure you want to quit? This will disconnect Onedata Drive";
             if (statusImageGreen.Visible &&
                 MessageBox.Show(message, "Onedata Drive", MessageBoxButtons.YesNo) == DialogResult.No)
             {
