@@ -18,6 +18,7 @@ public static class CloudSync
     {
         Debug.WriteLine("CLOUD SYNC START");
         configuration = config;
+        spaces = new();
         try
         {
             RestClient.Init(configuration);
@@ -149,7 +150,7 @@ public static class CloudSync
                                 fileInfo.mtime,
                                 fileInfo.ctime);
                             info.Add(Placeholders.createDirInfo(placeholderData));
-                            Debug.WriteLine("Space: {0}", spaceName);
+                            Debug.Print("Space: {0}", spaceName);
 
                             placeholderAdded = true;
 
