@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ConnectForm));
             header_panel = new Panel();
             headingLabel = new Label();
@@ -49,8 +50,8 @@
             loadFromFile_button = new Button();
             config_openFileDialog = new OpenFileDialog();
             form_panel = new Panel();
-            rootFolderErase_button = new Button();
             advanced_button = new Button();
+            rootFolderErase_button = new Button();
             advanced_panel = new Panel();
             controls_panel = new Panel();
             statusStrip = new StatusStrip();
@@ -58,6 +59,7 @@
             statusImageGreen = new ToolStripStatusLabel();
             statusLabel = new ToolStripStatusLabel();
             statusMessage = new ToolStripStatusLabel();
+            connectForm_toolTip = new ToolTip(components);
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)logoPictureBox).BeginInit();
             form_panel.SuspendLayout();
@@ -124,7 +126,7 @@
             // 
             err_onezone_label.AutoSize = true;
             err_onezone_label.ForeColor = Color.FromArgb(192, 0, 0);
-            err_onezone_label.Location = new Point(161, 48);
+            err_onezone_label.Location = new Point(161, 46);
             err_onezone_label.Margin = new Padding(2, 0, 2, 0);
             err_onezone_label.Name = "err_onezone_label";
             err_onezone_label.Size = new Size(48, 19);
@@ -136,7 +138,7 @@
             // 
             err_rootFolder_label.AutoSize = true;
             err_rootFolder_label.ForeColor = Color.FromArgb(192, 0, 0);
-            err_rootFolder_label.Location = new Point(161, 181);
+            err_rootFolder_label.Location = new Point(160, 44);
             err_rootFolder_label.Margin = new Padding(2, 0, 2, 0);
             err_rootFolder_label.Name = "err_rootFolder_label";
             err_rootFolder_label.Size = new Size(48, 19);
@@ -146,7 +148,7 @@
             // 
             // rootFolder_textBox
             // 
-            rootFolder_textBox.Location = new Point(161, 152);
+            rootFolder_textBox.Location = new Point(160, 14);
             rootFolder_textBox.Margin = new Padding(2, 3, 2, 3);
             rootFolder_textBox.Name = "rootFolder_textBox";
             rootFolder_textBox.ReadOnly = true;
@@ -156,7 +158,7 @@
             // rootFolder_label
             // 
             rootFolder_label.AutoSize = true;
-            rootFolder_label.Location = new Point(17, 153);
+            rootFolder_label.Location = new Point(17, 18);
             rootFolder_label.Margin = new Padding(2, 0, 2, 0);
             rootFolder_label.Name = "rootFolder_label";
             rootFolder_label.Size = new Size(80, 19);
@@ -167,7 +169,7 @@
             // 
             err_oneproviderToken_label.AutoSize = true;
             err_oneproviderToken_label.ForeColor = Color.FromArgb(192, 0, 0);
-            err_oneproviderToken_label.Location = new Point(161, 115);
+            err_oneproviderToken_label.Location = new Point(161, 116);
             err_oneproviderToken_label.Margin = new Padding(2, 0, 2, 0);
             err_oneproviderToken_label.Name = "err_oneproviderToken_label";
             err_oneproviderToken_label.Size = new Size(48, 19);
@@ -177,7 +179,7 @@
             // 
             // oneproviderToken_textBox
             // 
-            oneproviderToken_textBox.Location = new Point(161, 85);
+            oneproviderToken_textBox.Location = new Point(161, 86);
             oneproviderToken_textBox.Margin = new Padding(2, 3, 2, 3);
             oneproviderToken_textBox.Name = "oneproviderToken_textBox";
             oneproviderToken_textBox.Size = new Size(474, 25);
@@ -186,7 +188,7 @@
             // oneproviderToken_label
             // 
             oneproviderToken_label.AutoSize = true;
-            oneproviderToken_label.Location = new Point(17, 86);
+            oneproviderToken_label.Location = new Point(17, 87);
             oneproviderToken_label.Margin = new Padding(2, 0, 2, 0);
             oneproviderToken_label.Name = "oneproviderToken_label";
             oneproviderToken_label.Size = new Size(127, 19);
@@ -195,7 +197,7 @@
             // 
             // folderBrowser_button
             // 
-            folderBrowser_button.Location = new Point(639, 153);
+            folderBrowser_button.Location = new Point(638, 15);
             folderBrowser_button.Margin = new Padding(2, 3, 2, 3);
             folderBrowser_button.Name = "folderBrowser_button";
             folderBrowser_button.Size = new Size(31, 24);
@@ -209,7 +211,7 @@
             deleteRoot_checkBox.AutoSize = true;
             deleteRoot_checkBox.Checked = true;
             deleteRoot_checkBox.CheckState = CheckState.Checked;
-            deleteRoot_checkBox.Location = new Point(194, 9);
+            deleteRoot_checkBox.Location = new Point(161, 80);
             deleteRoot_checkBox.Margin = new Padding(2, 3, 2, 3);
             deleteRoot_checkBox.Name = "deleteRoot_checkBox";
             deleteRoot_checkBox.Size = new Size(186, 23);
@@ -244,7 +246,7 @@
             // loadFromFile_button
             // 
             loadFromFile_button.BackColor = SystemColors.Window;
-            loadFromFile_button.Location = new Point(194, 48);
+            loadFromFile_button.Location = new Point(159, 119);
             loadFromFile_button.Margin = new Padding(2, 3, 2, 3);
             loadFromFile_button.Name = "loadFromFile_button";
             loadFromFile_button.Size = new Size(194, 33);
@@ -260,34 +262,18 @@
             // 
             // form_panel
             // 
-            form_panel.Controls.Add(rootFolderErase_button);
             form_panel.Controls.Add(advanced_button);
             form_panel.Controls.Add(onezone_textBox);
             form_panel.Controls.Add(onezone_label);
             form_panel.Controls.Add(err_onezone_label);
-            form_panel.Controls.Add(rootFolder_label);
-            form_panel.Controls.Add(folderBrowser_button);
-            form_panel.Controls.Add(rootFolder_textBox);
-            form_panel.Controls.Add(err_rootFolder_label);
             form_panel.Controls.Add(oneproviderToken_label);
             form_panel.Controls.Add(err_oneproviderToken_label);
             form_panel.Controls.Add(oneproviderToken_textBox);
             form_panel.Dock = DockStyle.Top;
             form_panel.Location = new Point(0, 128);
             form_panel.Name = "form_panel";
-            form_panel.Size = new Size(767, 252);
+            form_panel.Size = new Size(767, 181);
             form_panel.TabIndex = 20;
-            // 
-            // rootFolderErase_button
-            // 
-            rootFolderErase_button.Location = new Point(674, 153);
-            rootFolderErase_button.Margin = new Padding(2, 3, 2, 3);
-            rootFolderErase_button.Name = "rootFolderErase_button";
-            rootFolderErase_button.Size = new Size(31, 24);
-            rootFolderErase_button.TabIndex = 16;
-            rootFolderErase_button.Text = "X";
-            rootFolderErase_button.UseVisualStyleBackColor = true;
-            rootFolderErase_button.Click += rootFolderErase_button_Click;
             // 
             // advanced_button
             // 
@@ -295,25 +281,42 @@
             advanced_button.FlatStyle = FlatStyle.Flat;
             advanced_button.Image = (Image)resources.GetObject("advanced_button.Image");
             advanced_button.ImageAlign = ContentAlignment.MiddleRight;
-            advanced_button.Location = new Point(78, 217);
+            advanced_button.Location = new Point(15, 148);
             advanced_button.Name = "advanced_button";
-            advanced_button.Size = new Size(110, 34);
+            advanced_button.Size = new Size(110, 28);
             advanced_button.TabIndex = 15;
             advanced_button.Text = "Advanced";
             advanced_button.TextAlign = ContentAlignment.MiddleLeft;
             advanced_button.UseVisualStyleBackColor = true;
             advanced_button.Click += advanced_button_Click;
             // 
+            // rootFolderErase_button
+            // 
+            rootFolderErase_button.Location = new Point(673, 15);
+            rootFolderErase_button.Margin = new Padding(2, 3, 2, 3);
+            rootFolderErase_button.Name = "rootFolderErase_button";
+            rootFolderErase_button.Size = new Size(31, 24);
+            rootFolderErase_button.TabIndex = 16;
+            rootFolderErase_button.Text = "X";
+            connectForm_toolTip.SetToolTip(rootFolderErase_button, "This will erase Root Folder path \r\nand set it to default value");
+            rootFolderErase_button.UseVisualStyleBackColor = true;
+            rootFolderErase_button.Click += rootFolderErase_button_Click;
+            // 
             // advanced_panel
             // 
             advanced_panel.BackColor = SystemColors.Control;
             advanced_panel.BorderStyle = BorderStyle.FixedSingle;
+            advanced_panel.Controls.Add(rootFolderErase_button);
             advanced_panel.Controls.Add(loadFromFile_button);
             advanced_panel.Controls.Add(deleteRoot_checkBox);
+            advanced_panel.Controls.Add(rootFolder_label);
+            advanced_panel.Controls.Add(err_rootFolder_label);
+            advanced_panel.Controls.Add(rootFolder_textBox);
+            advanced_panel.Controls.Add(folderBrowser_button);
             advanced_panel.Dock = DockStyle.Top;
-            advanced_panel.Location = new Point(0, 380);
+            advanced_panel.Location = new Point(0, 309);
             advanced_panel.Name = "advanced_panel";
-            advanced_panel.Size = new Size(767, 94);
+            advanced_panel.Size = new Size(767, 163);
             advanced_panel.TabIndex = 21;
             advanced_panel.Visible = false;
             // 
@@ -322,7 +325,7 @@
             controls_panel.Controls.Add(connect_button);
             controls_panel.Controls.Add(disconect_button);
             controls_panel.Dock = DockStyle.Top;
-            controls_panel.Location = new Point(0, 474);
+            controls_panel.Location = new Point(0, 472);
             controls_panel.Name = "controls_panel";
             controls_panel.Size = new Size(767, 97);
             controls_panel.TabIndex = 22;
@@ -330,7 +333,7 @@
             // statusStrip
             // 
             statusStrip.Items.AddRange(new ToolStripItem[] { statusImageRed, statusImageGreen, statusLabel, statusMessage });
-            statusStrip.Location = new Point(0, 571);
+            statusStrip.Location = new Point(0, 569);
             statusStrip.Name = "statusStrip";
             statusStrip.Size = new Size(767, 22);
             statusStrip.TabIndex = 23;
@@ -425,5 +428,6 @@
         private ToolStripStatusLabel statusImageRed;
         private ToolStripStatusLabel statusImageGreen;
         private Button rootFolderErase_button;
+        private ToolTip connectForm_toolTip;
     }
 }
