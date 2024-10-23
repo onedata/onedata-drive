@@ -12,7 +12,7 @@ namespace WinForms
         private const string ROOT_DIR = "Onedata Drive";
         private string exePath { get; } = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
         //private string appDataPath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        private string defaultRootPath 
+        private string defaultRootPath
         {
             get
             {
@@ -121,7 +121,7 @@ namespace WinForms
                     onezone_textBox.Text = config.zone_host;
                     oneproviderToken_textBox.Text = config.provider_token;
                     rootFolder_textBox.Text = config.root_path;
-                    
+
                     statusMessage.Text = "file read OK";
                 }
                 catch (Exception)

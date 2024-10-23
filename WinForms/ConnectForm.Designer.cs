@@ -60,12 +60,14 @@
             statusLabel = new ToolStripStatusLabel();
             statusMessage = new ToolStripStatusLabel();
             connectForm_toolTip = new ToolTip(components);
+            scrollPanel = new Panel();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)logoPictureBox).BeginInit();
             form_panel.SuspendLayout();
             advanced_panel.SuspendLayout();
             controls_panel.SuspendLayout();
             statusStrip.SuspendLayout();
+            scrollPanel.SuspendLayout();
             SuspendLayout();
             // 
             // header_panel
@@ -77,7 +79,7 @@
             header_panel.Location = new Point(0, 0);
             header_panel.Margin = new Padding(2, 3, 2, 3);
             header_panel.Name = "header_panel";
-            header_panel.Size = new Size(767, 128);
+            header_panel.Size = new Size(767, 119);
             header_panel.TabIndex = 3;
             // 
             // headingLabel
@@ -270,7 +272,7 @@
             form_panel.Controls.Add(err_oneproviderToken_label);
             form_panel.Controls.Add(oneproviderToken_textBox);
             form_panel.Dock = DockStyle.Top;
-            form_panel.Location = new Point(0, 128);
+            form_panel.Location = new Point(0, 119);
             form_panel.Name = "form_panel";
             form_panel.Size = new Size(767, 181);
             form_panel.TabIndex = 20;
@@ -314,7 +316,7 @@
             advanced_panel.Controls.Add(rootFolder_textBox);
             advanced_panel.Controls.Add(folderBrowser_button);
             advanced_panel.Dock = DockStyle.Top;
-            advanced_panel.Location = new Point(0, 309);
+            advanced_panel.Location = new Point(0, 300);
             advanced_panel.Name = "advanced_panel";
             advanced_panel.Size = new Size(767, 163);
             advanced_panel.TabIndex = 21;
@@ -325,7 +327,7 @@
             controls_panel.Controls.Add(connect_button);
             controls_panel.Controls.Add(disconect_button);
             controls_panel.Dock = DockStyle.Top;
-            controls_panel.Location = new Point(0, 472);
+            controls_panel.Location = new Point(0, 463);
             controls_panel.Name = "controls_panel";
             controls_panel.Size = new Size(767, 97);
             controls_panel.TabIndex = 22;
@@ -333,9 +335,9 @@
             // statusStrip
             // 
             statusStrip.Items.AddRange(new ToolStripItem[] { statusImageRed, statusImageGreen, statusLabel, statusMessage });
-            statusStrip.Location = new Point(0, 569);
+            statusStrip.Location = new Point(0, 489);
             statusStrip.Name = "statusStrip";
-            statusStrip.Size = new Size(767, 22);
+            statusStrip.Size = new Size(784, 22);
             statusStrip.TabIndex = 23;
             statusStrip.Text = "statusStrip1";
             // 
@@ -363,17 +365,27 @@
             statusMessage.Name = "statusMessage";
             statusMessage.Size = new Size(0, 17);
             // 
+            // scrollPanel
+            // 
+            scrollPanel.AutoScroll = true;
+            scrollPanel.Controls.Add(controls_panel);
+            scrollPanel.Controls.Add(advanced_panel);
+            scrollPanel.Controls.Add(form_panel);
+            scrollPanel.Controls.Add(header_panel);
+            scrollPanel.Dock = DockStyle.Fill;
+            scrollPanel.Location = new Point(0, 0);
+            scrollPanel.Name = "scrollPanel";
+            scrollPanel.Size = new Size(784, 489);
+            scrollPanel.TabIndex = 24;
+            // 
             // ConnectForm
             // 
             AutoScaleDimensions = new SizeF(8F, 19F);
             AutoScaleMode = AutoScaleMode.Font;
             AutoScroll = true;
             ClientSize = new Size(784, 511);
+            Controls.Add(scrollPanel);
             Controls.Add(statusStrip);
-            Controls.Add(controls_panel);
-            Controls.Add(advanced_panel);
-            Controls.Add(form_panel);
-            Controls.Add(header_panel);
             Font = new Font("Microsoft YaHei", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Margin = new Padding(2, 3, 2, 3);
@@ -392,6 +404,7 @@
             controls_panel.ResumeLayout(false);
             statusStrip.ResumeLayout(false);
             statusStrip.PerformLayout();
+            scrollPanel.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -429,5 +442,6 @@
         private ToolStripStatusLabel statusImageGreen;
         private Button rootFolderErase_button;
         private ToolTip connectForm_toolTip;
+        private Panel scrollPanel;
     }
 }
