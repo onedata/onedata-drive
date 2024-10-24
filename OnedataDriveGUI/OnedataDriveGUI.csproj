@@ -12,7 +12,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CloudSync\OnedataDrive.csproj" />
     <ProjectReference Include="..\OnedataDrive\OnedataDrive.csproj" />
   </ItemGroup>
 
