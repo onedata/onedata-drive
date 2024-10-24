@@ -35,21 +35,19 @@
             logoPictureBox = new PictureBox();
             onezone_label = new Label();
             onezone_textBox = new TextBox();
-            err_onezone_label = new Label();
-            err_rootFolder_label = new Label();
             rootFolder_textBox = new TextBox();
             rootFolder_label = new Label();
-            err_oneproviderToken_label = new Label();
             oneproviderToken_textBox = new TextBox();
             oneproviderToken_label = new Label();
             folderBrowser_button = new Button();
             rootFolder_folderBrowserDialog = new FolderBrowserDialog();
-            deleteRoot_checkBox = new CheckBox();
+            rootFolderDelete_checkBox = new CheckBox();
             connect_button = new Button();
             disconect_button = new Button();
             loadFromFile_button = new Button();
             config_openFileDialog = new OpenFileDialog();
             form_panel = new Panel();
+            oneproviderTokenKeep_checkBox = new CheckBox();
             advanced_button = new Button();
             rootFolderErase_button = new Button();
             advanced_panel = new Panel();
@@ -124,30 +122,6 @@
             onezone_textBox.Size = new Size(474, 25);
             onezone_textBox.TabIndex = 5;
             // 
-            // err_onezone_label
-            // 
-            err_onezone_label.AutoSize = true;
-            err_onezone_label.ForeColor = Color.FromArgb(192, 0, 0);
-            err_onezone_label.Location = new Point(161, 46);
-            err_onezone_label.Margin = new Padding(2, 0, 2, 0);
-            err_onezone_label.Name = "err_onezone_label";
-            err_onezone_label.Size = new Size(48, 19);
-            err_onezone_label.TabIndex = 6;
-            err_onezone_label.Text = "Empty";
-            err_onezone_label.Visible = false;
-            // 
-            // err_rootFolder_label
-            // 
-            err_rootFolder_label.AutoSize = true;
-            err_rootFolder_label.ForeColor = Color.FromArgb(192, 0, 0);
-            err_rootFolder_label.Location = new Point(160, 44);
-            err_rootFolder_label.Margin = new Padding(2, 0, 2, 0);
-            err_rootFolder_label.Name = "err_rootFolder_label";
-            err_rootFolder_label.Size = new Size(48, 19);
-            err_rootFolder_label.TabIndex = 9;
-            err_rootFolder_label.Text = "Empty";
-            err_rootFolder_label.Visible = false;
-            // 
             // rootFolder_textBox
             // 
             rootFolder_textBox.Location = new Point(160, 14);
@@ -166,18 +140,6 @@
             rootFolder_label.Size = new Size(80, 19);
             rootFolder_label.TabIndex = 7;
             rootFolder_label.Text = "Root Folder";
-            // 
-            // err_oneproviderToken_label
-            // 
-            err_oneproviderToken_label.AutoSize = true;
-            err_oneproviderToken_label.ForeColor = Color.FromArgb(192, 0, 0);
-            err_oneproviderToken_label.Location = new Point(161, 116);
-            err_oneproviderToken_label.Margin = new Padding(2, 0, 2, 0);
-            err_oneproviderToken_label.Name = "err_oneproviderToken_label";
-            err_oneproviderToken_label.Size = new Size(48, 19);
-            err_oneproviderToken_label.TabIndex = 12;
-            err_oneproviderToken_label.Text = "Empty";
-            err_oneproviderToken_label.Visible = false;
             // 
             // oneproviderToken_textBox
             // 
@@ -208,18 +170,18 @@
             folderBrowser_button.UseVisualStyleBackColor = true;
             folderBrowser_button.Click += folderBrowser_button_Click;
             // 
-            // deleteRoot_checkBox
+            // rootFolderDelete_checkBox
             // 
-            deleteRoot_checkBox.AutoSize = true;
-            deleteRoot_checkBox.Checked = true;
-            deleteRoot_checkBox.CheckState = CheckState.Checked;
-            deleteRoot_checkBox.Location = new Point(161, 80);
-            deleteRoot_checkBox.Margin = new Padding(2, 3, 2, 3);
-            deleteRoot_checkBox.Name = "deleteRoot_checkBox";
-            deleteRoot_checkBox.Size = new Size(186, 23);
-            deleteRoot_checkBox.TabIndex = 15;
-            deleteRoot_checkBox.Text = "delete existing root folder";
-            deleteRoot_checkBox.UseVisualStyleBackColor = true;
+            rootFolderDelete_checkBox.AutoSize = true;
+            rootFolderDelete_checkBox.Checked = true;
+            rootFolderDelete_checkBox.CheckState = CheckState.Checked;
+            rootFolderDelete_checkBox.Location = new Point(161, 59);
+            rootFolderDelete_checkBox.Margin = new Padding(2, 3, 2, 3);
+            rootFolderDelete_checkBox.Name = "rootFolderDelete_checkBox";
+            rootFolderDelete_checkBox.Size = new Size(186, 23);
+            rootFolderDelete_checkBox.TabIndex = 15;
+            rootFolderDelete_checkBox.Text = "delete existing root folder";
+            rootFolderDelete_checkBox.UseVisualStyleBackColor = true;
             // 
             // connect_button
             // 
@@ -248,7 +210,7 @@
             // loadFromFile_button
             // 
             loadFromFile_button.BackColor = SystemColors.Window;
-            loadFromFile_button.Location = new Point(159, 119);
+            loadFromFile_button.Location = new Point(159, 98);
             loadFromFile_button.Margin = new Padding(2, 3, 2, 3);
             loadFromFile_button.Name = "loadFromFile_button";
             loadFromFile_button.Size = new Size(194, 33);
@@ -264,18 +226,27 @@
             // 
             // form_panel
             // 
+            form_panel.Controls.Add(oneproviderTokenKeep_checkBox);
             form_panel.Controls.Add(advanced_button);
             form_panel.Controls.Add(onezone_textBox);
             form_panel.Controls.Add(onezone_label);
-            form_panel.Controls.Add(err_onezone_label);
             form_panel.Controls.Add(oneproviderToken_label);
-            form_panel.Controls.Add(err_oneproviderToken_label);
             form_panel.Controls.Add(oneproviderToken_textBox);
             form_panel.Dock = DockStyle.Top;
             form_panel.Location = new Point(0, 119);
             form_panel.Name = "form_panel";
             form_panel.Size = new Size(767, 181);
             form_panel.TabIndex = 20;
+            // 
+            // oneproviderTokenKeep_checkBox
+            // 
+            oneproviderTokenKeep_checkBox.AutoSize = true;
+            oneproviderTokenKeep_checkBox.Location = new Point(161, 120);
+            oneproviderTokenKeep_checkBox.Name = "oneproviderTokenKeep_checkBox";
+            oneproviderTokenKeep_checkBox.Size = new Size(204, 23);
+            oneproviderTokenKeep_checkBox.TabIndex = 16;
+            oneproviderTokenKeep_checkBox.Text = "Remeber Oneprovider Token";
+            oneproviderTokenKeep_checkBox.UseVisualStyleBackColor = true;
             // 
             // advanced_button
             // 
@@ -310,9 +281,8 @@
             advanced_panel.BorderStyle = BorderStyle.FixedSingle;
             advanced_panel.Controls.Add(rootFolderErase_button);
             advanced_panel.Controls.Add(loadFromFile_button);
-            advanced_panel.Controls.Add(deleteRoot_checkBox);
+            advanced_panel.Controls.Add(rootFolderDelete_checkBox);
             advanced_panel.Controls.Add(rootFolder_label);
-            advanced_panel.Controls.Add(err_rootFolder_label);
             advanced_panel.Controls.Add(rootFolder_textBox);
             advanced_panel.Controls.Add(folderBrowser_button);
             advanced_panel.Dock = DockStyle.Top;
@@ -415,16 +385,13 @@
         private Label headingLabel;
         private Label onezone_label;
         private TextBox onezone_textBox;
-        private Label err_onezone_label;
-        private Label err_rootFolder_label;
         private TextBox rootFolder_textBox;
         private Label rootFolder_label;
-        private Label err_oneproviderToken_label;
         private TextBox oneproviderToken_textBox;
         private Label oneproviderToken_label;
         private Button folderBrowser_button;
         private FolderBrowserDialog rootFolder_folderBrowserDialog;
-        private CheckBox deleteRoot_checkBox;
+        private CheckBox rootFolderDelete_checkBox;
         private Button connect_button;
         private Button disconect_button;
         private Label status_label;
@@ -443,5 +410,6 @@
         private Button rootFolderErase_button;
         private ToolTip connectForm_toolTip;
         private Panel scrollPanel;
+        private CheckBox oneproviderTokenKeep_checkBox;
     }
 }

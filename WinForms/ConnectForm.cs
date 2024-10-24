@@ -1,8 +1,10 @@
 using System.ComponentModel;
+using System.Configuration;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
 using Windows.Media.Audio;
+using WinForms.Properties;
 
 namespace WinForms
 {
@@ -11,7 +13,6 @@ namespace WinForms
         private bool connectClicked = false;
         private const string ROOT_DIR = "Onedata Drive";
         private string exePath { get; } = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
-        //private string appDataPath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         private string defaultRootPath
         {
             get
@@ -19,13 +20,8 @@ namespace WinForms
                 return exePath + "\\" + "Onedata Drive";
             }
         }
-        private string lastConfigPath
-        {
-            get
-            {
-                return exePath + "\\" + "last_form.json";
-            }
-        }
+        private string textBoxErrBC = "#d38787";
+        private string textBoxBC = "#ffffff";
 
         public ConnectForm()
         {
@@ -33,6 +29,9 @@ namespace WinForms
             disconect_button.Enabled = false;
             rootFolder_textBox.PlaceholderText = defaultRootPath;
             rootFolder_folderBrowserDialog.InitialDirectory = exePath;
+
+            rootFolderDelete_checkBox.Checked = Settings.Default.RootFolderDeleteCheckBox;
+
             LoadLastConfig();
         }
 
@@ -46,18 +45,17 @@ namespace WinForms
             connectClicked = true;
 
             bool valid = true;
-            err_rootFolder_label.Visible = false;
-            err_oneproviderToken_label.Visible = false;
-            err_onezone_label.Visible = false;
+            oneproviderToken_textBox.BackColor = ColorTranslator.FromHtml(textBoxBC);
+            onezone_textBox.BackColor = ColorTranslator.FromHtml(textBoxBC);
 
             if (oneproviderToken_textBox.Text == "")
             {
-                err_oneproviderToken_label.Visible = true;
+                oneproviderToken_textBox.BackColor = ColorTranslator.FromHtml(textBoxErrBC);
                 valid = false;
             }
             if (onezone_textBox.Text == "")
             {
-                err_onezone_label.Visible = true;
+                onezone_textBox.BackColor = ColorTranslator.FromHtml(textBoxErrBC);
                 valid = false;
             }
 
@@ -90,7 +88,7 @@ namespace WinForms
 
         private async Task<int> LaunchCloudSyncAsync(Config config)
         {
-            int status = await Task.Run(() => CloudSync.Run(config, delete: deleteRoot_checkBox.Checked));
+            int status = await Task.Run(() => CloudSync.Run(config, delete: rootFolderDelete_checkBox.Checked));
             return status;
         }
 
@@ -181,16 +179,12 @@ namespace WinForms
 
         private void LoadLastConfig()
         {
-            if (File.Exists(lastConfigPath))
-            {
-                try
-                {
-                    Config lastConfig = new();
-                    lastConfig.Init(lastConfigPath);
-                    SetForm(lastConfig);
-                }
-                catch { return; }
-            }
+            onezone_textBox.Text = Settings.Default.Onezone;
+            oneproviderToken_textBox.Text = Settings.Default.OneproviderToken;
+            rootFolder_textBox.Text = Settings.Default.RootFolderPath;
+
+            oneproviderTokenKeep_checkBox.Checked = Settings.Default.OneproviderTokenKeep;
+            rootFolderDelete_checkBox.Checked = Settings.Default.RootFolderDeleteCheckBox;
         }
 
         private void SetForm(Config config)
@@ -202,17 +196,20 @@ namespace WinForms
 
         private void SaveLastConfig()
         {
-            try
+            Settings.Default.RootFolderDeleteCheckBox = rootFolderDelete_checkBox.Checked;
+            Settings.Default.Onezone = onezone_textBox.Text;
+            Settings.Default.RootFolderPath = rootFolder_textBox.Text;
+            Settings.Default.OneproviderTokenKeep = oneproviderTokenKeep_checkBox.Checked;
+            if (oneproviderTokenKeep_checkBox.Checked)
             {
-                Config config = new();
-                config.Init(
-                    host: onezone_textBox.Text,
-                    token: oneproviderToken_textBox.Text,
-                    path: rootFolder_textBox.Text);
-                string json = JsonSerializer.Serialize(config);
-                File.WriteAllText(lastConfigPath, json);
+                Settings.Default.OneproviderToken = oneproviderToken_textBox.Text;
             }
-            catch { return; }
+            else
+            {
+                Settings.Default.OneproviderToken = "";
+            }
+
+            Settings.Default.Save();
         }
     }
 }
