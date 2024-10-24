@@ -5,6 +5,8 @@ using System.Reflection;
 using System.Text.Json;
 using Windows.Media.Audio;
 using WinForms.Properties;
+using OnedataDrive.CloudSync.Exceptions;
+using OnedataDrive.CloudSync.ErrorHandling;
 
 namespace WinForms
 {
@@ -68,7 +70,7 @@ namespace WinForms
                     host: onezone_textBox.Text);
                 statusMessage.Text = "In progress";
                 SaveLastConfig();
-                if (await LaunchCloudSyncAsync(config) == 0)
+                if (await LaunchCloudSyncAsync(config) == ReturnCodesEnum.SUCCESS)
                 {
                     statusMessage.Text = "Connected";
                     SetStatus(running: true);
@@ -83,12 +85,26 @@ namespace WinForms
                 statusMessage.Text = "Invalid values";
             }
 
+            // prohibit double click
             connectClicked = false;
         }
 
-        private async Task<int> LaunchCloudSyncAsync(Config config)
+        private async Task<ReturnCodesEnum> LaunchCloudSyncAsync(Config config)
         {
-            int status = await Task.Run(() => CloudSync.Run(config, delete: rootFolderDelete_checkBox.Checked));
+            ReturnCodesEnum status;
+
+            status = await Task.Run(() => CloudSync.Run(config, delete: rootFolderDelete_checkBox.Checked));
+
+            if (status == ReturnCodesEnum.ROOT_FOLDER_NOT_EMPTY && !rootFolderDelete_checkBox.Checked)
+            {
+                string message = "Can not connect, because Root Folder "
+                + config.root_path
+                + " is not empty. Do you want to delete contents of this folder?";
+                if (MessageBox.Show(message, "Onedata Drive", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    status = await Task.Run(() => CloudSync.Run(config, delete: true));
+                }
+            }
             return status;
         }
 

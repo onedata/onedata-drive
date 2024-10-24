@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
 using Vanara.PInvoke;
+using OnedataDrive.CloudSync.Exceptions;
 using static Vanara.PInvoke.CldApi;
 using static Vanara.PInvoke.SearchApi;
+using OnedataDrive.CloudSync.ErrorHandling;
 
 public static class CloudSync
 {
@@ -14,27 +16,31 @@ public static class CloudSync
     /// <param name="config">Configuration of CloudSync</param>
     /// <param name="delete">If true, already existing root directory and its contents will be deleted</param>
     /// <returns></returns>
-    public static int Run(Config config, bool delete = false)
+    public static ReturnCodesEnum Run(Config config, bool delete = false)
     {
         Debug.WriteLine("CLOUD SYNC START");
         configuration = config;
         spaces = new();
         try
         {
-            RestClient.Init(configuration);
-            Debug.WriteLine("Init Rest Client -> OK");
-
             InitSyncRootDir(delete);
             Debug.WriteLine("SyncRoot directory -> OK: " + configuration.root_path);
         }
+        catch (RootFolderNotEmptyException)
+        {
+            return ReturnCodesEnum.ROOT_FOLDER_NOT_EMPTY;
+        }
         catch (Exception e)
         {
-            Debug.WriteLine($"Error: {e}");
-            return 1;
+            Debug.Print($"Error: {e}");
+            return ReturnCodesEnum.ERROR;
         }
 
         try
         {
+            RestClient.Init(configuration);
+            Debug.WriteLine("Init Rest Client -> OK");
+
             AddFolderToSearchIndexer(configuration.root_path);
             Debug.Print("Add Folder To Search Indexer -> OK");
 
@@ -67,9 +73,9 @@ public static class CloudSync
             Stop();
             Debug.WriteLine("CLOUD SYNC FAIL.");
             Debug.WriteLine(e.ToString());
-            return 1;
+            return ReturnCodesEnum.ERROR;
         }
-        return 0;
+        return ReturnCodesEnum.SUCCESS;
     }
 
     public static void Stop()
@@ -288,7 +294,7 @@ public static class CloudSync
 
         if (Directory.EnumerateFileSystemEntries(configuration.root_path).Any())
         {
-            throw new Exception("SyncRoot Directory must be empty.");
+            throw new RootFolderNotEmptyException("SyncRoot Directory must be empty.");
         }
     }
 
