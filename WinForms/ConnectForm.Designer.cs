@@ -1,4 +1,4 @@
-﻿namespace WinForms
+﻿namespace OnedataDriveGUI
 {
     partial class ConnectForm
     {

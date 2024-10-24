@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CloudSync\cloudSync.csproj" />
+    <ProjectReference Include="..\CloudSync\OnedataDrive.csproj" />
   </ItemGroup>
 
   <ItemGroup>

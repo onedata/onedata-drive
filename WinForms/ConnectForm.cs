@@ -4,11 +4,11 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
 using Windows.Media.Audio;
-using WinForms.Properties;
+using OnedataDriveGUI.Properties;
 using OnedataDrive.CloudSync.Exceptions;
 using OnedataDrive.CloudSync.ErrorHandling;
 
-namespace WinForms
+namespace OnedataDriveGUI
 {
     public partial class ConnectForm : Form
     {
