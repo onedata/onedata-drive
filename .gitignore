@@ -3,3 +3,5 @@ obj/
 syncRoot/
 .vs/
 local-config.json
+Debug/
+Release/
