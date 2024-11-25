@@ -7,9 +7,9 @@ using Windows.ApplicationModel.Background;
 
 namespace OnedataDrive.CloudSync.Utils
 {
-    internal class NameConvertor
+    public class NameConvertor
     {
-        const string PROHIBITED_CHARS = "<>:\"/\\|?*";
+        public const string PROHIBITED_CHARS = "<>:\"/\\|?*";
         char[] prohibited_chars = Path.GetInvalidFileNameChars();
         public bool WindowsCorrect(string name) 
         {
@@ -40,7 +40,7 @@ namespace OnedataDrive.CloudSync.Utils
             }
             if (name.EndsWith(' '))
             {
-                sb.Remove(sb.Length, sb.Length);
+                sb.Remove(sb.Length - 1, 1);
             }
             return sb.ToString();
         }
