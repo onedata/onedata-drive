@@ -13,7 +13,9 @@ namespace OnedataDrive.CloudSync
     {
         public HRESULT CreateInstance(object? pUnkOuter, in Guid riid, out object? ppvObject)
         {
-            
+            // NOT IMPLEMENTED
+            ppvObject = null;
+            return HRESULT.S_OK;
         }
 
         public HRESULT LockServer(bool fLock)
