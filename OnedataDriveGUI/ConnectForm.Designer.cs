@@ -203,7 +203,7 @@
             disconect_button.Name = "disconect_button";
             disconect_button.Size = new Size(118, 49);
             disconect_button.TabIndex = 17;
-            disconect_button.Text = "Disconect";
+            disconect_button.Text = "Disconnect";
             disconect_button.UseVisualStyleBackColor = false;
             disconect_button.Click += disconect_button_Click;
             // 
