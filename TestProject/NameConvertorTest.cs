@@ -1,8 +1,5 @@
 using OnedataDrive.CloudSync.Utils;
 using System.Text;
-using System.Xml.Linq;
-using Windows.UI.Input;
-using static Vanara.PInvoke.Gdi32;
 
 namespace TestProject
 {
@@ -14,7 +11,7 @@ namespace TestProject
         {
             NameConvertor nameConvertor = new();
 
-            string[] names = {
+            List<string> names = new() {
                 "abcd", 
                 "123456789", 
                 "Abcd Efgh", 
@@ -60,7 +57,7 @@ namespace TestProject
         }
 
         [TestMethod]
-        public void MakeWindowsCorrect_Test()
+        public void MakeWindowsCorrect_DefaultReplaceChar()
         {
             NameConvertor nameConvertor = new();
 
@@ -77,6 +74,30 @@ namespace TestProject
                 Assert.AreEqual(
                     value.expected,
                     nameConvertor.MakeWindowsCorrect(value.input),
+                    " -> " + value.description
+                    );
+            }
+        }
+
+        [TestMethod]
+        public void MakeWindowsCorrect_NewReplaceChar()
+        {
+            const char REPLACE_CHAR = '#';
+            NameConvertor nameConvertor = new();
+
+            List<(string input, string description, string expected)> values = new() {
+                ("", "Empty name", "#"),
+                ("123456789 ", "Space at the end", "123456789"),
+                ("Abcd>Efgh", "One invalid character", "Abcd#Efgh"),
+                ("<>:\"/\\|?*", "No valid characters", "#########"),
+                ("abc" + (char) 5 + "def", "Contains unprintable character", "abc#def")
+            };
+
+            foreach (var value in values)
+            {
+                Assert.AreEqual(
+                    value.expected,
+                    nameConvertor.MakeWindowsCorrect(value.input, REPLACE_CHAR),
                     " -> " + value.description
                     );
             }
