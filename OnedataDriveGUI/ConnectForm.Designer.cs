@@ -59,6 +59,8 @@
             statusMessage = new ToolStripStatusLabel();
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
+            statusImageBlue = new ToolStripStatusLabel();
+            statusImageGrey = new ToolStripStatusLabel();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)logoPictureBox).BeginInit();
             form_panel.SuspendLayout();
@@ -304,7 +306,7 @@
             // 
             // statusStrip
             // 
-            statusStrip.Items.AddRange(new ToolStripItem[] { statusImageRed, statusImageGreen, statusLabel, statusMessage });
+            statusStrip.Items.AddRange(new ToolStripItem[] { statusImageGrey, statusImageBlue, statusImageRed, statusImageGreen, statusLabel, statusMessage });
             statusStrip.Location = new Point(0, 489);
             statusStrip.Name = "statusStrip";
             statusStrip.Size = new Size(784, 22);
@@ -316,6 +318,7 @@
             statusImageRed.Image = (Image)resources.GetObject("statusImageRed.Image");
             statusImageRed.Name = "statusImageRed";
             statusImageRed.Size = new Size(16, 17);
+            statusImageRed.Visible = false;
             // 
             // statusImageGreen
             // 
@@ -347,6 +350,19 @@
             scrollPanel.Name = "scrollPanel";
             scrollPanel.Size = new Size(784, 489);
             scrollPanel.TabIndex = 24;
+            // 
+            // statusImageBlue
+            // 
+            statusImageBlue.Image = (Image)resources.GetObject("statusImageBlue.Image");
+            statusImageBlue.Name = "statusImageBlue";
+            statusImageBlue.Size = new Size(16, 17);
+            statusImageBlue.Visible = false;
+            // 
+            // statusImageGrey
+            // 
+            statusImageGrey.Image = (Image)resources.GetObject("statusImageGrey.Image");
+            statusImageGrey.Name = "statusImageGrey";
+            statusImageGrey.Size = new Size(16, 17);
             // 
             // ConnectForm
             // 
@@ -411,5 +427,7 @@
         private ToolTip connectForm_toolTip;
         private Panel scrollPanel;
         private CheckBox oneproviderTokenKeep_checkBox;
+        private ToolStripStatusLabel statusImageGrey;
+        private ToolStripStatusLabel statusImageBlue;
     }
 }

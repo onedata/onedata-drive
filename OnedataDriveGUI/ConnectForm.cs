@@ -64,6 +64,7 @@ namespace OnedataDriveGUI
 
             if (valid)
             {
+                SetDisplayStatus(Status.CONNECTING);
                 Config config = new();
                 config.Init(
                     path: rootFolder_textBox.Text.Length == 0 ? defaultRootPath : rootFolder_textBox.Text,
@@ -74,16 +75,18 @@ namespace OnedataDriveGUI
                 if (await LaunchCloudSyncAsync(config) == ReturnCodesEnum.SUCCESS)
                 {
                     statusMessage.Text = "Connected";
-                    SetStatus(running: true);
+                    SetDisplayStatus(Status.CONNECTED);
                 }
                 else
                 {
                     statusMessage.Text = "Failed to connect";
+                    SetDisplayStatus(Status.ERROR);
                 }
             }
             else
             {
                 statusMessage.Text = "Invalid values";
+                SetDisplayStatus(Status.ERROR);
             }
 
             // prohibit double click
@@ -113,7 +116,7 @@ namespace OnedataDriveGUI
         {
             CloudSync.Stop();
             statusMessage.Text = "Disconected";
-            SetStatus(running: false);
+            SetDisplayStatus(Status.NOT_CONNECTED);
         }
 
         private void folderBrowser_button_Click(object sender, EventArgs e)
@@ -173,11 +176,32 @@ namespace OnedataDriveGUI
             }
         }
 
-        private void SetStatus(bool running)
+        private void SetDisplayStatus(Status status)
         {
+            Dictionary<Status, bool> mask = new()
+            {
+                { Status.CONNECTED, false },
+                { Status.NOT_CONNECTED, false },
+                { Status.ERROR, false },
+                { Status.CONNECTING, false },
+            };
+
+            mask[status] = true;
+
+            statusImageBlue.Visible = mask[Status.CONNECTING];
+            statusImageGrey.Visible = mask[Status.NOT_CONNECTED];
+            statusImageGreen.Visible = mask[Status.CONNECTED];
+            statusImageRed.Visible = mask[Status.ERROR];
+
+            advanced_panel.Enabled = form_panel.Enabled = mask[Status.NOT_CONNECTED] || mask[Status.ERROR];
+
+            connect_button.Enabled = mask[Status.NOT_CONNECTED] || mask[Status.ERROR];
+            disconect_button.Enabled = !connect_button.Enabled;
+
+            /*
             statusImageGreen.Visible = running;
             statusImageRed.Visible = !running;
-
+            
             disconect_button.Enabled = running;
             connect_button.Enabled = !running;
 
@@ -187,6 +211,7 @@ namespace OnedataDriveGUI
             folderBrowser_button.Enabled = !running;
             rootFolderErase_button.Enabled = !running;
             advanced_panel.Enabled = !running;
+            */
         }
 
         private void rootFolderErase_button_Click(object sender, EventArgs e)
