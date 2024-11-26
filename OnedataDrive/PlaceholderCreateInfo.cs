@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using static Vanara.PInvoke.CldApi;
 
-class PlaceholderCreateInfo : IDisposable
+public class PlaceholderCreateInfo : IDisposable
 {
     private List<CF_PLACEHOLDER_CREATE_INFO> infos;
 
