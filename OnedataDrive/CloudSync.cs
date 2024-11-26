@@ -4,6 +4,7 @@ using OnedataDrive.CloudSync.Exceptions;
 using static Vanara.PInvoke.CldApi;
 using static Vanara.PInvoke.SearchApi;
 using OnedataDrive.CloudSync.ErrorHandling;
+using OnedataDrive.CloudSync.Utils;
 
 public static class CloudSync
 {
@@ -209,20 +210,23 @@ public static class CloudSync
 
     public static void ChildrenPlaceholders(DirChildren dirChildren, string rootDir, SpaceFolder spaceFolder)
     {
+        NameConvertor nameConvertor = new NameConvertor();
         List<SpaceFolder> childDirs = new();
 
         using (PlaceholderCreateInfo info = new())
         {
             foreach (Child child in dirChildren.children)
             {
-                PlaceholderData data = new(child.file_id, child.name, child.size, child.atime, child.mtime, child.ctime);
+                string windowsCorrectName = DistinctWindowsName(child.name, info);
+
+                PlaceholderData data = new(child.file_id, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime);
                 if (child.type == "DIR")
                 {
                     info.Add(Placeholders.createDirInfo(data));
                     SpaceFolder dir = new()
                     {
                         dirId = child.file_id,
-                        name = rootDir + @"\" + child.name
+                        name = rootDir + @"\" + windowsCorrectName
                     };
                     childDirs.Add(dir);
                 }
@@ -253,6 +257,18 @@ public static class CloudSync
                 Debug.Print("");
             }
         }
+    }
+
+    private static string DistinctWindowsName(string name, PlaceholderCreateInfo info)
+    {
+        NameConvertor nameConvertor = new NameConvertor();
+        string windowsCorrectName = nameConvertor.MakeWindowsCorrect(name);
+        string suffix = "";
+        for (int i = 2; info.Get().Any(x => x.RelativeFileName == (windowsCorrectName + suffix)); i++)
+        {
+            suffix = "(" + i.ToString() + ")";
+        }
+        return windowsCorrectName + suffix;
     }
 
     public static Config LoadConfig(string configPath = "")

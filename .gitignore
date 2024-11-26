@@ -2,6 +2,6 @@ bin/
 obj/
 syncRoot/
 .vs/
-local-config.json
+local-config*
 Debug/
 Release/
