@@ -53,14 +53,14 @@
             advanced_panel = new Panel();
             controls_panel = new Panel();
             statusStrip = new StatusStrip();
+            statusImageGrey = new ToolStripStatusLabel();
+            statusImageBlue = new ToolStripStatusLabel();
             statusImageRed = new ToolStripStatusLabel();
             statusImageGreen = new ToolStripStatusLabel();
             statusLabel = new ToolStripStatusLabel();
             statusMessage = new ToolStripStatusLabel();
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
-            statusImageBlue = new ToolStripStatusLabel();
-            statusImageGrey = new ToolStripStatusLabel();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)logoPictureBox).BeginInit();
             form_panel.SuspendLayout();
@@ -187,7 +187,7 @@
             // 
             // connect_button
             // 
-            connect_button.BackColor = Color.FromArgb(236, 60, 60);
+            connect_button.BackColor = SystemColors.Window;
             connect_button.Location = new Point(528, 29);
             connect_button.Margin = new Padding(2, 3, 2, 3);
             connect_button.Name = "connect_button";
@@ -199,7 +199,7 @@
             // 
             // disconect_button
             // 
-            disconect_button.BackColor = Color.White;
+            disconect_button.BackColor = SystemColors.Window;
             disconect_button.Location = new Point(391, 29);
             disconect_button.Margin = new Padding(2, 3, 2, 3);
             disconect_button.Name = "disconect_button";
@@ -313,6 +313,19 @@
             statusStrip.TabIndex = 23;
             statusStrip.Text = "statusStrip1";
             // 
+            // statusImageGrey
+            // 
+            statusImageGrey.Image = (Image)resources.GetObject("statusImageGrey.Image");
+            statusImageGrey.Name = "statusImageGrey";
+            statusImageGrey.Size = new Size(16, 17);
+            // 
+            // statusImageBlue
+            // 
+            statusImageBlue.Image = (Image)resources.GetObject("statusImageBlue.Image");
+            statusImageBlue.Name = "statusImageBlue";
+            statusImageBlue.Size = new Size(16, 17);
+            statusImageBlue.Visible = false;
+            // 
             // statusImageRed
             // 
             statusImageRed.Image = (Image)resources.GetObject("statusImageRed.Image");
@@ -350,19 +363,6 @@
             scrollPanel.Name = "scrollPanel";
             scrollPanel.Size = new Size(784, 489);
             scrollPanel.TabIndex = 24;
-            // 
-            // statusImageBlue
-            // 
-            statusImageBlue.Image = (Image)resources.GetObject("statusImageBlue.Image");
-            statusImageBlue.Name = "statusImageBlue";
-            statusImageBlue.Size = new Size(16, 17);
-            statusImageBlue.Visible = false;
-            // 
-            // statusImageGrey
-            // 
-            statusImageGrey.Image = (Image)resources.GetObject("statusImageGrey.Image");
-            statusImageGrey.Name = "statusImageGrey";
-            statusImageGrey.Size = new Size(16, 17);
             // 
             // ConnectForm
             // 

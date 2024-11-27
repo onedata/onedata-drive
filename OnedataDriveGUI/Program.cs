@@ -10,8 +10,16 @@ namespace OnedataDriveGUI
         {
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
-            ApplicationConfiguration.Initialize();
-            Application.Run(new ConnectForm());
+
+            bool mutexOwner;
+            using (Mutex mutex = new Mutex(true, "OnedataDrive", out mutexOwner))
+            {
+                if (mutexOwner)
+                {
+                    ApplicationConfiguration.Initialize();
+                    Application.Run(new ConnectForm());
+                }
+            }    
         }
     }
 }
