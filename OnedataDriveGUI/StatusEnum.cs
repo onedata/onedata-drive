@@ -11,6 +11,7 @@ namespace OnedataDriveGUI
         NOT_CONNECTED,
         CONNECTED,
         ERROR,
-        CONNECTING
+        CONNECTING,
+        DISCONNECTING
     }
 }

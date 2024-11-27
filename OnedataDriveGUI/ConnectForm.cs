@@ -114,6 +114,8 @@ namespace OnedataDriveGUI
 
         private void disconect_button_Click(object sender, EventArgs e)
         {
+            SetDisplayStatus(Status.DISCONNECTING);
+            statusMessage.Text = "Disconnecting";
             CloudSync.Stop();
             statusMessage.Text = "Disconected";
             SetDisplayStatus(Status.NOT_CONNECTED);
@@ -151,6 +153,8 @@ namespace OnedataDriveGUI
 
         private void ConnectForm_FormClosed(object sender, FormClosedEventArgs e)
         {
+            SetDisplayStatus(Status.DISCONNECTING);
+            statusMessage.Text = "Disconnecting";
             CloudSync.Stop();
         }
 
@@ -184,11 +188,12 @@ namespace OnedataDriveGUI
                 { Status.NOT_CONNECTED, false },
                 { Status.ERROR, false },
                 { Status.CONNECTING, false },
+                { Status.DISCONNECTING, false },
             };
 
             mask[status] = true;
 
-            statusImageBlue.Visible = mask[Status.CONNECTING];
+            statusImageBlue.Visible = mask[Status.CONNECTING] || mask[Status.DISCONNECTING];
             statusImageGrey.Visible = mask[Status.NOT_CONNECTED];
             statusImageGreen.Visible = mask[Status.CONNECTED];
             statusImageRed.Visible = mask[Status.ERROR];
