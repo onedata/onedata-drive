@@ -89,6 +89,11 @@
                     "Name" = "8:Microsoft .NET Framework 4.7.2 (x86 and x64)"
                     "ProductCode" = "8:.NETFramework,Version=v4.7.2"
                     }
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.NetCore.DesktopRuntime.8.0.x64"
+                    {
+                    "Name" = "8:.NET Desktop Runtime 8.0.8 (x64)"
+                    "ProductCode" = "8:Microsoft.NetCore.DesktopRuntime.8.0.x64"
+                    }
                 }
             }
         }
@@ -172,7 +177,7 @@
             }
             "{3C67513D-01DD-4637-8A68-80971EB9504F}:_9DCA72EB57EE482A92DC04DD94E04FD7"
             {
-            "DefaultLocation" = "8:[ProgramFilesFolder]\\[ProductName]"
+            "DefaultLocation" = "8:[ProgramFiles64Folder]\\[ProductName]"
             "Name" = "8:#1925"
             "AlwaysCreate" = "11:FALSE"
             "Condition" = "8:"
@@ -199,7 +204,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Onedata Drive"
         "ProductCode" = "8:{D29AC555-1170-41CB-959A-0E65373345D6}"
-        "PackageCode" = "8:{7DEDFB84-39F4-4B93-9EB1-1CED0035E709}"
+        "PackageCode" = "8:{C6D562F1-D1E6-43E2-B0A2-ED1DCD776DDB}"
         "UpgradeCode" = "8:{1A0420F3-CF57-41DF-809C-3098B2E589F9}"
         "AspNetVersion" = "8:"
         "RestartWWWService" = "11:FALSE"

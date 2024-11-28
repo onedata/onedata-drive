@@ -8,7 +8,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OnedataDriveGUI", "OnedataD
 EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "OnedataDriveSetup", "OnedataDriveSetup\OnedataDriveSetup.vdproj", "{76FCBCEB-E453-4221-B308-FA0C8F5DF25F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestProject", "TestProject\TestProject.csproj", "{CE3089C1-B059-47ED-9D67-E73423289E30}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject", "TestProject\TestProject.csproj", "{CE3089C1-B059-47ED-9D67-E73423289E30}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
