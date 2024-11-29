@@ -31,8 +31,7 @@
             components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ConnectForm));
             header_panel = new Panel();
-            headingLabel = new Label();
-            logoPictureBox = new PictureBox();
+            pictureBox1 = new PictureBox();
             onezone_label = new Label();
             onezone_textBox = new TextBox();
             rootFolder_textBox = new TextBox();
@@ -62,7 +61,7 @@
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
             header_panel.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)logoPictureBox).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             form_panel.SuspendLayout();
             advanced_panel.SuspendLayout();
             controls_panel.SuspendLayout();
@@ -73,8 +72,7 @@
             // header_panel
             // 
             header_panel.BackColor = Color.FromArgb(64, 64, 64);
-            header_panel.Controls.Add(headingLabel);
-            header_panel.Controls.Add(logoPictureBox);
+            header_panel.Controls.Add(pictureBox1);
             header_panel.Dock = DockStyle.Top;
             header_panel.Location = new Point(0, 0);
             header_panel.Margin = new Padding(2, 3, 2, 3);
@@ -82,29 +80,15 @@
             header_panel.Size = new Size(767, 119);
             header_panel.TabIndex = 3;
             // 
-            // headingLabel
+            // pictureBox1
             // 
-            headingLabel.AutoSize = true;
-            headingLabel.Font = new Font("Segoe UI", 20F, FontStyle.Bold);
-            headingLabel.ForeColor = Color.FromArgb(224, 224, 224);
-            headingLabel.Location = new Point(128, 39);
-            headingLabel.Margin = new Padding(2, 0, 2, 0);
-            headingLabel.Name = "headingLabel";
-            headingLabel.Size = new Size(202, 37);
-            headingLabel.TabIndex = 1;
-            headingLabel.Text = "Onedata Drive";
-            headingLabel.TextAlign = ContentAlignment.MiddleCenter;
-            // 
-            // logoPictureBox
-            // 
-            logoPictureBox.Image = (Image)resources.GetObject("logoPictureBox.Image");
-            logoPictureBox.Location = new Point(15, 15);
-            logoPictureBox.Margin = new Padding(2, 3, 2, 3);
-            logoPictureBox.Name = "logoPictureBox";
-            logoPictureBox.Size = new Size(81, 91);
-            logoPictureBox.SizeMode = PictureBoxSizeMode.StretchImage;
-            logoPictureBox.TabIndex = 0;
-            logoPictureBox.TabStop = false;
+            pictureBox1.Image = (Image)resources.GetObject("pictureBox1.Image");
+            pictureBox1.Location = new Point(18, 0);
+            pictureBox1.Name = "pictureBox1";
+            pictureBox1.Size = new Size(268, 119);
+            pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox1.TabIndex = 1;
+            pictureBox1.TabStop = false;
             // 
             // onezone_label
             // 
@@ -381,8 +365,7 @@
             FormClosing += ConnectForm_Closing;
             FormClosed += ConnectForm_FormClosed;
             header_panel.ResumeLayout(false);
-            header_panel.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)logoPictureBox).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             form_panel.ResumeLayout(false);
             form_panel.PerformLayout();
             advanced_panel.ResumeLayout(false);
@@ -397,8 +380,6 @@
 
         #endregion
         private Panel header_panel;
-        private PictureBox logoPictureBox;
-        private Label headingLabel;
         private Label onezone_label;
         private TextBox onezone_textBox;
         private TextBox rootFolder_textBox;
@@ -429,5 +410,6 @@
         private CheckBox oneproviderTokenKeep_checkBox;
         private ToolStripStatusLabel statusImageGrey;
         private ToolStripStatusLabel statusImageBlue;
+        private PictureBox pictureBox1;
     }
 }
