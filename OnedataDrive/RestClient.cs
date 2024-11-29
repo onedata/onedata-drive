@@ -10,23 +10,29 @@ static class RestClient
 {
     public static string PROVIDER_TOKEN = "";
     public static string ZONE_HOST = "";
+    public static string ZONE_PROTOCOL = "";
     private static HttpClient client = new();
     private static HttpClient clientNoHeaders = new();
+    private const string HTTP = "http://";
+    private const string HTTPS = "https://";
 
     public static void Init(Config config)
     {
         PROVIDER_TOKEN = config.provider_token;
-        if (config.zone_host.StartsWith("https://"))
+        if (config.zone_host.StartsWith(HTTPS))
         {
             ZONE_HOST = config.zone_host.Substring(8);
+            ZONE_PROTOCOL = HTTPS;
         }
-        else if (config.zone_host.StartsWith("http://"))
+        else if (config.zone_host.StartsWith(HTTP))
         {
             ZONE_HOST = config.zone_host.Substring(7);
+            ZONE_PROTOCOL = HTTP;
         }
         else
         {
             ZONE_HOST = config.zone_host;
+            ZONE_PROTOCOL = HTTPS;
         }
 
         client.DefaultRequestHeaders.Clear();
@@ -118,7 +124,7 @@ static class RestClient
 
     public static async Task<TokenAccess> InferAccessTokenScope()
     { 
-        string url = "https://"
+        string url = ZONE_PROTOCOL
             + ZONE_HOST 
             + "/api/v3/onezone/tokens/infer_access_token_scope";
         
