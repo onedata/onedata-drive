@@ -16,7 +16,18 @@ static class RestClient
     public static void Init(Config config)
     {
         PROVIDER_TOKEN = config.provider_token;
-        ZONE_HOST = config.zone_host;
+        if (config.zone_host.StartsWith("https://"))
+        {
+            ZONE_HOST = config.zone_host.Substring(8);
+        }
+        else if (config.zone_host.StartsWith("http://"))
+        {
+            ZONE_HOST = config.zone_host.Substring(7);
+        }
+        else
+        {
+            ZONE_HOST = config.zone_host;
+        }
 
         client.DefaultRequestHeaders.Clear();
         client.DefaultRequestHeaders.Add("x-auth-token", PROVIDER_TOKEN);
