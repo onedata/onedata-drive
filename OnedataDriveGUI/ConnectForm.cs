@@ -49,16 +49,16 @@ namespace OnedataDriveGUI
 
             bool valid = true;
             oneproviderToken_textBox.BackColor = ColorTranslator.FromHtml(textBoxBC);
-            onezone_textBox.BackColor = ColorTranslator.FromHtml(textBoxBC);
+            onezone_comboBox.BackColor = ColorTranslator.FromHtml(textBoxBC);
 
             if (oneproviderToken_textBox.Text == "")
             {
                 oneproviderToken_textBox.BackColor = ColorTranslator.FromHtml(textBoxErrBC);
                 valid = false;
             }
-            if (onezone_textBox.Text == "")
+            if (onezone_comboBox.Text == "")
             {
-                onezone_textBox.BackColor = ColorTranslator.FromHtml(textBoxErrBC);
+                onezone_comboBox.BackColor = ColorTranslator.FromHtml(textBoxErrBC);
                 valid = false;
             }
 
@@ -69,7 +69,7 @@ namespace OnedataDriveGUI
                 config.Init(
                     path: rootFolder_textBox.Text.Length == 0 ? defaultRootPath : rootFolder_textBox.Text,
                     token: oneproviderToken_textBox.Text,
-                    host: onezone_textBox.Text);
+                    host: onezone_comboBox.Text);
                 statusMessage.Text = "In progress";
                 SaveLastConfig();
                 if (await LaunchCloudSyncAsync(config) == ReturnCodesEnum.SUCCESS)
@@ -138,7 +138,7 @@ namespace OnedataDriveGUI
                 try
                 {
                     config.Init(config_openFileDialog.FileName);
-                    onezone_textBox.Text = config.zone_host;
+                    onezone_comboBox.Text = config.zone_host;
                     oneproviderToken_textBox.Text = config.provider_token;
                     rootFolder_textBox.Text = config.root_path;
 
@@ -202,21 +202,6 @@ namespace OnedataDriveGUI
 
             connect_button.Enabled = mask[Status.NOT_CONNECTED] || mask[Status.ERROR];
             disconect_button.Enabled = !connect_button.Enabled;
-
-            /*
-            statusImageGreen.Visible = running;
-            statusImageRed.Visible = !running;
-            
-            disconect_button.Enabled = running;
-            connect_button.Enabled = !running;
-
-            oneproviderToken_textBox.Enabled = !running;
-            onezone_textBox.Enabled = !running;
-            rootFolder_textBox.Enabled = !running;
-            folderBrowser_button.Enabled = !running;
-            rootFolderErase_button.Enabled = !running;
-            advanced_panel.Enabled = !running;
-            */
         }
 
         private void rootFolderErase_button_Click(object sender, EventArgs e)
@@ -226,7 +211,7 @@ namespace OnedataDriveGUI
 
         private void LoadLastConfig()
         {
-            onezone_textBox.Text = Settings.Default.Onezone;
+            onezone_comboBox.Text = Settings.Default.Onezone;
             oneproviderToken_textBox.Text = Settings.Default.OneproviderToken;
             rootFolder_textBox.Text = Settings.Default.RootFolderPath;
 
@@ -237,14 +222,14 @@ namespace OnedataDriveGUI
         private void SetForm(Config config)
         {
             rootFolder_textBox.Text = config.root_path;
-            onezone_textBox.Text = config.zone_host;
+            onezone_comboBox.Text = config.zone_host;
             oneproviderToken_textBox.Text = config.provider_token;
         }
 
         private void SaveLastConfig()
         {
             Settings.Default.RootFolderDeleteCheckBox = rootFolderDelete_checkBox.Checked;
-            Settings.Default.Onezone = onezone_textBox.Text;
+            Settings.Default.Onezone = onezone_comboBox.Text;
             Settings.Default.RootFolderPath = rootFolder_textBox.Text;
             Settings.Default.OneproviderTokenKeep = oneproviderTokenKeep_checkBox.Checked;
             if (oneproviderTokenKeep_checkBox.Checked)

@@ -33,7 +33,6 @@
             header_panel = new Panel();
             pictureBox1 = new PictureBox();
             onezone_label = new Label();
-            onezone_textBox = new TextBox();
             rootFolder_textBox = new TextBox();
             rootFolder_label = new Label();
             oneproviderToken_textBox = new TextBox();
@@ -46,6 +45,7 @@
             loadFromFile_button = new Button();
             config_openFileDialog = new OpenFileDialog();
             form_panel = new Panel();
+            onezone_comboBox = new ComboBox();
             oneproviderTokenKeep_checkBox = new CheckBox();
             advanced_button = new Button();
             rootFolderErase_button = new Button();
@@ -99,14 +99,6 @@
             onezone_label.Size = new Size(64, 19);
             onezone_label.TabIndex = 4;
             onezone_label.Text = "Onezone";
-            // 
-            // onezone_textBox
-            // 
-            onezone_textBox.Location = new Point(161, 16);
-            onezone_textBox.Margin = new Padding(2, 3, 2, 3);
-            onezone_textBox.Name = "onezone_textBox";
-            onezone_textBox.Size = new Size(474, 25);
-            onezone_textBox.TabIndex = 5;
             // 
             // rootFolder_textBox
             // 
@@ -212,9 +204,9 @@
             // 
             // form_panel
             // 
+            form_panel.Controls.Add(onezone_comboBox);
             form_panel.Controls.Add(oneproviderTokenKeep_checkBox);
             form_panel.Controls.Add(advanced_button);
-            form_panel.Controls.Add(onezone_textBox);
             form_panel.Controls.Add(onezone_label);
             form_panel.Controls.Add(oneproviderToken_label);
             form_panel.Controls.Add(oneproviderToken_textBox);
@@ -223,6 +215,15 @@
             form_panel.Name = "form_panel";
             form_panel.Size = new Size(767, 181);
             form_panel.TabIndex = 20;
+            // 
+            // onezone_comboBox
+            // 
+            onezone_comboBox.FormattingEnabled = true;
+            onezone_comboBox.Items.AddRange(new object[] { "datahub.egi.eu", "onedata.e-infra.cz", "onezone.onedata.org" });
+            onezone_comboBox.Location = new Point(161, 16);
+            onezone_comboBox.Name = "onezone_comboBox";
+            onezone_comboBox.Size = new Size(473, 27);
+            onezone_comboBox.TabIndex = 17;
             // 
             // oneproviderTokenKeep_checkBox
             // 
@@ -381,7 +382,6 @@
         #endregion
         private Panel header_panel;
         private Label onezone_label;
-        private TextBox onezone_textBox;
         private TextBox rootFolder_textBox;
         private Label rootFolder_label;
         private TextBox oneproviderToken_textBox;
@@ -411,5 +411,6 @@
         private ToolStripStatusLabel statusImageGrey;
         private ToolStripStatusLabel statusImageBlue;
         private PictureBox pictureBox1;
+        private ComboBox onezone_comboBox;
     }
 }
