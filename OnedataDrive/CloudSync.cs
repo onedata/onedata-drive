@@ -373,7 +373,7 @@ public static class CloudSync
         {
             FolderSetNotInSync(folderPath);
             // folder get file metadata
-            CF_PLACEHOLDER_BASIC_INFO info = Utils.GetBasicInfo(folderPath);
+            CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(folderPath);
             string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
 
             DirChildren children;
@@ -400,7 +400,7 @@ public static class CloudSync
                 {
                     if (Directory.Exists(localPath))
                     {
-                        CF_PLACEHOLDER_BASIC_INFO localFolderInfo = Utils.GetBasicInfo(localPath);
+                        CF_PLACEHOLDER_BASIC_INFO localFolderInfo = CldApiUtils.GetBasicInfo(localPath);
                         string localFolderId = System.Text.Encoding.Unicode.GetString(localFolderInfo.FileIdentity);
                         if (localFolderId == cloudFile.file_id)
                         {
@@ -423,7 +423,7 @@ public static class CloudSync
                 {
                     if (File.Exists(localPath))
                     {
-                        CF_PLACEHOLDER_STANDARD_INFO localFileInfo = Utils.GetStandardInfo(localPath);
+                        CF_PLACEHOLDER_STANDARD_INFO localFileInfo = CldApiUtils.GetStandardInfo(localPath);
                         string localFolderId = System.Text.Encoding.Unicode.GetString(localFileInfo.FileIdentity);
                         FileInfo localFileMetadata = new(localPath);
 
@@ -477,7 +477,7 @@ public static class CloudSync
     {
         foreach (string file in Directory.GetFiles(folderPath))
         {
-            CF_PLACEHOLDER_BASIC_INFO info = Utils.GetBasicInfo(file);
+            CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(file);
             if (info.InSyncState == CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_NOT_IN_SYNC)
             {
                 try
@@ -493,7 +493,7 @@ public static class CloudSync
         }
         foreach (string dir in Directory.GetDirectories(folderPath))
         {
-            CF_PLACEHOLDER_BASIC_INFO info = Utils.GetBasicInfo(dir);
+            CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(dir);
             if (info.InSyncState == CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_NOT_IN_SYNC)
             {
                 try

@@ -109,7 +109,7 @@ public class FileWatcher
 
         try
         {
-            CF_PLACEHOLDER_STANDARD_INFO info = Utils.GetStandardInfo(e.FullPath);
+            CF_PLACEHOLDER_STANDARD_INFO info = CldApiUtils.GetStandardInfo(e.FullPath);
 
             UpdateFile(e, info);
 
@@ -219,7 +219,7 @@ public class FileWatcher
  
         var task = RestClient.GetFileAttribute(
             id,
-            CloudSync.spaces[Utils.GetSpaceName(path)].providerInfos
+            CloudSync.spaces[CldApiUtils.GetSpaceName(path)].providerInfos
         );
         task.Wait();
         FileAttribute attribute = task.Result;
@@ -279,14 +279,14 @@ public class FileWatcher
 
     private FileId PushNewFolderToCloud(string fullPath)
     {
-        CF_PLACEHOLDER_BASIC_INFO info = Utils.GetBasicInfo(Utils.GetParentPath(fullPath));
+        CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(CldApiUtils.GetParentPath(fullPath));
 
         string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
 
         var task = RestClient.CreateFileInDir(
-                CloudSync.spaces[Utils.GetSpaceName(fullPath)].providerInfos,
+                CloudSync.spaces[CldApiUtils.GetSpaceName(fullPath)].providerInfos,
                 id,
-                Utils.GetLastInPath(fullPath),
+                CldApiUtils.GetLastInPath(fullPath),
                 directory: true
             );
         task.Wait();
@@ -297,14 +297,14 @@ public class FileWatcher
     {
         using (FileStream stream = File.OpenRead(fullPath))
         {   
-            CF_PLACEHOLDER_BASIC_INFO info = Utils.GetBasicInfo(Utils.GetParentPath(fullPath));
+            CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(CldApiUtils.GetParentPath(fullPath));
 
             string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
             
             var task = RestClient.CreateFileInDir(
-                CloudSync.spaces[Utils.GetSpaceName(fullPath)].providerInfos,
+                CloudSync.spaces[CldApiUtils.GetSpaceName(fullPath)].providerInfos,
                 id,
-                Utils.GetLastInPath(fullPath),
+                CldApiUtils.GetLastInPath(fullPath),
                 stream
             );
             task.Wait();
@@ -319,7 +319,7 @@ public class FileWatcher
         using (FileStream stream = File.OpenRead(fullPath))
         {   
             var task = RestClient.PostFileContent(
-                CloudSync.spaces[Utils.GetSpaceName(fullPath)].providerInfos,
+                CloudSync.spaces[CldApiUtils.GetSpaceName(fullPath)].providerInfos,
                 id,
                 stream
             );

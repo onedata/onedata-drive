@@ -3,7 +3,7 @@ using System.Text;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
 
-static class Utils
+static class CldApiUtils
 {
     // size of memory block needed for CF_PLACEHOLDER_INFO (basic 388, standard 420)
     private const int BLOB_LENGTH = 500;

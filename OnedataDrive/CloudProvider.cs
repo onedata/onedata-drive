@@ -1,3 +1,4 @@
+using OnedataDrive.CloudSync.Utils;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -27,7 +28,17 @@ public static class CloudProvider
 
         //string icon = "C:\\Users\\User\\Desktop\\win-client\\CloudSync\\bin\\Debug\\net8.0-windows10.0.26100.0" + "\\favicon.ico,0";
         string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
-        string icon = exeDir + "\\favicon.ico,0";
+
+        WindowsTheme wt = new WindowsTheme();
+        string icon;
+        if (wt.IsSystemDarkMode())
+        {
+            icon = exeDir + "\\icon-light.ico,0";
+        }
+        else
+        {
+            icon = exeDir + "\\icon-dark.ico,0";
+        }
 
         Debug.Print("Icon path: {0}", icon);
         info.IconResource = icon;
@@ -193,7 +204,7 @@ public static class CloudProvider
         try
         {
             string fileIdentity = Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int) CallbackInfo.FileIdentityLength/2) ?? "";
-            SpaceFolder space = CloudSync.spaces[Utils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath)];
+            SpaceFolder space = CloudSync.spaces[CldApiUtils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath)];
             
             var taskInfo = RestClient.GetFileAttribute(fileIdentity, space.providerInfos);
             taskInfo.Wait();
@@ -204,7 +215,7 @@ public static class CloudProvider
             }
 
             Task<Stream> taskData = RestClient.GetStream(
-                CloudSync.spaces[Utils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath)].providerInfos,
+                CloudSync.spaces[CldApiUtils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath)].providerInfos,
                 Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int) CallbackInfo.FileIdentityLength/2) ?? ""
                 );
             taskData.Wait();
@@ -307,14 +318,14 @@ public static class CloudProvider
 
         try
         {
-            if (CloudSync.configuration.root_path + Utils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath) ==
+            if (CloudSync.configuration.root_path + CldApiUtils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath) ==
                 CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath)
             {
                 Debug.Print("Can not delete SPACE");
                 throw new Exception("Can not delete space folder");
             }
             var task = RestClient.Delete(
-                CloudSync.spaces[Utils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath)].providerInfos,
+                CloudSync.spaces[CldApiUtils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath)].providerInfos,
                 Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int) CallbackInfo.FileIdentityLength/2) ?? "");
             task.Wait();
             status = new NTStatus((uint)NTStatus.STATUS_SUCCESS);
@@ -370,7 +381,7 @@ public static class CloudProvider
 
         try
         {
-            string spacePath = CloudSync.configuration.root_path + Utils.GetSpaceName(sourcePath) + "\\";
+            string spacePath = CloudSync.configuration.root_path + CldApiUtils.GetSpaceName(sourcePath) + "\\";
 
             if (targetPath.StartsWith(spacePath))
             {
@@ -379,8 +390,8 @@ public static class CloudProvider
 
                 string src = sourcePath.Remove(0, spacePath.Length).Replace('\\','/');
                 string dest = targetPath.Remove(0, spacePath.Length).Replace('\\','/');
-                List<ProviderInfo> providerInfos = CloudSync.spaces[Utils.GetSpaceName(sourcePath)].providerInfos;
-                var task = RestClient.Move(providerInfos, src, dest, Utils.GetSpaceName(sourcePath));
+                List<ProviderInfo> providerInfos = CloudSync.spaces[CldApiUtils.GetSpaceName(sourcePath)].providerInfos;
+                var task = RestClient.Move(providerInfos, src, dest, CldApiUtils.GetSpaceName(sourcePath));
                 task.Wait();
 
                 Debug.Print("File was renamed/moved on cloud");
@@ -401,7 +412,7 @@ public static class CloudProvider
             {
                 // success
                 Debug.Print("Move file outside SyncRoot -> File deleted on cloud");
-                List<ProviderInfo> providerInfos = CloudSync.spaces[Utils.GetSpaceName(sourcePath)].providerInfos;
+                List<ProviderInfo> providerInfos = CloudSync.spaces[CldApiUtils.GetSpaceName(sourcePath)].providerInfos;
                 var taskRemove = RestClient.Delete(providerInfos, fileIdentity);
                 taskRemove.Wait();
             }
