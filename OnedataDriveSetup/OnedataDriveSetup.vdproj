@@ -21,7 +21,7 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_EA668D3376F845429E66A69CE9C13E76"
+        "MsmKey" = "8:_5BD52ADB823549C2B1899ACEB89051CE"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -127,10 +127,10 @@
         }
         "File"
         {
-            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_EA668D3376F845429E66A69CE9C13E76"
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_5BD52ADB823549C2B1899ACEB89051CE"
             {
-            "SourcePath" = "8:..\\OnedataDrive\\resources\\favicon.ico"
-            "TargetName" = "8:favicon.ico"
+            "SourcePath" = "8:..\\OnedataDrive\\resources\\icon-dark.ico"
+            "TargetName" = "8:icon-dark.ico"
             "Tag" = "8:"
             "Folder" = "8:_9DCA72EB57EE482A92DC04DD94E04FD7"
             "Condition" = "8:"
@@ -335,7 +335,7 @@
             "Target" = "8:_190BDCC988A143959206E345C52F7E33"
             "Folder" = "8:_01098052933C437A83144140CB679353"
             "WorkingFolder" = "8:_9DCA72EB57EE482A92DC04DD94E04FD7"
-            "Icon" = "8:_EA668D3376F845429E66A69CE9C13E76"
+            "Icon" = "8:_5BD52ADB823549C2B1899ACEB89051CE"
             "Feature" = "8:"
             }
         }
