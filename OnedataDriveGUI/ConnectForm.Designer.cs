@@ -71,7 +71,7 @@
             // 
             // header_panel
             // 
-            header_panel.BackColor = Color.FromArgb(64, 64, 64);
+            header_panel.BackColor = SystemColors.ControlDarkDark;
             header_panel.Controls.Add(pictureBox1);
             header_panel.Dock = DockStyle.Top;
             header_panel.Location = new Point(0, 0);

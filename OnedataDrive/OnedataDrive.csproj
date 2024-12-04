@@ -27,10 +27,6 @@
 		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		<TargetPath>%(Filename)%(Extension)</TargetPath>
 	</ContentWithTargetPath>
-    <ContentWithTargetPath Include="resources\config.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>%(Filename)%(Extension)</TargetPath>
-    </ContentWithTargetPath>
     <ContentWithTargetPath Include="../README.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>%(Filename)%(Extension)</TargetPath>
