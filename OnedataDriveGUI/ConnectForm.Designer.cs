@@ -360,6 +360,8 @@
             Font = new Font("Microsoft YaHei", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Margin = new Padding(2, 3, 2, 3);
+            MaximizeBox = false;
+            MaximumSize = new Size(800, 1080);
             MinimumSize = new Size(800, 550);
             Name = "ConnectForm";
             Text = "Onedata Drive";
