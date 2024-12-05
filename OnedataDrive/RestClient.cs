@@ -1,3 +1,4 @@
+using OnedataDrive.CloudSync.Exceptions;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -138,7 +139,7 @@ static class RestClient
         response.EnsureSuccessStatusCode();
 
         return JsonSerializer.Deserialize<TokenAccess>(response.Content.ReadAsStream()) ??
-         throw new Exception("Failed to deserialize JSON.");
+         throw new JsonReturnedNullException();
     }
 
     public static async Task<SpaceDetails> GetSpacesDetails(string spaceId, string provider_domain)

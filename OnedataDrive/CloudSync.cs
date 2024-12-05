@@ -31,6 +31,10 @@ public static class CloudSync
         {
             return CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY;
         }
+        catch (UnauthorizedAccessException)
+        {
+            return CloudSyncReturnCodes.ROOT_FOLDER_NO_ACCESS_RIGHT;
+        }
         catch (Exception e)
         {
             Debug.Print($"Error: {e}");

@@ -18,5 +18,17 @@ namespace OnedataDrive.CloudSync.Exceptions
         }
 
     }
+
+    public class JsonReturnedNullException : Exception
+    {
+        public JsonReturnedNullException() : base() { }
+        public JsonReturnedNullException(string message) : base(message) { }
+        public JsonReturnedNullException(string message, Exception innerException) : base(message, innerException) { }
+
+        public override string ToString()
+        {
+            return "JsonReturnedNullException: " + base.ToString();
+        }
+    }
     
 }

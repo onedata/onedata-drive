@@ -10,6 +10,7 @@ namespace OnedataDrive.CloudSync.ErrorHandling
     {
         SUCCESS = 0,
         ERROR = 1,
-        ROOT_FOLDER_NOT_EMPTY = 2
+        ROOT_FOLDER_NOT_EMPTY,
+        ROOT_FOLDER_NO_ACCESS_RIGHT
     }
 }
