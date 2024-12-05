@@ -30,5 +30,29 @@ namespace OnedataDrive.CloudSync.Exceptions
             return "JsonReturnedNullException: " + base.ToString();
         }
     }
-    
+
+    public class OnezoneException : Exception
+    {
+        public OnezoneException() : base() { }
+        public OnezoneException(string message) : base(message) { }
+        public OnezoneException(string message, Exception innerException) : base(message, innerException) { }
+
+        public override string ToString()
+        {
+            return "OnezoneException: " + base.ToString();
+        }
+    }
+
+    public class ProviderTokenException : Exception
+    {
+        public ProviderTokenException() : base() { }
+        public ProviderTokenException(string message) : base(message) { }
+        public ProviderTokenException(string message, Exception innerException) : base(message, innerException) { }
+
+        public override string ToString()
+        {
+            return "ProviderTokenException: " + base.ToString();
+        }
+    }
+
 }

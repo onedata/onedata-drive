@@ -63,6 +63,16 @@ public static class CloudSync
             watcher = new(configuration.root_path);
             Debug.Print("Filewatcher Start -> OK");
         }
+        catch (OnezoneException e)
+        {
+            Debug.Print(e.ToString());
+            return CloudSyncReturnCodes.ONEZONE_FAIL;
+        }
+        catch (ProviderTokenException e)
+        {
+            Debug.Print(e.ToString());
+            return CloudSyncReturnCodes.TOKEN_FAIL;
+        }
         catch (Exception e)
         {
             Stop();
@@ -107,9 +117,18 @@ public static class CloudSync
         Debug.Print("CREATING SPACE FOLDERS");
         using (PlaceholderCreateInfo info = new())
         {
-            var taskTA = RestClient.InferAccessTokenScope();
-            taskTA.Wait();
-            TokenAccess tokenAccess = taskTA.Result;
+            TokenAccess tokenAccess;
+            try
+            {
+                var taskTA = RestClient.InferAccessTokenScope();
+                taskTA.Wait();
+                tokenAccess = taskTA.Result;
+            }
+            catch (HttpRequestException e)
+            {
+                throw new OnezoneException("", e);
+            }
+            
 
             foreach (KeyValuePair<string, TASpace> space in tokenAccess.dataAccessScope.spaces)
             // KEY is spaceId

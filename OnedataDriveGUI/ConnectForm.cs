@@ -20,7 +20,7 @@ namespace OnedataDriveGUI
         {
             get
             {
-                return myDocumentsPath + "\\" + "Onedata Drive";
+                return myDocumentsPath + "\\" + ROOT_DIR;
             }
         }
         private string textBoxErrBC = "#d38787";
@@ -138,7 +138,7 @@ namespace OnedataDriveGUI
                 try
                 {
                     config.Init(config_openFileDialog.FileName);
-                    onezone_comboBox.Text = config.zone_host;
+                    onezone_comboBox.Text = config.onezone;
                     oneproviderToken_textBox.Text = config.provider_token;
                     rootFolder_textBox.Text = config.root_path;
 
@@ -222,7 +222,7 @@ namespace OnedataDriveGUI
         private void SetForm(Config config)
         {
             rootFolder_textBox.Text = config.root_path;
-            onezone_comboBox.Text = config.zone_host;
+            onezone_comboBox.Text = config.onezone;
             oneproviderToken_textBox.Text = config.provider_token;
         }
 

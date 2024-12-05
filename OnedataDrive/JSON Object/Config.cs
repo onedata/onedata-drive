@@ -2,7 +2,7 @@ using System.Text.Json;
 
 public class Config
 {
-    public string zone_host { get; set; } = "";
+    public string onezone { get; set; } = "";
     public string provider_token { get; set; } = "";
     public string root_path { get; set; } = "";
 
@@ -10,12 +10,12 @@ public class Config
     {
         string json = File.ReadAllText(path);
         Config temp = JsonSerializer.Deserialize<Config>(json) ?? new();
-        Init(temp.zone_host, temp.root_path, temp.provider_token);
+        Init(temp.onezone, temp.root_path, temp.provider_token);
     }
 
     public void Init(string host, string path, string token)
     {
-        zone_host = host;
+        onezone = host;
         provider_token = token;
         root_path = path;
 
@@ -27,7 +27,7 @@ public class Config
 
     public bool IsComplete()
     {
-        if (zone_host == "" ||
+        if (onezone == "" ||
             provider_token == "" ||
             root_path == "" ||
             root_path.Last() != '\\'

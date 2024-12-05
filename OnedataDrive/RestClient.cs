@@ -20,19 +20,19 @@ static class RestClient
     public static void Init(Config config)
     {
         PROVIDER_TOKEN = config.provider_token;
-        if (config.zone_host.StartsWith(HTTPS))
+        if (config.onezone.StartsWith(HTTPS))
         {
-            ZONE_HOST = config.zone_host.Substring(8);
+            ZONE_HOST = config.onezone.Substring(8);
             ZONE_PROTOCOL = HTTPS;
         }
-        else if (config.zone_host.StartsWith(HTTP))
+        else if (config.onezone.StartsWith(HTTP))
         {
-            ZONE_HOST = config.zone_host.Substring(7);
+            ZONE_HOST = config.onezone.Substring(7);
             ZONE_PROTOCOL = HTTP;
         }
         else
         {
-            ZONE_HOST = config.zone_host;
+            ZONE_HOST = config.onezone;
             ZONE_PROTOCOL = HTTPS;
         }
 
@@ -50,7 +50,7 @@ static class RestClient
         T? data = JsonSerializer.Deserialize<T>(response.Content.ReadAsStream());
         response.Dispose();
         return data ??
-         throw new Exception("Failed to deserialize JSON. URL: " + url);
+            throw new JsonReturnedNullException("URL: " + url);
     }
 
     private static async Task<string> OnedataGetString(string url)
@@ -107,7 +107,7 @@ static class RestClient
         response.EnsureSuccessStatusCode();
 
         return JsonSerializer.Deserialize<T>(response.Content.ReadAsStream()) ??
-         throw new Exception("Failed to deserialize JSON.");
+         throw new JsonReturnedNullException();
     }
 
     private static async Task OnedataPut(string url, HttpContent content)
