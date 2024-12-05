@@ -17,7 +17,7 @@ public static class CloudSync
     /// <param name="config">Configuration of CloudSync</param>
     /// <param name="delete">If true, already existing root directory and its contents will be deleted</param>
     /// <returns></returns>
-    public static ReturnCodesEnum Run(Config config, bool delete = false)
+    public static CloudSyncReturnCodes Run(Config config, bool delete = false)
     {
         Debug.Print("CLOUD SYNC START");
         configuration = config;
@@ -29,12 +29,12 @@ public static class CloudSync
         }
         catch (RootFolderNotEmptyException)
         {
-            return ReturnCodesEnum.ROOT_FOLDER_NOT_EMPTY;
+            return CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY;
         }
         catch (Exception e)
         {
             Debug.Print($"Error: {e}");
-            return ReturnCodesEnum.ERROR;
+            return CloudSyncReturnCodes.ERROR;
         }
 
         try
@@ -64,9 +64,9 @@ public static class CloudSync
             Stop();
             Debug.Print("CLOUD SYNC FAIL.");
             Debug.Print(e.ToString());
-            return ReturnCodesEnum.ERROR;
+            return CloudSyncReturnCodes.ERROR;
         }
-        return ReturnCodesEnum.SUCCESS;
+        return CloudSyncReturnCodes.SUCCESS;
     }
 
     public static void Stop()

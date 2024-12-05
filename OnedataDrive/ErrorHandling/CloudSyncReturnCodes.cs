@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace OnedataDrive.CloudSync.ErrorHandling
 {
-    public enum ReturnCodesEnum : uint
+    public enum CloudSyncReturnCodes : uint
     {
         SUCCESS = 0,
         ERROR = 1,

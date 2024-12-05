@@ -72,7 +72,7 @@ namespace OnedataDriveGUI
                     host: onezone_comboBox.Text);
                 statusMessage.Text = "In progress";
                 SaveLastConfig();
-                if (await LaunchCloudSyncAsync(config) == ReturnCodesEnum.SUCCESS)
+                if (await LaunchCloudSyncAsync(config) == CloudSyncReturnCodes.SUCCESS)
                 {
                     statusMessage.Text = "Connected";
                     SetDisplayStatus(Status.CONNECTED);
@@ -93,13 +93,13 @@ namespace OnedataDriveGUI
             connectClicked = false;
         }
 
-        private async Task<ReturnCodesEnum> LaunchCloudSyncAsync(Config config)
+        private async Task<CloudSyncReturnCodes> LaunchCloudSyncAsync(Config config)
         {
-            ReturnCodesEnum status;
+            CloudSyncReturnCodes status;
 
             status = await Task.Run(() => CloudSync.Run(config, delete: rootFolderDelete_checkBox.Checked));
 
-            if (status == ReturnCodesEnum.ROOT_FOLDER_NOT_EMPTY && !rootFolderDelete_checkBox.Checked)
+            if (status == CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY && !rootFolderDelete_checkBox.Checked)
             {
                 string message = "Can not connect, because Root Folder "
                 + config.root_path
