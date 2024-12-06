@@ -36,6 +36,10 @@ public static class CloudSync
         {
             return CloudSyncReturnCodes.ROOT_FOLDER_NO_ACCESS_RIGHT;
         }
+        catch (IOException)
+        {
+            return CloudSyncReturnCodes.ROOT_FOLDER_NO_ACCESS_RIGHT;
+        }
         catch (Exception e)
         {
             Debug.Print($"Error: {e}");
@@ -61,7 +65,6 @@ public static class CloudSync
             InitSpaceFoldersChildren();
 
             // start file watcher
-            Thread.Sleep(500);
             watcher = new(configuration.root_path);
             Debug.Print("Filewatcher Start -> OK");
         }
