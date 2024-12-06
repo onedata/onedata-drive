@@ -61,16 +61,21 @@ public static class CloudSync
             InitSpaceFoldersChildren();
 
             // start file watcher
+            Thread.Sleep(500);
             watcher = new(configuration.root_path);
             Debug.Print("Filewatcher Start -> OK");
         }
         catch (OnezoneException e)
         {
+            Stop();
+            Debug.Print("CLOUD SYNC FAIL -> Onezone");
             Debug.Print(e.ToString());
             return CloudSyncReturnCodes.ONEZONE_FAIL;
         }
         catch (ProviderTokenException e)
         {
+            Stop();
+            Debug.Print("CLOUD SYNC FAIL -> Provider Token");
             Debug.Print(e.ToString());
             return CloudSyncReturnCodes.TOKEN_FAIL;
         }
@@ -123,16 +128,20 @@ public static class CloudSync
         }
         catch (AggregateException e)
         {
-            foreach (Exception ex in e.InnerExceptions)
+            HttpRequestException? hre = e.InnerException as HttpRequestException;
+            if (hre is not null && hre.Message.Contains("No such host is known."))
             {
-                Debug.Print("Aggregate exception member: {0}", ex.GetType().Name);
-                if (ex is HttpRequestException)
-                {
-                    Debug.Print("This is HttpRequestException with message: {0}", ex.Message);
-                }
+                throw new OnezoneException("", hre);
             }
-            throw;
-            //throw new OnezoneException();
+            else if (hre is not null && hre.Message.Contains(
+                "Response status code does not indicate success: 400 (Bad Request)."))
+            {
+                throw new ProviderTokenException("", hre);
+            }
+            else
+            {
+                throw;
+            }
         }
     }
 

@@ -47,6 +47,7 @@ namespace OnedataDriveGUI
             }
             connectClicked = true;
 
+            /*
             bool valid = true;
             oneproviderToken_textBox.BackColor = ColorTranslator.FromHtml(textBoxBC);
             onezone_comboBox.BackColor = ColorTranslator.FromHtml(textBoxBC);
@@ -86,6 +87,61 @@ namespace OnedataDriveGUI
             else
             {
                 statusMessage.Text = "Invalid values";
+                SetDisplayStatus(Status.ERROR);
+            }
+            */
+
+            SetDisplayStatus(Status.CONNECTING);
+            SaveLastConfig();
+            Config config = new();
+            config.Init(
+                path: rootFolder_textBox.Text.Length == 0 ? defaultRootPath : rootFolder_textBox.Text,
+                token: oneproviderToken_textBox.Text,
+                host: onezone_comboBox.Text);
+            statusMessage.Text = "In progress";
+
+            CloudSyncReturnCodes returnCode = await LaunchCloudSyncAsync(config);
+
+            if (returnCode == CloudSyncReturnCodes.SUCCESS)
+            {
+                SetDisplayStatus(Status.CONNECTED);
+            }
+            else
+            {
+                SetDisplayStatus(Status.ERROR);
+            }
+
+            switch (returnCode)
+            {
+                case CloudSyncReturnCodes.SUCCESS:
+                    statusMessage.Text = "Connected";
+                    break;
+                case CloudSyncReturnCodes.ERROR:
+                    statusMessage.Text = "Failed to connect";
+                    break;
+                case CloudSyncReturnCodes.ROOT_FOLDER_NO_ACCESS_RIGHT:
+                    statusMessage.Text = "Does not have sufficient access rights for root path";
+                    break;
+                case CloudSyncReturnCodes.ONEZONE_FAIL:
+                    statusMessage.Text = "Invalid Onezone";
+                    break;
+                case CloudSyncReturnCodes.TOKEN_FAIL:
+                    statusMessage.Text = "Invalid Token";
+                    break;
+                default:
+                    SetDisplayStatus(Status.ERROR);
+                    statusMessage.Text = "Unknown Error";
+                    break;
+            }
+
+            if (await LaunchCloudSyncAsync(config) == CloudSyncReturnCodes.SUCCESS)
+            {
+                statusMessage.Text = "Connected";
+                SetDisplayStatus(Status.CONNECTED);
+            }
+            else
+            {
+                statusMessage.Text = "Failed to connect";
                 SetDisplayStatus(Status.ERROR);
             }
 
