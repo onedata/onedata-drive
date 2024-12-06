@@ -5,6 +5,7 @@ using static Vanara.PInvoke.CldApi;
 using static Vanara.PInvoke.SearchApi;
 using OnedataDrive.CloudSync.ErrorHandling;
 using OnedataDrive.CloudSync.Utils;
+using static Vanara.PInvoke.AdvApi32;
 
 public static class CloudSync
 {
@@ -112,23 +113,35 @@ public static class CloudSync
         return 0;
     }
 
+    public static TokenAccess InferTokenAccess()
+    {
+        try
+        {
+            var taskTA = RestClient.InferAccessTokenScope();
+            taskTA.Wait();
+            return taskTA.Result;
+        }
+        catch (AggregateException e)
+        {
+            foreach (Exception ex in e.InnerExceptions)
+            {
+                Debug.Print("Aggregate exception member: {0}", ex.GetType().Name);
+                if (ex is HttpRequestException)
+                {
+                    Debug.Print("This is HttpRequestException with message: {0}", ex.Message);
+                }
+            }
+            throw;
+            //throw new OnezoneException();
+        }
+    }
+
     public static void InitSpaceFolders()
     {
         Debug.Print("CREATING SPACE FOLDERS");
         using (PlaceholderCreateInfo info = new())
         {
-            TokenAccess tokenAccess;
-            try
-            {
-                var taskTA = RestClient.InferAccessTokenScope();
-                taskTA.Wait();
-                tokenAccess = taskTA.Result;
-            }
-            catch (HttpRequestException e)
-            {
-                throw new OnezoneException("", e);
-            }
-            
+            TokenAccess tokenAccess = InferTokenAccess();
 
             foreach (KeyValuePair<string, TASpace> space in tokenAccess.dataAccessScope.spaces)
             // KEY is spaceId
