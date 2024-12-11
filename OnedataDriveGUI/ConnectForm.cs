@@ -1,11 +1,4 @@
-using System.ComponentModel;
-using System.Configuration;
-using System.Diagnostics;
-using System.Reflection;
-using System.Text.Json;
-using Windows.Media.Audio;
 using OnedataDriveGUI.Properties;
-using OnedataDrive.CloudSync.Exceptions;
 using OnedataDrive.CloudSync.ErrorHandling;
 
 namespace OnedataDriveGUI

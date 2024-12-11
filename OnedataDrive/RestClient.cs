@@ -1,4 +1,5 @@
 using OnedataDrive.CloudSync.Exceptions;
+using OnedataDrive.CloudSync.JSON_Object;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -123,6 +124,9 @@ static class RestClient
         return;
     }
 
+/////////////////////////////////////////////////////////////////////////////
+
+
     public static async Task<TokenAccess> InferAccessTokenScope()
     { 
         string url = ZONE_PROTOCOL
@@ -139,6 +143,25 @@ static class RestClient
         response.EnsureSuccessStatusCode();
 
         return JsonSerializer.Deserialize<TokenAccess>(response.Content.ReadAsStream()) ??
+         throw new JsonReturnedNullException();
+    }
+
+    public static async Task<TokenExamine> ExamineToken()
+    {
+        string url = ZONE_PROTOCOL
+            + ZONE_HOST
+            + "/api/v3/onezone/tokens/examine";
+
+        string json = "{\"token\":\"" + PROVIDER_TOKEN + "\"}";
+        StringContent content = new(json);
+        content.Headers.Clear();
+        content.Headers.Add("Content-Type", "application/json");
+
+        var response = await clientNoHeaders.PostAsync(url, content);
+
+        response.EnsureSuccessStatusCode();
+
+        return JsonSerializer.Deserialize<TokenExamine>(response.Content.ReadAsStream()) ??
          throw new JsonReturnedNullException();
     }
 

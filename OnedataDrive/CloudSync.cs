@@ -5,7 +5,7 @@ using static Vanara.PInvoke.CldApi;
 using static Vanara.PInvoke.SearchApi;
 using OnedataDrive.CloudSync.ErrorHandling;
 using OnedataDrive.CloudSync.Utils;
-using static Vanara.PInvoke.AdvApi32;
+using OnedataDrive.CloudSync.JSON_Object;
 
 public static class CloudSync
 {
@@ -59,6 +59,8 @@ public static class CloudSync
 
             CloudProvider.ConnectCallbacks(configuration.root_path);
             Debug.Print("ConnectCallbacks -> OK");
+
+            TestTokenValidity();
 
             InitSpaceFolders();
 
@@ -119,6 +121,17 @@ public static class CloudSync
     {
         CloudProvider.UnregisterSafely(syncRootId);
         return 0;
+    }
+
+    private static void TestTokenValidity()
+    {
+        var task = RestClient.ExamineToken();
+        task.Wait();
+        TokenExamine te = task.Result;
+        if (!te.isRestInterface())
+        {
+            throw new ProviderTokenException("Wrong token interface");
+        }
     }
 
     public static TokenAccess InferTokenAccess()
