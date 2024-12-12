@@ -278,7 +278,7 @@ public static class CloudSync
         {
             foreach (Child child in dirChildren.children)
             {
-                string windowsCorrectName = DistinctWindowsName(child.name, info);
+                string windowsCorrectName = DistinctWindowsName(child, info);
 
                 PlaceholderData data = new(child.file_id, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime);
                 if (child.type == "DIR")
@@ -320,10 +320,13 @@ public static class CloudSync
         }
     }
 
-    private static string DistinctWindowsName(string name, PlaceholderCreateInfo info)
+    private static string DistinctWindowsName(Child child, PlaceholderCreateInfo info)
     {
         NameConvertor nameConvertor = new NameConvertor();
-        string windowsCorrectName = nameConvertor.MakeWindowsCorrect(name);
+        string windowsCorrectName;
+
+        nameConvertor.MakeWindowsCorrect(child.name, out windowsCorrectName, child.file_id);
+
         string suffix = "";
         for (int i = 2; info.Get().Any(x => x.RelativeFileName == (windowsCorrectName + suffix)); i++)
         {
