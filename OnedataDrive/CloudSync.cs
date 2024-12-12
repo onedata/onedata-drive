@@ -328,7 +328,7 @@ public static class CloudSync
         nameConvertor.MakeWindowsCorrect(child.name, out windowsCorrectName, child.file_id);
 
         string suffix = "";
-        for (int i = 2; info.Get().Any(x => x.RelativeFileName == (windowsCorrectName + suffix)); i++)
+        for (int i = 2; info.Get().Any(x => x.RelativeFileName.ToLower() == (windowsCorrectName + suffix).ToLower()); i++)
         {
             suffix = "(" + i.ToString() + ")";
         }
