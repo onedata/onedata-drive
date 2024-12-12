@@ -9,13 +9,27 @@ namespace OnedataDrive.CloudSync.Utils
 {
     public class NameConvertor
     {
-        public const string PROHIBITED_CHARS = "<>:\"/\\|?*";
-        char[] prohibited_chars = Path.GetInvalidFileNameChars();
+        //public const string PROHIBITED_CHARS = "<>:\"/\\|?*";
+        char[] prohibitedChars = Path.GetInvalidFileNameChars();
+        List<string> prohibitedNames = new() {
+            "CON", "PRN", "AUX", "NUL", "COM0", "COM1", "COM2", 
+            "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", 
+            "LPT0", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", 
+            "LPT7", "LPT8", "LPT9"
+        };
         public bool WindowsCorrect(string name) 
         {
+            foreach (string prohibited in prohibitedNames)
+            {
+                if (name == prohibited || name.StartsWith(prohibited + "."))
+                {
+                    return false;
+                }
+            }
+
             return
                 name.Length > 0
-                && !name.Any(c => prohibited_chars.Contains(c))
+                && !name.Any(c => prohibitedChars.Contains(c))
                 && !name.EndsWith(" ");
         }
 
@@ -26,10 +40,21 @@ namespace OnedataDrive.CloudSync.Utils
                 return replaceChar.ToString();
             }
 
-            StringBuilder sb = new StringBuilder();
-            foreach (char c in name)
+            string firstStageCorrected = name;
+
+            foreach (string prohibited in prohibitedNames)
             {
-                if (prohibited_chars.Any(pc => pc == c))
+                if (name == prohibited || name.StartsWith(prohibited + "."))
+                {
+                    firstStageCorrected = replaceChar.ToString() + name;
+                    break;
+                }
+            }
+
+            StringBuilder sb = new StringBuilder();
+            foreach (char c in firstStageCorrected)
+            {
+                if (prohibitedChars.Any(pc => pc == c))
                 {
                     sb.Append(replaceChar);
                 }
@@ -38,7 +63,7 @@ namespace OnedataDrive.CloudSync.Utils
                     sb.Append(c);
                 }
             }
-            if (name.EndsWith(' '))
+            if (firstStageCorrected.EndsWith(' '))
             {
                 sb.Remove(sb.Length - 1, 1);
             }

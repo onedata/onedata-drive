@@ -15,7 +15,9 @@ namespace TestProject
                 "abcd", 
                 "123456789", 
                 "Abcd Efgh", 
-                "'Abcd_.'#@$%^&!(123)" };
+                "'Abcd_.'#@$%^&!(123)",
+                "AUXa"
+            };
 
             var msg = new Func<string, string>(name => 
                 { return name + " is correct Windows file name"; });
@@ -36,7 +38,10 @@ namespace TestProject
                 ("123456789 ", "Space at the end"),
                 ("Abcd>Efgh", "One invalid character"),
                 ("<>:\"/\\|?*", "No valid characters"),
-                ("abc" + (char) 5 + "def", "Contains unprintable character") };
+                ("abc" + (char) 5 + "def", "Contains unprintable character"),
+                ("AUX", "Invalid name"),
+                ("AUX.txt@1234567890", "Invalid name"),
+            };
 
             var msg = new Func<string, string, string>((name, optional) =>
             {
@@ -64,7 +69,9 @@ namespace TestProject
                 ("123456789 ", "Space at the end", "123456789"),
                 ("Abcd>Efgh", "One invalid character", "Abcd_Efgh"),
                 ("<>:\"/\\|?*", "No valid characters", "_________"),
-                ("abc" + (char) 5 + "def", "Contains unprintable character", "abc_def")
+                ("abc" + (char) 5 + "def", "Contains unprintable character", "abc_def"),
+                ("AUX", "Invalid Windows file name", "_AUX"),
+                ("AUX.txt@1234567890", "Invalid Windows file name", "_AUX.txt@1234567890")
             };
 
             foreach (var value in values)
@@ -88,7 +95,9 @@ namespace TestProject
                 ("123456789 ", "Space at the end", "123456789"),
                 ("Abcd>Efgh", "One invalid character", "Abcd#Efgh"),
                 ("<>:\"/\\|?*", "No valid characters", "#########"),
-                ("abc" + (char) 5 + "def", "Contains unprintable character", "abc#def")
+                ("abc" + (char) 5 + "def", "Contains unprintable character", "abc#def"),
+                ("AUX", "Invalid Windows file name", "#AUX"),
+                ("AUX.txt@1234567890", "Invalid Windows file name", "#AUX.txt@1234567890")
             };
 
             foreach (var value in values)
@@ -119,7 +128,9 @@ namespace TestProject
                 ("correctName", "Correct name, short fileId", "correctName", true, fileIdShort),
                 ("Abcd>Efgh", "Incorrect name, short fileId", "Abcd_Efgh@", false, fileIdShort),
                 ("Abcd>Efgh", "Incorrect name, short fileId - empty", "Abcd_Efgh@", false, fileIdEmpty),
-                ("Abcd>Efgh", "Incorrect name, short fileId - empty", "Abcd_Efgh@0000000000", false, fileIdMinimalLength)
+                ("Abcd>Efgh", "Incorrect name, short fileId - empty", "Abcd_Efgh@0000000000", false, fileIdMinimalLength),
+                ("AUX", "Invalid Windows file name", "_AUX@3393939343", false, fileId),
+                ("AUX.txt@1234567890", "Invalid Windows file name", "_AUX.txt@1234567890@3393939343", false, fileId)
             };
 
             foreach (var value in values)
