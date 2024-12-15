@@ -324,15 +324,8 @@ public static class CloudSync
     {
         NameConvertor nameConvertor = new NameConvertor();
         string windowsCorrectName;
-
-        nameConvertor.MakeWindowsCorrect(child.name, out windowsCorrectName, child.file_id);
-
-        string suffix = "";
-        for (int i = 2; info.Get().Any(x => x.RelativeFileName.ToLower() == (windowsCorrectName + suffix).ToLower()); i++)
-        {
-            suffix = "(" + i.ToString() + ")";
-        }
-        return windowsCorrectName + suffix;
+        windowsCorrectName = nameConvertor.MakeWindowsCorrectDistinct(child.name, child.file_id, info);
+        return windowsCorrectName;
     }
 
     public static Config LoadConfig(string configPath = "")
