@@ -1,4 +1,4 @@
-using OnedataDrive.CloudSync.Utils;
+﻿using OnedataDrive.CloudSync.Utils;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -388,10 +388,30 @@ public static class CloudProvider
 
                 Debug.Print("Move/rename file within space");
 
-                string src = sourcePath.Remove(0, spacePath.Length).Replace('\\','/');
-                string dest = targetPath.Remove(0, spacePath.Length).Replace('\\','/');
                 List<ProviderInfo> providerInfos = CloudSync.spaces[CldApiUtils.GetSpaceName(sourcePath)].providerInfos;
-                var task = RestClient.Move(providerInfos, src, dest, CldApiUtils.GetSpaceName(sourcePath));
+                var taskInfo = RestClient.GetFileAttribute(fileIdentity, providerInfos);
+                taskInfo.Wait();
+                FileAttribute fileInfo = taskInfo.Result;
+
+                string srcWithCloudName = CldApiUtils.GetParentPath(sourcePath) + "\\" + fileInfo.name;
+                string src = srcWithCloudName.Remove(0, spacePath.Length).Replace('\\', '/');
+                string target;
+                
+                if (CldApiUtils.GetLastInPath(sourcePath) == CldApiUtils.GetLastInPath(targetPath))
+                {
+                    Debug.Print("Move file");
+                    string targetWithCloudName = CldApiUtils.GetParentPath(targetPath) + "\\" + fileInfo.name;
+                    target = targetWithCloudName.Remove(0, spacePath.Length).Replace('\\', '/');
+                }
+                else
+                {
+                    Debug.Print("Rename file");
+                    target = targetPath.Remove(0, spacePath.Length).Replace('\\', '/');
+                }
+
+                Debug.Print("CDMI src: {0}", src);
+                Debug.Print("CDMI target: {0}", target);
+                var task = RestClient.Move(providerInfos, src, target, CldApiUtils.GetSpaceName(sourcePath));
                 task.Wait();
 
                 Debug.Print("File was renamed/moved on cloud");

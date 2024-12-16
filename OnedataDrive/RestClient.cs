@@ -1,12 +1,7 @@
-using OnedataDrive.CloudSync.Exceptions;
+﻿using OnedataDrive.CloudSync.Exceptions;
 using OnedataDrive.CloudSync.JSON_Object;
 using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 static class RestClient
 {
@@ -336,25 +331,6 @@ static class RestClient
             }
         }
         throw new Exception("Failed to put file");
-        /*
-        def move(self, src_space_name: str, src_file_path: str, dst_space_name: str,
-            dst_file_path: str) -> None:
-        """Rename a file or directory."""
-        # First create the target directory (this assumes that the src_file_path
-        # already exists)
-        headers = {
-            "X-CDMI-Specification-Version": "1.1.1",
-            "Content-type": "application/cdmi-object"
-        }
-
-        provider = self.get_provider_for_space(dst_space_name)
-        url = f'https://{provider}/cdmi/{dst_space_name}/{dst_file_path}'
-
-        data = {'move': f'{src_space_name}/{src_file_path}'}
-
-        self.client.put(url, data=json.dumps(data), headers=headers)
-        */
-
     }
 
     public static async Task<FileAttribute> GetFileAttribute(string fileId, string providerDomain)
