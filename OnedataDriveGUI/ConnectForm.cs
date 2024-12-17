@@ -1,4 +1,4 @@
-using OnedataDriveGUI.Properties;
+﻿using OnedataDriveGUI.Properties;
 using OnedataDrive.ErrorHandling;
 using OnedataDrive;
 using OnedataDrive.JSON_Object;

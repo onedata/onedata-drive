@@ -1,4 +1,6 @@
-﻿namespace OnedataDrive.Utils
+﻿using System.Diagnostics;
+
+namespace OnedataDrive.Utils
 {
     public static class PathUtils
     {
@@ -12,7 +14,7 @@
         {
             string temp = fullPath;
             temp = temp.TrimEnd(['\\']);
-            temp = temp.Substring(0, temp.LastIndexOf("\\"));
+            temp = temp.Substring(0, temp.LastIndexOf("\\") + 1);
             return temp;
         }
 

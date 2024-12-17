@@ -4,9 +4,9 @@ namespace OnedataDrive.JSON_Object
 {
     public class Config
     {
-        public string onezone { get; set; } = "";
-        public string provider_token { get; set; } = "";
-        public string root_path { get; set; } = "";
+        public string onezone { get; private set; } = "";
+        public string provider_token { get; private set; } = "";
+        public string root_path { get; private set; } = "";
 
         public void Init(string path)
         {

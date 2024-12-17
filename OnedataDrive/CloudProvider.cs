@@ -393,14 +393,14 @@ namespace OnedataDrive
                     taskInfo.Wait();
                     FileAttribute fileInfo = taskInfo.Result;
 
-                    string srcWithCloudName = PathUtils.GetParentPath(sourcePath) + "\\" + fileInfo.name;
+                    string srcWithCloudName = PathUtils.GetParentPath(sourcePath) + fileInfo.name;
                     string src = srcWithCloudName.Remove(0, spacePath.Length).Replace('\\', '/');
                     string target;
 
                     if (PathUtils.GetLastInPath(sourcePath) == PathUtils.GetLastInPath(targetPath))
                     {
                         Debug.Print("Move file");
-                        string targetWithCloudName = PathUtils.GetParentPath(targetPath) + "\\" + fileInfo.name;
+                        string targetWithCloudName = PathUtils.GetParentPath(targetPath) + fileInfo.name;
                         target = targetWithCloudName.Remove(0, spacePath.Length).Replace('\\', '/');
                     }
                     else
