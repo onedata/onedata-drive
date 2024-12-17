@@ -352,9 +352,7 @@ public static class CloudProvider
 
     public static void OnRename(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
     {
-        Thread.Sleep(100);
-
-        // TODO: server api does not exist
+        //Thread.Sleep(100);
         Debug.Print("RENAME");
         PrintInfo(CallbackInfo, CallbackParameters);
 
@@ -385,7 +383,6 @@ public static class CloudProvider
 
             if (targetPath.StartsWith(spacePath))
             {
-
                 Debug.Print("Move/rename file within space");
 
                 List<ProviderInfo> providerInfos = CloudSync.spaces[CldApiUtils.GetSpaceName(sourcePath)].providerInfos;
