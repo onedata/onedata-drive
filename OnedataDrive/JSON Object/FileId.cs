@@ -1,9 +1,12 @@
-class FileId
+namespace OnedataDrive.JSON_Object
 {
-    public string fileId { get; set; }
-
-    public FileId()
+    class FileId
     {
-        this.fileId = "";
+        public string fileId { get; set; }
+
+        public FileId()
+        {
+            this.fileId = "";
+        }
     }
 }

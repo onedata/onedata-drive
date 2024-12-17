@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices.ComTypes;
-using System.Text;
-using System.Threading.Tasks;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.Shell32;
 using static Vanara.PInvoke.Ole32;
 
-namespace OnedataDrive.CloudSync
+namespace OnedataDrive
 {
     internal class RefreshContextMenu : IExplorerCommand, IObjectWithSite
     {

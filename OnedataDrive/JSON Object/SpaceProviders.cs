@@ -1,9 +1,12 @@
-class SpaceProviders
+﻿namespace OnedataDrive.JSON_Object
 {
-    public List<string> providers { get; set; }
-
-    public SpaceProviders()
+    class SpaceProviders
     {
-        this.providers = new();
+        public List<string> providers { get; set; }
+
+        public SpaceProviders()
+        {
+            this.providers = new();
+        }
     }
 }

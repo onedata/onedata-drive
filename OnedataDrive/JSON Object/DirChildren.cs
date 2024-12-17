@@ -1,4 +1,6 @@
-public class Child
+namespace OnedataDrive.JSON_Object
+{
+    public class Child
     {
         public string name { get; set; }
         public string type { get; set; }
@@ -40,3 +42,4 @@ public class Child
             this.nextPageToken = "";
         }
     }
+}

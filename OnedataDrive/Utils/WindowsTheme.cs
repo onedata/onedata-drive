@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 
-namespace OnedataDrive.CloudSync.Utils
+namespace OnedataDrive.Utils
 {
-    internal class WindowsTheme
+    public static class WindowsTheme
     {
-        public bool IsSystemDarkMode(bool defaultValue = true)
+        public static bool IsSystemDarkMode(bool defaultValue = true)
         {
             
             const string REGISTRY_KEY = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";

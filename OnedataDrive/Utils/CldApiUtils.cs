@@ -7,27 +7,6 @@ static class CldApiUtils
 {
     // size of memory block needed for CF_PLACEHOLDER_INFO (basic 388, standard 420)
     private const int BLOB_LENGTH = 500;
-    public static string GetSpaceName(string fullPath)
-    {
-        string temp = fullPath.Replace(CloudSync.configuration.root_path, string.Empty);
-        return temp.Split("\\")[0];
-    }
-
-    public static string GetParentPath(string fullPath)
-    {
-        string temp = fullPath;
-        temp = temp.TrimEnd(['\\']);
-        temp = temp.Substring(0, temp.LastIndexOf("\\"));
-        return temp;
-    }
-
-    public static string GetLastInPath(string fullPath)
-    {
-        string temp = fullPath;
-        temp = temp.TrimEnd(['\\']);
-        string[] arr = temp.Split(@"\");
-        return arr[arr.Length - 1];
-    }
 
     public static CF_PLACEHOLDER_BASIC_INFO GetBasicInfo(string fullPath)
     {

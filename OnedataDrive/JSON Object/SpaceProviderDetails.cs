@@ -1,4 +1,6 @@
-public class SpaceProviderDetails
+namespace OnedataDrive.JSON_Object
+{
+    public class SpaceProviderDetails
     {
         public string providerId { get; set; }
         public string name { get; set; }
@@ -21,3 +23,4 @@ public class SpaceProviderDetails
             this.creationTime = 0;
         }
     }
+}

@@ -1,4 +1,6 @@
-public class FileAttribute
+namespace OnedataDrive.JSON_Object
+{
+    public class FileAttribute
     {
         public string name { get; set; } = "";
         public string type { get; set; } = "";
@@ -17,3 +19,4 @@ public class FileAttribute
         public int hardlinks_count { get; set; }
         public string index { get; set; } = "";
     }
+}

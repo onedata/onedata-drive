@@ -1,4 +1,6 @@
-public class Provider
+namespace OnedataDrive.JSON_Object
+{
+    public class Provider
     {
         public string providerId { get; set; }
         public string providerName { get; set; }
@@ -31,3 +33,4 @@ public class Provider
             this.providers = new();
         }
     }
+}

@@ -7,7 +7,7 @@ using Vanara.PInvoke;
 using Windows.ApplicationModel.Background;
 using static Vanara.PInvoke.Ole32;
 
-namespace OnedataDrive.CloudSync
+namespace OnedataDrive
 {
     internal class ClassFactory<T> : IClassFactory
     {

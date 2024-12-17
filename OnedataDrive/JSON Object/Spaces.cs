@@ -1,9 +1,12 @@
-class Spaces
+﻿namespace OnedataDrive.JSON_Object
 {
-    public List<string> spaces { get; set; }
-
-    public Spaces()
+    class Spaces
     {
-        this.spaces = new();
+        public List<string> spaces { get; set; }
+
+        public Spaces()
+        {
+            this.spaces = new();
+        }
     }
 }

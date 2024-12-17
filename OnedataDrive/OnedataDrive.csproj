@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
-    <RootNamespace>OnedataDrive.CloudSync</RootNamespace>
+    <RootNamespace>OnedataDrive</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

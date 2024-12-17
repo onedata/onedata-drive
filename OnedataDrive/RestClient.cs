@@ -1,371 +1,374 @@
-﻿using OnedataDrive.CloudSync.Exceptions;
-using OnedataDrive.CloudSync.JSON_Object;
+﻿using OnedataDrive.ErrorHandling;
+using OnedataDrive.JSON_Object;
 using System.Net;
 using System.Text.Json;
 
-static class RestClient
+namespace OnedataDrive
 {
-    public static string PROVIDER_TOKEN = "";
-    public static string ZONE_HOST = "";
-    public static string ZONE_PROTOCOL = "";
-    private static HttpClient client = new();
-    private static HttpClient clientNoHeaders = new();
-    private const string HTTP = "http://";
-    private const string HTTPS = "https://";
-
-    public static void Init(Config config)
+    static class RestClient
     {
-        PROVIDER_TOKEN = config.provider_token;
-        if (config.onezone.StartsWith(HTTPS))
+        public static string PROVIDER_TOKEN = "";
+        public static string ZONE_HOST = "";
+        public static string ZONE_PROTOCOL = "";
+        private static HttpClient client = new();
+        private static HttpClient clientNoHeaders = new();
+        private const string HTTP = "http://";
+        private const string HTTPS = "https://";
+
+        public static void Init(Config config)
         {
-            ZONE_HOST = config.onezone.Substring(8);
-            ZONE_PROTOCOL = HTTPS;
-        }
-        else if (config.onezone.StartsWith(HTTP))
-        {
-            ZONE_HOST = config.onezone.Substring(7);
-            ZONE_PROTOCOL = HTTP;
-        }
-        else
-        {
-            ZONE_HOST = config.onezone;
-            ZONE_PROTOCOL = HTTPS;
-        }
-
-        client.DefaultRequestHeaders.Clear();
-        client.DefaultRequestHeaders.Add("x-auth-token", PROVIDER_TOKEN);
-
-        clientNoHeaders.DefaultRequestHeaders.Clear();
-    }
-    private static async Task<T> OnedataGet<T>(string url)
-    {
-        var response = await client.GetAsync(url);
-
-        response.EnsureSuccessStatusCode();
-
-        T? data = JsonSerializer.Deserialize<T>(response.Content.ReadAsStream());
-        response.Dispose();
-        return data ??
-            throw new JsonReturnedNullException("URL: " + url);
-    }
-
-    private static async Task<string> OnedataGetString(string url)
-    {
-        var response = await client.GetAsync(url);
-        response.EnsureSuccessStatusCode();
-
-        return await response.Content.ReadAsStringAsync();
-    }
-    
-    private static async Task<byte[]> OnedataGetByteArr(string url)
-    {
-        var response = await client.GetAsync(url);
-
-        response.EnsureSuccessStatusCode();
-
-        return await response.Content.ReadAsByteArrayAsync();
-    }
-
-    private static async Task<Stream> OnedataGetStream(string url)
-    {
-        Stream response = await client.GetStreamAsync(url);
-        return response;
-    }
-
-    private static async Task OnedataDelete(string url)
-    {
-        var response = await client.DeleteAsync(url);
-        if (response.StatusCode == HttpStatusCode.BadRequest)
-        {
-            var task = response.Content.ReadAsStringAsync();
-            task.Wait();
-            string responseText = task.Result; 
-            if (responseText.Contains("\"errno\":\"enoent\""))
+            PROVIDER_TOKEN = config.provider_token;
+            if (config.onezone.StartsWith(HTTPS))
             {
-                return;
+                ZONE_HOST = config.onezone.Substring(8);
+                ZONE_PROTOCOL = HTTPS;
             }
+            else if (config.onezone.StartsWith(HTTP))
+            {
+                ZONE_HOST = config.onezone.Substring(7);
+                ZONE_PROTOCOL = HTTP;
+            }
+            else
+            {
+                ZONE_HOST = config.onezone;
+                ZONE_PROTOCOL = HTTPS;
+            }
+
+            client.DefaultRequestHeaders.Clear();
+            client.DefaultRequestHeaders.Add("x-auth-token", PROVIDER_TOKEN);
+
+            clientNoHeaders.DefaultRequestHeaders.Clear();
+        }
+        private static async Task<T> OnedataGet<T>(string url)
+        {
+            var response = await client.GetAsync(url);
+
+            response.EnsureSuccessStatusCode();
+
+            T? data = JsonSerializer.Deserialize<T>(response.Content.ReadAsStream());
+            response.Dispose();
+            return data ??
+                throw new JsonReturnedNullException("URL: " + url);
         }
 
-        response.EnsureSuccessStatusCode();
-
-        return;
-    }
-
-    private static async Task<T> OnedataPost<T>(string url, HttpContent? content)
-    {
-        HttpRequestMessage RequestMsg = new(HttpMethod.Post, url)
+        private static async Task<string> OnedataGetString(string url)
         {
-            Content = content
-        };
+            var response = await client.GetAsync(url);
+            response.EnsureSuccessStatusCode();
 
-        var response = await client.SendAsync(RequestMsg);
-
-        response.EnsureSuccessStatusCode();
-
-        return JsonSerializer.Deserialize<T>(response.Content.ReadAsStream()) ??
-         throw new JsonReturnedNullException();
-    }
-
-    private static async Task OnedataPut(string url, HttpContent content)
-    {
-        HttpRequestMessage RequestMsg = new(HttpMethod.Put, url)
-        {
-            Content = content
-        };
-
-        var response = await client.SendAsync(RequestMsg);
-        response.EnsureSuccessStatusCode();
-
-        return;
-    }
-
-/////////////////////////////////////////////////////////////////////////////
-
-
-    public static async Task<TokenAccess> InferAccessTokenScope()
-    { 
-        string url = ZONE_PROTOCOL
-            + ZONE_HOST 
-            + "/api/v3/onezone/tokens/infer_access_token_scope";
-        
-        string json = "{\"token\":\"" + PROVIDER_TOKEN + "\"}";
-        StringContent content = new(json);
-        content.Headers.Clear();
-        content.Headers.Add("Content-Type", "application/json");
-
-        var response = await clientNoHeaders.PostAsync(url, content);
-
-        response.EnsureSuccessStatusCode();
-
-        return JsonSerializer.Deserialize<TokenAccess>(response.Content.ReadAsStream()) ??
-         throw new JsonReturnedNullException();
-    }
-
-    public static async Task<TokenExamine> ExamineToken()
-    {
-        string url = ZONE_PROTOCOL
-            + ZONE_HOST
-            + "/api/v3/onezone/tokens/examine";
-
-        string json = "{\"token\":\"" + PROVIDER_TOKEN + "\"}";
-        StringContent content = new(json);
-        content.Headers.Clear();
-        content.Headers.Add("Content-Type", "application/json");
-
-        var response = await clientNoHeaders.PostAsync(url, content);
-
-        response.EnsureSuccessStatusCode();
-
-        return JsonSerializer.Deserialize<TokenExamine>(response.Content.ReadAsStream()) ??
-         throw new JsonReturnedNullException();
-    }
-
-    public static async Task<SpaceDetails> GetSpacesDetails(string spaceId, string provider_domain)
-    { 
-        string url = "https://" + provider_domain + "/api/v3/oneprovider/spaces/" + spaceId;
-        return await OnedataGet<SpaceDetails>(url);
-    }
-
-    public static async Task<DirChildren> GetFilesAndSubdirs(string dirId, string providerDomain)
-    { 
-        string url = "https://" 
-            + providerDomain 
-            + "/api/v3/oneprovider/data/" 
-            + dirId 
-            + "/children?attribute=size&attribute=name&attribute=type&attribute=atime&attribute=mtime&attribute=ctime&attribute=file_id&limit=1000";
-        return await OnedataGet<DirChildren>(url);
-    }
-
-    public static async Task<DirChildren> GetFilesAndSubdirs(string dirId, List<ProviderInfo> providerInfos)
-    { 
-        foreach (ProviderInfo info in providerInfos)
-        {
-            try
-            {
-                string url = "https://" 
-                    + info.providerDomain 
-                    + "/api/v3/oneprovider/data/" 
-                    + dirId 
-                    + "/children?attribute=size&attribute=name&attribute=type&attribute=atime&attribute=mtime&attribute=ctime&attribute=file_id&limit=1000";
-                return await OnedataGet<DirChildren>(url);
-            }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine(e.Message);
-            }
+            return await response.Content.ReadAsStringAsync();
         }
-        throw new Exception("Failed to get response");
-    }
 
-    public static async Task<byte[]> GetData(string provider_domain, string fileId)
-    { 
-        string url = "https://" + provider_domain + "/api/v3/oneprovider/data/" + fileId + "/content";
-        return await OnedataGetByteArr(url);
-    }
-
-    public static async Task<byte[]> GetData(List<ProviderInfo> providerInfos, string fileId)
-    { 
-        foreach (ProviderInfo info in providerInfos)
+        private static async Task<byte[]> OnedataGetByteArr(string url)
         {
-            try
-            {
-                string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId + "/content";
-                return await OnedataGetByteArr(url);
-            }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine(e.Message);
-            }
+            var response = await client.GetAsync(url);
+
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadAsByteArrayAsync();
         }
-        throw new Exception("Failed to get response");
-    }
 
-    public static async Task<Stream> GetStream(List<ProviderInfo> providerInfos, string fileId)
-    { 
-        foreach (ProviderInfo info in providerInfos)
+        private static async Task<Stream> OnedataGetStream(string url)
         {
-            try
-            {
-                string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId + "/content";
-                return await OnedataGetStream(url);
-            }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine(e.Message);
-            }
+            Stream response = await client.GetStreamAsync(url);
+            return response;
         }
-        throw new Exception("Failed to get response");
-    }
 
-    public static async Task Delete(List<ProviderInfo> providerInfos, string fileId)
-    { 
-        foreach (ProviderInfo info in providerInfos)
+        private static async Task OnedataDelete(string url)
         {
-            try
+            var response = await client.DeleteAsync(url);
+            if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId;
-                await OnedataDelete(url);
-                return;
-            }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine(e.Message);
-            }
-        }
-        throw new Exception("Failed to get response");
-    }
-
-    public static async Task<FileId> CreateFileInDir(List<ProviderInfo> providerInfos, string parentId, string name, FileStream? stream = null, bool directory = false)
-    { 
-        foreach (ProviderInfo info in providerInfos)
-        {
-            string url = "https://" + info.providerDomain + ":443/api/v3/oneprovider/data/" + parentId + "/children?name=" + name;
-            try
-            {
-                if (directory)
+                var task = response.Content.ReadAsStringAsync();
+                task.Wait();
+                string responseText = task.Result;
+                if (responseText.Contains("\"errno\":\"enoent\""))
                 {
-                    string urlDir = url + "&type=DIR";
-                    return await OnedataPost<FileId>(urlDir, null);
+                    return;
                 }
-                else
+            }
+
+            response.EnsureSuccessStatusCode();
+
+            return;
+        }
+
+        private static async Task<T> OnedataPost<T>(string url, HttpContent? content)
+        {
+            HttpRequestMessage RequestMsg = new(HttpMethod.Post, url)
+            {
+                Content = content
+            };
+
+            var response = await client.SendAsync(RequestMsg);
+
+            response.EnsureSuccessStatusCode();
+
+            return JsonSerializer.Deserialize<T>(response.Content.ReadAsStream()) ??
+             throw new JsonReturnedNullException();
+        }
+
+        private static async Task OnedataPut(string url, HttpContent content)
+        {
+            HttpRequestMessage RequestMsg = new(HttpMethod.Put, url)
+            {
+                Content = content
+            };
+
+            var response = await client.SendAsync(RequestMsg);
+            response.EnsureSuccessStatusCode();
+
+            return;
+        }
+
+        /////////////////////////////////////////////////////////////////////////////
+
+
+        public static async Task<TokenAccess> InferAccessTokenScope()
+        {
+            string url = ZONE_PROTOCOL
+                + ZONE_HOST
+                + "/api/v3/onezone/tokens/infer_access_token_scope";
+
+            string json = "{\"token\":\"" + PROVIDER_TOKEN + "\"}";
+            StringContent content = new(json);
+            content.Headers.Clear();
+            content.Headers.Add("Content-Type", "application/json");
+
+            var response = await clientNoHeaders.PostAsync(url, content);
+
+            response.EnsureSuccessStatusCode();
+
+            return JsonSerializer.Deserialize<TokenAccess>(response.Content.ReadAsStream()) ??
+             throw new JsonReturnedNullException();
+        }
+
+        public static async Task<TokenExamine> ExamineToken()
+        {
+            string url = ZONE_PROTOCOL
+                + ZONE_HOST
+                + "/api/v3/onezone/tokens/examine";
+
+            string json = "{\"token\":\"" + PROVIDER_TOKEN + "\"}";
+            StringContent content = new(json);
+            content.Headers.Clear();
+            content.Headers.Add("Content-Type", "application/json");
+
+            var response = await clientNoHeaders.PostAsync(url, content);
+
+            response.EnsureSuccessStatusCode();
+
+            return JsonSerializer.Deserialize<TokenExamine>(response.Content.ReadAsStream()) ??
+             throw new JsonReturnedNullException();
+        }
+
+        public static async Task<SpaceDetails> GetSpacesDetails(string spaceId, string provider_domain)
+        {
+            string url = "https://" + provider_domain + "/api/v3/oneprovider/spaces/" + spaceId;
+            return await OnedataGet<SpaceDetails>(url);
+        }
+
+        public static async Task<DirChildren> GetFilesAndSubdirs(string dirId, string providerDomain)
+        {
+            string url = "https://"
+                + providerDomain
+                + "/api/v3/oneprovider/data/"
+                + dirId
+                + "/children?attribute=size&attribute=name&attribute=type&attribute=atime&attribute=mtime&attribute=ctime&attribute=file_id&limit=1000";
+            return await OnedataGet<DirChildren>(url);
+        }
+
+        public static async Task<DirChildren> GetFilesAndSubdirs(string dirId, List<ProviderInfo> providerInfos)
+        {
+            foreach (ProviderInfo info in providerInfos)
+            {
+                try
                 {
-                    StreamContent? content = null;
-                    if (stream != null)
+                    string url = "https://"
+                        + info.providerDomain
+                        + "/api/v3/oneprovider/data/"
+                        + dirId
+                        + "/children?attribute=size&attribute=name&attribute=type&attribute=atime&attribute=mtime&attribute=ctime&attribute=file_id&limit=1000";
+                    return await OnedataGet<DirChildren>(url);
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
+            throw new Exception("Failed to get response");
+        }
+
+        public static async Task<byte[]> GetData(string provider_domain, string fileId)
+        {
+            string url = "https://" + provider_domain + "/api/v3/oneprovider/data/" + fileId + "/content";
+            return await OnedataGetByteArr(url);
+        }
+
+        public static async Task<byte[]> GetData(List<ProviderInfo> providerInfos, string fileId)
+        {
+            foreach (ProviderInfo info in providerInfos)
+            {
+                try
+                {
+                    string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId + "/content";
+                    return await OnedataGetByteArr(url);
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
+            throw new Exception("Failed to get response");
+        }
+
+        public static async Task<Stream> GetStream(List<ProviderInfo> providerInfos, string fileId)
+        {
+            foreach (ProviderInfo info in providerInfos)
+            {
+                try
+                {
+                    string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId + "/content";
+                    return await OnedataGetStream(url);
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
+            throw new Exception("Failed to get response");
+        }
+
+        public static async Task Delete(List<ProviderInfo> providerInfos, string fileId)
+        {
+            foreach (ProviderInfo info in providerInfos)
+            {
+                try
+                {
+                    string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId;
+                    await OnedataDelete(url);
+                    return;
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
+            throw new Exception("Failed to get response");
+        }
+
+        public static async Task<FileId> CreateFileInDir(List<ProviderInfo> providerInfos, string parentId, string name, FileStream? stream = null, bool directory = false)
+        {
+            foreach (ProviderInfo info in providerInfos)
+            {
+                string url = "https://" + info.providerDomain + ":443/api/v3/oneprovider/data/" + parentId + "/children?name=" + name;
+                try
+                {
+                    if (directory)
                     {
-                        content = new StreamContent(stream);
-                        content.Headers.Add("Content-Type", "application/octet-stream");
+                        string urlDir = url + "&type=DIR";
+                        return await OnedataPost<FileId>(urlDir, null);
                     }
-                    return await OnedataPost<FileId>(url, content);
+                    else
+                    {
+                        StreamContent? content = null;
+                        if (stream != null)
+                        {
+                            content = new StreamContent(stream);
+                            content.Headers.Add("Content-Type", "application/octet-stream");
+                        }
+                        return await OnedataPost<FileId>(url, content);
+                    }
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine(e.Message);
                 }
             }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine(e.Message);
-            }
+            throw new Exception("Failed to post file");
         }
-        throw new Exception("Failed to post file");
-    }
 
-    public static async Task PostFileContent(List<ProviderInfo> providerInfos, string id, FileStream stream)
-    { 
-        foreach (ProviderInfo info in providerInfos)
+        public static async Task PostFileContent(List<ProviderInfo> providerInfos, string id, FileStream stream)
         {
-            try
+            foreach (ProviderInfo info in providerInfos)
             {
-                string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + id + "/content";
+                try
+                {
+                    string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + id + "/content";
 
-                StreamContent content = new StreamContent(stream);
-                content.Headers.Add("Content-Type", "application/octet-stream");
+                    StreamContent content = new StreamContent(stream);
+                    content.Headers.Add("Content-Type", "application/octet-stream");
 
-                await OnedataPut(url, content);
-                return;
+                    await OnedataPut(url, content);
+                    return;
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine(e.Message);
+                }
             }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine(e.Message);
-            }
+            throw new Exception("Failed to put file");
         }
-        throw new Exception("Failed to put file");
-    }
 
-    public static async Task Move(List<ProviderInfo> providerInfos, string source, string dest, string spaceName)
-    {
-        foreach (ProviderInfo info in providerInfos)
+        public static async Task Move(List<ProviderInfo> providerInfos, string source, string dest, string spaceName)
         {
-            try
+            foreach (ProviderInfo info in providerInfos)
             {
-                string url = $"https://{info.providerDomain}/cdmi/{spaceName}/{dest}";
+                try
+                {
+                    string url = $"https://{info.providerDomain}/cdmi/{spaceName}/{dest}";
 
-                string json = "{\"move\":\"" + spaceName + "/" + source + "\"}";
-                StringContent content = new StringContent(json);
-                content.Headers.Clear();
-                content.Headers.Add("X-CDMI-Specification-Version", "1.1.1");
-                content.Headers.Add("Content-type", "application/cdmi-object");
+                    string json = "{\"move\":\"" + spaceName + "/" + source + "\"}";
+                    StringContent content = new StringContent(json);
+                    content.Headers.Clear();
+                    content.Headers.Add("X-CDMI-Specification-Version", "1.1.1");
+                    content.Headers.Add("Content-type", "application/cdmi-object");
 
-                await OnedataPut(url, content);
-                return;
+                    await OnedataPut(url, content);
+                    return;
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine(e.Message);
+                }
             }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine(e.Message);
-            }
+            throw new Exception("Failed to put file");
         }
-        throw new Exception("Failed to put file");
-    }
 
-    public static async Task<FileAttribute> GetFileAttribute(string fileId, string providerDomain)
-    { 
-        string url = "https://" 
-                    + providerDomain
-                    + "/api/v3/oneprovider/data/" 
-                    + fileId;
-        return await OnedataGet<FileAttribute>(url);
-    }
-
-    public static async Task<FileAttribute> GetFileAttribute(string fileId, List<ProviderInfo> providerInfos)
-    {
-        foreach (ProviderInfo info in providerInfos)
+        public static async Task<FileAttribute> GetFileAttribute(string fileId, string providerDomain)
         {
-            try
-            {
-                string url = "https://" 
-                    + info.providerDomain
-                    + "/api/v3/oneprovider/data/" 
-                    + fileId;
-                return await OnedataGet<FileAttribute>(url);
-            }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine(e.Message);
-            }
+            string url = "https://"
+                        + providerDomain
+                        + "/api/v3/oneprovider/data/"
+                        + fileId;
+            return await OnedataGet<FileAttribute>(url);
         }
-        throw new Exception("Failed to get FileInfo");
-    }
 
-    public static void Stop()
-    {
-        client.CancelPendingRequests();
+        public static async Task<FileAttribute> GetFileAttribute(string fileId, List<ProviderInfo> providerInfos)
+        {
+            foreach (ProviderInfo info in providerInfos)
+            {
+                try
+                {
+                    string url = "https://"
+                        + info.providerDomain
+                        + "/api/v3/oneprovider/data/"
+                        + fileId;
+                    return await OnedataGet<FileAttribute>(url);
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
+            throw new Exception("Failed to get FileInfo");
+        }
 
-        clientNoHeaders.CancelPendingRequests();
+        public static void Stop()
+        {
+            client.CancelPendingRequests();
+
+            clientNoHeaders.CancelPendingRequests();
+        }
     }
 }

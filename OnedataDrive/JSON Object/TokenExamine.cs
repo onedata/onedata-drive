@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace OnedataDrive.CloudSync.JSON_Object
+﻿namespace OnedataDrive.JSON_Object
 {
     public class TokenExamine
     {
