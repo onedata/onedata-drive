@@ -1,7 +1,9 @@
 ﻿using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
+using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
+using System.Web;
 
 namespace OnedataDrive
 {
@@ -14,6 +16,7 @@ namespace OnedataDrive
         private static HttpClient clientNoHeaders = new();
         private const string HTTP = "http://";
         private const string HTTPS = "https://";
+        public static bool initialized { get; private set; } = false;
 
         public static void Init(Config config)
         {
@@ -38,7 +41,18 @@ namespace OnedataDrive
             client.DefaultRequestHeaders.Add("x-auth-token", PROVIDER_TOKEN);
 
             clientNoHeaders.DefaultRequestHeaders.Clear();
+
+            initialized = true;
         }
+
+        public static void Stop()
+        {
+            client.CancelPendingRequests();
+
+            clientNoHeaders.CancelPendingRequests();
+            initialized = false;
+        }
+
         private static async Task<T> OnedataGet<T>(string url)
         {
             var response = await client.GetAsync(url);
@@ -335,6 +349,45 @@ namespace OnedataDrive
             throw new Exception("Failed to put file");
         }
 
+        public static async Task Move(List<ProviderInfo> providerInfos, string source, string dest)
+        {
+            foreach (ProviderInfo info in providerInfos)
+            {
+                try
+                {
+                    //string encodedDest = HttpEncodePath(dest);
+                    string url = $"https://{info.providerDomain}/cdmi/{dest}";
+                    
+                    string json = "{\"move\":\"" + source + "\"}";
+                    StringContent content = new StringContent(json);
+                    content.Headers.Clear();
+                    content.Headers.Add("X-CDMI-Specification-Version", "1.1.1");
+                    content.Headers.Add("Content-type", "application/cdmi-object");
+
+                    Debug.Print("URL: {0}", url);
+                    Debug.Print("JSON: {0}", json);
+
+                    await OnedataPut(url, content);
+                    return;
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+            }
+            throw new Exception("Failed to put file");
+        }
+
+        private static string HttpEncodePath(string path)
+        {
+            string encoded = "";
+            foreach (string stage in path.Split('/'))
+            {
+                encoded += HttpUtility.UrlEncode(stage) + "/";
+            }
+            return encoded.TrimEnd('/');
+        }
+
         public static async Task<FileAttribute> GetFileAttribute(string fileId, string providerDomain)
         {
             string url = "https://"
@@ -362,13 +415,6 @@ namespace OnedataDrive
                 }
             }
             throw new Exception("Failed to get FileInfo");
-        }
-
-        public static void Stop()
-        {
-            client.CancelPendingRequests();
-
-            clientNoHeaders.CancelPendingRequests();
         }
     }
 }

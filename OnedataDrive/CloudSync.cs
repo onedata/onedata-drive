@@ -13,6 +13,7 @@ namespace OnedataDrive
         public static Config configuration = new();
         public static Dictionary<string, SpaceFolder> spaces = new();
         public static FileWatcher watcher = new();
+        public static bool setAndOnline { get; private set; } = false;
         /// <summary>
         /// Method to start CloudSync
         /// </summary>
@@ -92,6 +93,7 @@ namespace OnedataDrive
                 Debug.Print(e.ToString());
                 return CloudSyncReturnCodes.ERROR;
             }
+            setAndOnline = true;
             return CloudSyncReturnCodes.SUCCESS;
         }
 
@@ -103,6 +105,7 @@ namespace OnedataDrive
             Debug.Print("SyncRoot unregistered");
             RestClient.Stop();
             watcher.Dispose();
+            setAndOnline = false;
         }
 
         public static void AddFolderToSearchIndexer(string rootPath)

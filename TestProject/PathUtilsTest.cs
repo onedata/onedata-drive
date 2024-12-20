@@ -14,6 +14,8 @@ namespace TestProject.Utils
     {
         const string PATH1 = "C:\\Users\\User\\win-client\\syncRoot\\space\\FILE.txt";
         const string PATH2 = "C:\\Users\\User\\win-client\\syncRoot\\space\\FILE.txt\\";
+        const string PATH3 = "C:\\Users\\User\\win-client\\syncRoot\\";
+        const string PATH4 = "C:\\";
         const string ROOT_PATH = "C:\\Users\\User\\win-client\\syncRoot";
 
         Config conf;
@@ -51,6 +53,11 @@ namespace TestProject.Utils
                 "C:\\Users\\User\\win-client\\syncRoot\\space\\",
                 PathUtils.GetParentPath(PATH2),
                 "Path with \\ at the end");
+
+            Assert.AreEqual(
+                "",
+                PathUtils.GetParentPath(PATH4),
+                "Path with only one element");
         }
 
         [TestMethod]
@@ -65,6 +72,25 @@ namespace TestProject.Utils
                 "FILE.txt",
                 PathUtils.GetLastInPath(PATH2),
                 "Path with \\ at the end");
+        }
+
+        [TestMethod]
+        public void GetPathFromSpace()
+        {
+            Assert.AreEqual(
+                "space\\FILE.txt\\",
+                PathUtils.GetPathFromSpace(PATH1),
+                "Path without \\ at the end");
+
+            Assert.AreEqual(
+                "space\\FILE.txt\\",
+                PathUtils.GetPathFromSpace(PATH2),
+                "Path with \\ at the end");
+
+            Assert.AreEqual(
+                "",
+                PathUtils.GetPathFromSpace(PATH3),
+                "Path with \\ at the end, contains no space");
         }
     }
 }

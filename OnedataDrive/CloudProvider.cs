@@ -1,6 +1,7 @@
 ﻿using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -388,6 +389,7 @@ namespace OnedataDrive
                 {
                     Debug.Print("Move/rename file within space");
 
+                    /*
                     List<ProviderInfo> providerInfos = CloudSync.spaces[PathUtils.GetSpaceName(sourcePath)].providerInfos;
                     var taskInfo = RestClient.GetFileAttribute(fileIdentity, providerInfos);
                     taskInfo.Wait();
@@ -395,23 +397,46 @@ namespace OnedataDrive
 
                     string srcWithCloudName = PathUtils.GetParentPath(sourcePath) + fileInfo.name;
                     string src = srcWithCloudName.Remove(0, spacePath.Length).Replace('\\', '/');
-                    string target;
+                    string dest;
 
                     if (PathUtils.GetLastInPath(sourcePath) == PathUtils.GetLastInPath(targetPath))
                     {
                         Debug.Print("Move file");
                         string targetWithCloudName = PathUtils.GetParentPath(targetPath) + fileInfo.name;
-                        target = targetWithCloudName.Remove(0, spacePath.Length).Replace('\\', '/');
+                        dest = targetWithCloudName.Remove(0, spacePath.Length).Replace('\\', '/');
                     }
                     else
                     {
                         Debug.Print("Rename file");
-                        target = targetPath.Remove(0, spacePath.Length).Replace('\\', '/');
+                        dest = targetPath.Remove(0, spacePath.Length).Replace('\\', '/');
                     }
+                    dest = PathUtils.GetSpaceName(spacePath) + '/' + dest;
+                    src = PathUtils.GetSpaceName(spacePath) + '/' + src;
+                    */
 
-                    Debug.Print("CDMI src: {0}", src);
-                    Debug.Print("CDMI target: {0}", target);
-                    var task = RestClient.Move(providerInfos, src, target, PathUtils.GetSpaceName(sourcePath));
+                    
+                    List<ProviderInfo> providerInfos = CloudSync.spaces[PathUtils.GetSpaceName(sourcePath)].providerInfos;
+                    string src = PathUtils.GetServerCorrectPath(sourcePath);
+
+                    string dest;
+                    if (PathUtils.GetLastInPath(sourcePath) == PathUtils.GetLastInPath(targetPath))
+                    {
+                        Debug.Print("Move file");
+                        string destFromSpace = PathUtils.GetServerCorrectPath(PathUtils.GetParentPath(targetPath));
+                        dest = destFromSpace + PathUtils.GetLastInPath(src);
+                    }
+                    else
+                    {
+                        Debug.Print("Rename file");
+                        dest = PathUtils.GetParentPath(src) + PathUtils.GetLastInPath(targetPath);
+                    }
+                    src = src.Replace('\\', '/').TrimEnd('/');
+                    dest = dest.Replace('\\', '/').TrimEnd('/');
+                    
+
+                    Debug.Print("CDMI src:  {0}", src);
+                    Debug.Print("CDMI dest: {0}", dest);
+                    var task = RestClient.Move(providerInfos, src, dest);
                     task.Wait();
 
                     Debug.Print("File was renamed/moved on cloud");
