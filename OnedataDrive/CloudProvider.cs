@@ -356,7 +356,6 @@ namespace OnedataDrive
 
         public static void OnRename(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            //Thread.Sleep(100);
             Debug.Print("RENAME");
             PrintInfo(CallbackInfo, CallbackParameters);
 
@@ -388,55 +387,33 @@ namespace OnedataDrive
                 if (targetPath.StartsWith(spacePath))
                 {
                     Debug.Print("Move/rename file within space");
-
-                    /*
+                    
                     List<ProviderInfo> providerInfos = CloudSync.spaces[PathUtils.GetSpaceName(sourcePath)].providerInfos;
-                    var taskInfo = RestClient.GetFileAttribute(fileIdentity, providerInfos);
-                    taskInfo.Wait();
-                    FileAttribute fileInfo = taskInfo.Result;
-
-                    string srcWithCloudName = PathUtils.GetParentPath(sourcePath) + fileInfo.name;
-                    string src = srcWithCloudName.Remove(0, spacePath.Length).Replace('\\', '/');
-                    string dest;
+                    
+                    // path variable names which end in _fs -> use forward slash as separator
+                    string src_fs = PathUtils.GetServerCorrectPath(sourcePath);
+                    string trgt_fs;
 
                     if (PathUtils.GetLastInPath(sourcePath) == PathUtils.GetLastInPath(targetPath))
                     {
                         Debug.Print("Move file");
-                        string targetWithCloudName = PathUtils.GetParentPath(targetPath) + fileInfo.name;
-                        dest = targetWithCloudName.Remove(0, spacePath.Length).Replace('\\', '/');
+                        // watch out for special characters --> %,?,",#,[,],\
+                        string trgtFromSpace = PathUtils.GetServerCorrectPath(PathUtils.GetParentPath(targetPath));
+                        trgt_fs = trgtFromSpace + PathUtils.GetLastInPath(src_fs, separator: '/');
                     }
                     else
                     {
                         Debug.Print("Rename file");
-                        dest = targetPath.Remove(0, spacePath.Length).Replace('\\', '/');
+                        // watch out for special characters --> ",\
+                        trgt_fs = PathUtils.GetParentPath(src_fs, separator: '/') + PathUtils.GetLastInPath(targetPath);
                     }
-                    dest = PathUtils.GetSpaceName(spacePath) + '/' + dest;
-                    src = PathUtils.GetSpaceName(spacePath) + '/' + src;
-                    */
-
-                    
-                    List<ProviderInfo> providerInfos = CloudSync.spaces[PathUtils.GetSpaceName(sourcePath)].providerInfos;
-                    string src = PathUtils.GetServerCorrectPath(sourcePath);
-
-                    string dest;
-                    if (PathUtils.GetLastInPath(sourcePath) == PathUtils.GetLastInPath(targetPath))
-                    {
-                        Debug.Print("Move file");
-                        string destFromSpace = PathUtils.GetServerCorrectPath(PathUtils.GetParentPath(targetPath));
-                        dest = destFromSpace + PathUtils.GetLastInPath(src, separator: '/');
-                    }
-                    else
-                    {
-                        Debug.Print("Rename file");
-                        dest = PathUtils.GetParentPath(src, separator: '/') + PathUtils.GetLastInPath(targetPath);
-                    }
-                    src = src.TrimEnd('/');
-                    dest = dest.TrimEnd('/');
+                    src_fs = src_fs.TrimEnd('/');
+                    trgt_fs = trgt_fs.TrimEnd('/');
                     
 
-                    Debug.Print("CDMI src:  {0}", src);
-                    Debug.Print("CDMI dest: {0}", dest);
-                    var task = RestClient.Move(providerInfos, src, dest);
+                    Debug.Print("CDMI src_fs:  {0}", src_fs);
+                    Debug.Print("CDMI trgt_fs: {0}", trgt_fs);
+                    var task = RestClient.Move(providerInfos, src_fs, trgt_fs);
                     task.Wait();
 
                     Debug.Print("File was renamed/moved on cloud");
@@ -486,6 +463,7 @@ namespace OnedataDrive
             Thread.Sleep(250);
             CloudSync.watcher.Resume();
 
+            Debug.Print("Move/Rename OK");
             Debug.Print("");
             return;
         }

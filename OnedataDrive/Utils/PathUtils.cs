@@ -28,7 +28,12 @@ namespace OnedataDrive.Utils
             return arr[arr.Length - 1];
         }
 
-        // uses forward slash as separator in correctedPath
+        /// <summary>
+        /// NOTE: uses forward slash as separator in correctedPath and may contain backslash(\),
+        /// but only as name character, not path separator
+        /// </summary>
+        /// <param name="fullPath">Path with backslash as separator</param>
+        /// <returns></returns>
         public static string GetServerCorrectPath(string fullPath)
         {
             string path = fullPath;

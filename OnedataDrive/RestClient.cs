@@ -349,13 +349,14 @@ namespace OnedataDrive
             throw new Exception("Failed to put file");
         }
 
-        public static async Task Move(List<ProviderInfo> providerInfos, string source, string dest)
+        public static async Task Move(List<ProviderInfo> providerInfos, string source, string target)
         {
             foreach (ProviderInfo info in providerInfos)
             {
                 try
                 {
-                    string url = $"https://{info.providerDomain}/cdmi/{dest}";
+                    string escapedTarget = HttpEncodePath(target);
+                    string url = $"https://{info.providerDomain}/cdmi/{escapedTarget}";
 
                     // backslash(\) and double quotes(") are special characters in JSON,
                     // so they must be escaped with \
@@ -380,14 +381,24 @@ namespace OnedataDrive
             throw new Exception("Failed to put file");
         }
 
+        /// <summary>
+        /// Takes correct URL and escapes special characters
+        /// Special characters --> %,?,",#,[,],\
+        /// This function is only correct for encoding path, which is passed to CDMI.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
         private static string HttpEncodePath(string path)
         {
-            string encoded = "";
-            foreach (string stage in path.Split('/'))
-            {
-                encoded += HttpUtility.UrlEncode(stage) + "/";
-            }
-            return encoded.TrimEnd('/');
+            string encoded = path;
+            // order is important (especialy % being first)
+            encoded = encoded.Replace("%", "%25");
+            encoded = encoded.Replace("?", "%3F");
+            encoded = encoded.Replace("#", "%23");
+            encoded = encoded.Replace("[", "%5B");
+            encoded = encoded.Replace("]", "%5D");
+            encoded = encoded.Replace("\\", "%5C");
+            return encoded;
         }
 
         public static async Task<FileAttribute> GetFileAttribute(string fileId, string providerDomain)
