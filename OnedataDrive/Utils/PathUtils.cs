@@ -12,22 +12,23 @@ namespace OnedataDrive.Utils
             return temp.Split("\\")[0];
         }
 
-        public static string GetParentPath(string fullPath)
+        public static string GetParentPath(string fullPath, char separator = '\\')
         {
             string temp = fullPath;
-            temp = temp.TrimEnd(['\\']);
-            temp = temp.Substring(0, temp.LastIndexOf("\\") + 1);
+            temp = temp.TrimEnd([separator]);
+            temp = temp.Substring(0, temp.LastIndexOf(separator) + 1);
             return temp;
         }
 
-        public static string GetLastInPath(string fullPath, string separator = @"\")
+        public static string GetLastInPath(string fullPath, char separator = '\\')
         {
             string temp = fullPath;
-            temp = temp.TrimEnd(['\\', '/']);
+            temp = temp.TrimEnd([separator]);
             string[] arr = temp.Split(separator);
             return arr[arr.Length - 1];
         }
 
+        // uses forward slash as separator in correctedPath
         public static string GetServerCorrectPath(string fullPath)
         {
             string path = fullPath;
@@ -41,7 +42,7 @@ namespace OnedataDrive.Utils
                 var task = RestClient.GetFileAttribute(fileId, providerInfos);
                 task.Wait();
                 FileAttribute fa = task.Result;
-                correctedPath = fa.name + "\\" + correctedPath;
+                correctedPath = fa.name + "/" + correctedPath;
                 path = GetParentPath(path);
                 pathFromSpace = GetParentPath(pathFromSpace);
             }

@@ -355,10 +355,12 @@ namespace OnedataDrive
             {
                 try
                 {
-                    //string encodedDest = HttpEncodePath(dest);
                     string url = $"https://{info.providerDomain}/cdmi/{dest}";
-                    
-                    string json = "{\"move\":\"" + source + "\"}";
+
+                    // backslash(\) and double quotes(") are special characters in JSON,
+                    // so they must be escaped with \
+                    string escapedSource = source.Replace("\\", "\\\\").Replace("\"", "\\\"");
+                    string json = "{\"move\":\"" + escapedSource + "\"}";
                     StringContent content = new StringContent(json);
                     content.Headers.Clear();
                     content.Headers.Add("X-CDMI-Specification-Version", "1.1.1");

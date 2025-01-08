@@ -423,15 +423,15 @@ namespace OnedataDrive
                     {
                         Debug.Print("Move file");
                         string destFromSpace = PathUtils.GetServerCorrectPath(PathUtils.GetParentPath(targetPath));
-                        dest = destFromSpace + PathUtils.GetLastInPath(src);
+                        dest = destFromSpace + PathUtils.GetLastInPath(src, separator: '/');
                     }
                     else
                     {
                         Debug.Print("Rename file");
-                        dest = PathUtils.GetParentPath(src) + PathUtils.GetLastInPath(targetPath);
+                        dest = PathUtils.GetParentPath(src, separator: '/') + PathUtils.GetLastInPath(targetPath);
                     }
-                    src = src.Replace('\\', '/').TrimEnd('/');
-                    dest = dest.Replace('\\', '/').TrimEnd('/');
+                    src = src.TrimEnd('/');
+                    dest = dest.TrimEnd('/');
                     
 
                     Debug.Print("CDMI src:  {0}", src);
