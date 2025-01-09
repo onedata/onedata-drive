@@ -14,7 +14,7 @@
 - **Oneprovider Token** must have REST/CDMI access
 
 ### Filling the connect form
-You can fill the connect form manualy or you can create [config file](#config-file) and load it from menu (Advanced -> Load configuration from file)
+You can fill the connect form manually or you can create [config file](#config-file) and load it from menu (Advanced -> Load configuration from file)
 
 ### Config file
 JSON file type
