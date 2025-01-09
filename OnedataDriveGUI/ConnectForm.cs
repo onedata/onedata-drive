@@ -10,12 +10,12 @@ namespace OnedataDriveGUI
         private bool connectClicked = false;
         private const string ROOT_DIR = "Onedata Drive";
         //private string exePath { get; } = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
-        private string myDocumentsPath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        private string userProfilePath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         private string defaultRootPath
         {
             get
             {
-                return myDocumentsPath + "\\" + ROOT_DIR;
+                return userProfilePath + "\\" + ROOT_DIR;
             }
         }
         private string textBoxErrBC = "#d38787";
@@ -26,7 +26,7 @@ namespace OnedataDriveGUI
             InitializeComponent();
             disconect_button.Enabled = false;
             rootFolder_textBox.PlaceholderText = defaultRootPath;
-            rootFolder_folderBrowserDialog.InitialDirectory = myDocumentsPath;
+            rootFolder_folderBrowserDialog.InitialDirectory = userProfilePath;
 
             rootFolderDelete_checkBox.Checked = Settings.Default.RootFolderDeleteCheckBox;
 

@@ -1,4 +1,4 @@
-# Onedata Cloud Sync
+# Onedata Drive
 
 ## Requirements
 - dotnet 8 must be installed
@@ -7,47 +7,30 @@
 - virtual machines (e.g. Hyper-V) should work fine
 - you should not need to run as admin, as long you have access to root_path (see config)
 
-## How to launch compiled app
-- launch from console (powershell)
+## Running the app
+- in order to access files Onedata Drive must be running
+- every time you restart computer/app and connect again new session is created
+- connecting to big spaces (with many folders) might take a long time (up to several minutes)
+- **Oneprovider Token** must have REST/CDMI access
 
-    ``
-    ./cloudSync.exe -p "C:\Users\User\Desktop\config.json"
-    ``
+### Filling the connect form
+You can fill the connect form manualy or you can create [config file](#config-file) and load it from menu (Advanced -> Load configuration from file)
 
-- .exe file takes max 1 argument -> path to the config file
-    - if not specified, it looks for config file in folder where is located
+### Config file
+JSON file type
 
-### Launch arguments
-- **-p %PATH%**
-    - path to the config file
-- **-r**
-    - when app crashes, launch with -r option to unregister dead SyncRoot
-- **-r %ID%**
-    - **ID** of SyncRoot, which you want to unregister
-- **-d**
-    - can be used only in combination with **-p**
-    - deletes existing SyncRoot folder during launch
-
-### config.json
     {
-    "zone_host" : "datahub.egi.eu",
+    "onezone" : "datahub.egi.eu",
     "provider_token" : "abcd...",
     "root_path" : "C:\\Users\\User\\Desktop\\onedata-cloud-sync\\syncRoot\\"
     }
-- fields must not be empty
-- **root_path** must end with `\` (double `\\` -> character escaping)
+- **root_path** (double `\\` -> character escaping)
     - path to the local client folder
-    - folder must be empty
-- **provider token** must have access to providers (onezone access is not required)
+    - original content of the folder will be deleted
+- **provider token**
+    - must have REST/CDMI access
+    - must have access to providers (onezone access is not required)
     - limiting token access to specific paths (during token creation) might not work as expected with spaces of which you are not owner
-
-## Running the app
-- when launched, wait for the app to create placeholders, after that you can work with 
-files
-- when you trigger any event (e.g. delete file) wait until there are no more new log messages
-### Controls
-- `R` gets latest placeholders from server
-- `ENTER` terminates the app
 
 ## Required packages (for develompent and compilation)
 
