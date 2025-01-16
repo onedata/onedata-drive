@@ -7,6 +7,7 @@
         ROOT_FOLDER_NOT_EMPTY,
         ROOT_FOLDER_NO_ACCESS_RIGHT,
         ONEZONE_FAIL,
-        TOKEN_FAIL
+        TOKEN_FAIL,
+        INVALID_TOKEN_TYPE
     }
 }

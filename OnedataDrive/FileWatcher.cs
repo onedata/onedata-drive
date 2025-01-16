@@ -1,5 +1,6 @@
 ﻿using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
@@ -32,6 +33,7 @@ namespace OnedataDrive
 
             watcher.Created += new FileSystemEventHandler(OnCreated);
             watcher.Changed += new FileSystemEventHandler(OnChanged);
+            watcher.Error += new ErrorEventHandler(OnError);
 
             watcher.IncludeSubdirectories = true;
 
@@ -39,21 +41,27 @@ namespace OnedataDrive
             disposed = false;
         }
 
+        public void OnError(object sender, ErrorEventArgs e)
+        {
+            // TODO: do something clever
+            Debug.Print("OnError: " + e.GetException().Message);
+        }
+
         public void OnCreated(object sender, FileSystemEventArgs e)
         {
-            Console.WriteLine("NEW FILE DETECTED: {0}", e.FullPath);
+            Debug.Print("NEW FILE DETECTED: {0}", e.FullPath);
             // sleep is needed
             Thread.Sleep(1000);
 
             RegisterFile(e.FullPath);
-            Console.WriteLine();
+            Debug.Print("");
         }
 
         private void RegisterFile(string fullPath)
         {
             if (!File.Exists(fullPath) && !Directory.Exists(fullPath))
             {
-                Console.WriteLine("File does not exist: {0}", fullPath);
+                Debug.Print("File does not exist: {0}", fullPath);
                 return;
             }
 
@@ -66,7 +74,7 @@ namespace OnedataDrive
             {
                 if (isDir)
                 {
-                    Console.WriteLine("File is DIR: {0}", fullPath);
+                    Debug.Print("File is DIR: {0}", fullPath);
                     id = PushNewFolderToCloud(fullPath);
                 }
                 else
@@ -76,38 +84,38 @@ namespace OnedataDrive
             }
             catch (Exception exception)
             {
-                Console.WriteLine(exception);
-                Console.WriteLine("FAILED to sync {0}", fullPath);
+                Debug.Print(exception.ToString());
+                Debug.Print("FAILED to sync {0}", fullPath);
                 return;
             }
 
             try
             {
                 ConvertToPlaceholder(fullPath, id, isDir);
-                Console.WriteLine("File sync OK: {0}", fullPath);
+                Debug.Print("File sync OK: {0}", fullPath);
             }
             catch (Exception exception)
             {
-                Console.WriteLine(exception);
-                Console.WriteLine("FAIL {0} : File was uploaded to cloud, however local file isn't linked with cloud", fullPath);
+                Debug.Print(exception.ToString());
+                Debug.Print("FAIL {0} : File was uploaded to cloud, however local file isn't linked with cloud", fullPath);
                 return;
             }
         }
 
         public void OnChanged(object sender, FileSystemEventArgs e)
         {
-            Console.WriteLine("FILE UPDATED(OnChanged): {0}", e.FullPath);
+            Debug.Print("FILE UPDATED(OnChanged): {0}", e.FullPath);
 
             if (!File.Exists(e.FullPath) && !Directory.Exists(e.FullPath))
             {
-                Console.WriteLine("File does not exist: {0}", e.FullPath);
+                Debug.Print("File does not exist: {0}", e.FullPath);
                 return;
             }
 
             FileAttributes attributes = File.GetAttributes(e.FullPath);
             if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
             {
-                Console.WriteLine("File is DIR(nothing happens): {0}", e.FullPath);
+                Debug.Print("File is DIR(nothing happens): {0}", e.FullPath);
                 return;
             }
 
@@ -128,18 +136,18 @@ namespace OnedataDrive
             }
             catch (Exception exception)
             {
-                Console.WriteLine(exception);
-                Console.WriteLine("FileWatcher OnChanged FAIL");
+                Debug.Print(exception.ToString());
+                Debug.Print("FileWatcher OnChanged FAIL");
             }
 
-            Console.WriteLine();
+            Debug.Print("");
         }
 
         private void Hydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info)
         {
             try
             {
-                Console.WriteLine("PINNED -> Hydrate {0}", fullPath);
+                Debug.Print("PINNED -> Hydrate {0}", fullPath);
                 HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out SafeHCFFILE protectedHandle);
                 HRESULT hresHydrate = CfHydratePlaceholder(protectedHandle.DangerousGetHandle());
                 CfCloseHandle(protectedHandle);
@@ -151,17 +159,17 @@ namespace OnedataDrive
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
-                Console.WriteLine("Hydrate FAIL");
+                Debug.Print(e.ToString());
+                Debug.Print("Hydrate FAIL");
             }
-            Console.WriteLine("Hydrate OK");
+            Debug.Print("Hydrate OK");
         }
 
         private void Dehydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info)
         {
             try
             {
-                Console.WriteLine("UNPINNED -> Dehydrate {0}", fullPath);
+                Debug.Print("UNPINNED -> Dehydrate {0}", fullPath);
                 HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out SafeHCFFILE protectedHandle);
                 HRESULT hresDehydrate = CfDehydratePlaceholder(protectedHandle.DangerousGetHandle(), 0, info.OnDiskDataSize, CF_DEHYDRATE_FLAGS.CF_DEHYDRATE_FLAG_NONE);
                 HRESULT hresPinState = CfSetPinState(protectedHandle.DangerousGetHandle(), CF_PIN_STATE.CF_PIN_STATE_UNSPECIFIED, CF_SET_PIN_FLAGS.CF_SET_PIN_FLAG_NONE);
@@ -174,10 +182,10 @@ namespace OnedataDrive
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
-                Console.WriteLine("Dehydrate FAIL");
+                Debug.Print(e.ToString());
+                Debug.Print("Dehydrate FAIL");
             }
-            Console.WriteLine("Dehydrate OK");
+            Debug.Print("Dehydrate OK");
         }
 
         private void UpdateFile(FileSystemEventArgs e, CF_PLACEHOLDER_STANDARD_INFO info)
@@ -185,7 +193,7 @@ namespace OnedataDrive
             // test if file/folder is in sync. If true -> finish
             if (info.InSyncState == CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC)
             {
-                Console.WriteLine("File is in sync (OnChanged END)");
+                Debug.Print("File is in sync (OnChanged END)");
                 return;
             }
 
@@ -195,8 +203,8 @@ namespace OnedataDrive
             }
             catch (Exception exception)
             {
-                Console.WriteLine(exception);
-                Console.WriteLine("FAILED to sync {0}", e.FullPath);
+                Debug.Print(exception.ToString());
+                Debug.Print("FAILED to sync {0}", e.FullPath);
                 return;
             }
 
@@ -207,12 +215,12 @@ namespace OnedataDrive
                 // SetInSyncState and set metadata ;
                 UpdatePlaceholderMetadata(info, handle, e.FullPath);
                 CfCloseHandle(handle);
-                Console.WriteLine("File sync OK: {0}", e.FullPath);
+                Debug.Print("File sync OK: {0}", e.FullPath);
             }
             catch (Exception exception)
             {
-                Console.WriteLine(exception);
-                Console.WriteLine("FAIL {0} : File was uploaded to cloud, however local file isn't linked with cloud", e.FullPath);
+                Debug.Print(exception.ToString());
+                Debug.Print("FAIL {0} : File was uploaded to cloud, however local file isn't linked with cloud", e.FullPath);
                 return;
             }
         }
@@ -253,12 +261,12 @@ namespace OnedataDrive
 
             if (openHres != HRESULT.S_OK)
             {
-                Console.WriteLine("Handle NOT OK");
+                Debug.Print("Handle NOT OK");
             }
             HRESULT hresSync = CfSetInSyncState(handle.DangerousGetHandle(), CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
             if (hresSync != HRESULT.S_OK)
             {
-                Console.WriteLine("SetSyncState NOT OK");
+                Debug.Print("SetSyncState NOT OK");
             }
             else
             {
@@ -273,7 +281,7 @@ namespace OnedataDrive
             HRESULT hresSync = CfSetInSyncState(handle.DangerousGetHandle(), CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
             if (hresSync != HRESULT.S_OK)
             {
-                Console.WriteLine("SetSyncState NOT OK");
+                Debug.Print("SetSyncState NOT OK");
             }
             else
             {

@@ -84,6 +84,11 @@ namespace OnedataDrive
                 Stop();
                 Debug.Print("CLOUD SYNC FAIL -> Provider Token");
                 Debug.Print(e.ToString());
+
+                if (e is InvalidTokenType)
+                {
+                    return CloudSyncReturnCodes.INVALID_TOKEN_TYPE;
+                }
                 return CloudSyncReturnCodes.TOKEN_FAIL;
             }
             catch (Exception e)
@@ -134,7 +139,7 @@ namespace OnedataDrive
             TokenExamine te = task.Result;
             if (!te.isRestInterface())
             {
-                throw new ProviderTokenException("Wrong token interface");
+                throw new InvalidTokenType("Wrong token interface");
             }
         }
 

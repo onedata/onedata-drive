@@ -79,6 +79,9 @@ namespace OnedataDriveGUI
                 case CloudSyncReturnCodes.TOKEN_FAIL:
                     statusMessage.Text = "Invalid Token";
                     break;
+                case CloudSyncReturnCodes.INVALID_TOKEN_TYPE:
+                    statusMessage.Text = "Invalid Token - should support REST/CDMI";
+                    break;
                 default:
                     SetDisplayStatus(Status.ERROR);
                     statusMessage.Text = "Unknown Error";

@@ -49,4 +49,18 @@
         }
     }
 
+    public class InvalidTokenType : ProviderTokenException
+    {
+        public InvalidTokenType() : base() { }
+        public InvalidTokenType(string message) : base(message) { }
+        public InvalidTokenType(string message, Exception innerException) : base(message, innerException) { }
+
+        public override string ToString()
+        {
+            return "InvalidTokenType: " + base.ToString();
+        }
+    }
+
+
+
 }
