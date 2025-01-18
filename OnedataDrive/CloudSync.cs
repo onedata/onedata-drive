@@ -5,6 +5,8 @@ using static Vanara.PInvoke.SearchApi;
 using OnedataDrive.Utils;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.ErrorHandling;
+using NLog;
+using NLog.Targets;
 
 namespace OnedataDrive
 {
@@ -14,6 +16,7 @@ namespace OnedataDrive
         public static Dictionary<string, SpaceFolder> spaces = new();
         public static FileWatcher watcher = new();
         public static bool setAndOnline { get; private set; } = false;
+        public static Logger logger;
         /// <summary>
         /// Method to start CloudSync
         /// </summary>
@@ -22,6 +25,11 @@ namespace OnedataDrive
         /// <returns></returns>
         public static CloudSyncReturnCodes Run(Config config, bool delete = false)
         {
+            logger = LogManager.GetCurrentClassLogger();
+            //Debug.Print(logger.Name);
+            //logger.Error("Whoops", new Exception("msg"));
+            //logger.Info("Logger: It works");
+
             Debug.Print("CLOUD SYNC START");
             configuration = config;
             spaces = new();
