@@ -82,6 +82,9 @@ namespace OnedataDriveGUI
                 case CloudSyncReturnCodes.INVALID_TOKEN_TYPE:
                     statusMessage.Text = "Invalid Token - should support REST/CDMI";
                     break;
+                case CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY:
+                    statusMessage.Text = "Root Folder not empty";
+                    break;
                 default:
                     SetDisplayStatus(Status.ERROR);
                     statusMessage.Text = "Unknown Error";

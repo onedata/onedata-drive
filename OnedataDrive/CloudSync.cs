@@ -16,7 +16,7 @@ namespace OnedataDrive
         public static Dictionary<string, SpaceFolder> spaces = new();
         public static FileWatcher watcher = new();
         public static bool setAndOnline { get; private set; } = false;
-        public static Logger logger;
+        public static Logger logger = LogManager.GetCurrentClassLogger();
         /// <summary>
         /// Method to start CloudSync
         /// </summary>
@@ -25,73 +25,64 @@ namespace OnedataDrive
         /// <returns></returns>
         public static CloudSyncReturnCodes Run(Config config, bool delete = false)
         {
-            logger = LogManager.GetCurrentClassLogger();
-            //Debug.Print(logger.Name);
-            //logger.Error("Whoops", new Exception("msg"));
-            //logger.Info("Logger: It works");
+            logger.Info("CLOUD SYNC: Start Connecting");
 
-            Debug.Print("CLOUD SYNC START");
             configuration = config;
             spaces = new();
             try
             {
                 InitSyncRootDir(delete);
-                Debug.Print("SyncRoot directory -> OK: " + configuration.root_path);
-            }
-            catch (RootFolderNotEmptyException)
-            {
-                return CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return CloudSyncReturnCodes.ROOT_FOLDER_NO_ACCESS_RIGHT;
-            }
-            catch (IOException)
-            {
-                return CloudSyncReturnCodes.ROOT_FOLDER_NO_ACCESS_RIGHT;
+                logger.Info("SyncRoot directory -> OK: " + configuration.root_path);
             }
             catch (Exception e)
             {
-                Debug.Print($"Error: {e}");
+                logger.Error($"Failed to create Root Folder, {e}");
+
+                if (e is RootFolderNotEmptyException)
+                {
+                    return CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY;
+                }
+                if (e is UnauthorizedAccessException || e is IOException)
+                {
+                    return CloudSyncReturnCodes.ROOT_FOLDER_NO_ACCESS_RIGHT;
+                }
+
                 return CloudSyncReturnCodes.ERROR;
             }
 
             try
             {
                 RestClient.Init(configuration);
-                Debug.Print("Init Rest Client -> OK");
+                logger.Info("Init Rest Client -> OK");
 
                 AddFolderToSearchIndexer(configuration.root_path);
-                Debug.Print("Add Folder To Search Indexer -> OK");
+                logger.Info("Add Folder To Search Indexer -> OK");
 
                 CloudProvider.RegisterWithShell(configuration.root_path);
-                Debug.Print("ShellRegister -> OK");
+                logger.Info("ShellRegister -> OK");
 
                 CloudProvider.ConnectCallbacks(configuration.root_path);
-                Debug.Print("ConnectCallbacks -> OK");
+                logger.Info("ConnectCallbacks -> OK");
 
-                TestTokenValidity();
-
+                TestTokenAndOnezone();
                 InitSpaceFolders();
 
                 InitSpaceFoldersChildren();
 
                 // start file watcher
                 watcher = new(configuration.root_path);
-                Debug.Print("Filewatcher Start -> OK");
+                logger.Info("Filewatcher Start -> OK");
             }
             catch (OnezoneException e)
             {
                 Stop();
-                Debug.Print("CLOUD SYNC FAIL -> Onezone");
-                Debug.Print(e.ToString());
+                logger.Error($"CLOUD SYNC FAIL -> Onezone, {e}");
                 return CloudSyncReturnCodes.ONEZONE_FAIL;
             }
             catch (ProviderTokenException e)
             {
                 Stop();
-                Debug.Print("CLOUD SYNC FAIL -> Provider Token");
-                Debug.Print(e.ToString());
+                logger.Error($"CLOUD SYNC FAIL -> Provider Token, {e}");
 
                 if (e is InvalidTokenType)
                 {
@@ -102,8 +93,7 @@ namespace OnedataDrive
             catch (Exception e)
             {
                 Stop();
-                Debug.Print("CLOUD SYNC FAIL.");
-                Debug.Print(e.ToString());
+                logger.Error($"CLOUD SYNC FAIL, {e}");
                 return CloudSyncReturnCodes.ERROR;
             }
             setAndOnline = true;
@@ -113,11 +103,13 @@ namespace OnedataDrive
         public static void Stop()
         {
             CloudProvider.DisconectCallbacks();
-            Debug.Print("Callbacks disconected");
+            logger.Info("Callbacks disconected");
             CloudProvider.UnregisterSafely();
-            Debug.Print("SyncRoot unregistered");
+            logger.Info("SyncRoot unregistered");
             RestClient.Stop();
+            logger.Info("Rest client stopped");
             watcher.Dispose();
+            logger.Info("FileWatcher stopped");
             setAndOnline = false;
         }
 
@@ -131,7 +123,7 @@ namespace OnedataDrive
             searchCrawlScopeManager.AddDefaultScopeRule(url, true, FOLLOW_FLAGS.FF_INDEXCOMPLEXURLS);
             searchCrawlScopeManager.SaveAll();
 
-            Debug.Print("AddFolderToSearchIndexer with path: " + url);
+            logger.Info("AddFolderToSearchIndexer with path: " + url);
         }
 
         public static int Repair(string syncRootId = "")
@@ -149,6 +141,12 @@ namespace OnedataDrive
             {
                 throw new InvalidTokenType("Wrong token interface");
             }
+        }
+
+        private static void TestTokenAndOnezone()
+        {
+            InferTokenAccess();
+            TestTokenValidity();
         }
 
         public static TokenAccess InferTokenAccess()
@@ -180,10 +178,12 @@ namespace OnedataDrive
 
         public static void InitSpaceFolders()
         {
-            Debug.Print("CREATING SPACE FOLDERS");
+            logger.Info("Creating space folders");
             using (PlaceholderCreateInfo info = new())
             {
                 TokenAccess tokenAccess = InferTokenAccess();
+                logger.Info("Available spaces: " 
+                    + String.Join(" | " ,tokenAccess.dataAccessScope.spaces.Values.Select(o => o.name)));
 
                 foreach (KeyValuePair<string, TASpace> space in tokenAccess.dataAccessScope.spaces)
                 // KEY is spaceId
@@ -224,7 +224,7 @@ namespace OnedataDrive
                                     fileInfo.mtime,
                                     fileInfo.ctime);
                                 info.Add(Placeholders.createDirInfo(placeholderData));
-                                Debug.Print("Space: {0}", spaceName);
+                                //logger.Info("Space Registered: {0}", spaceName);
 
                                 placeholderAdded = true;
 
@@ -238,20 +238,24 @@ namespace OnedataDrive
                         }
                         catch (Exception e)
                         {
-                            Debug.Print(e.Message);
-                            Debug.Print("Trying another provider.");
+                            logger.Debug($"Registering Space with provider FAILED: {providerDomain}, space {spaceFolder.name}, {e}");
                         }
                     }
                     if (placeholderAdded)
                     {
                         spaces.Add(spaceFolder.name, spaceFolder);
+                        logger.Info("Space Registered: {0}", spaceName);
+                    }
+                    else
+                    {
+                        logger.Warn("Space is NOT supported by Oneprovider: {0}", spaceName);
                     }
                 }
 
                 CreatePlaceholders(info, configuration.root_path);
 
             }
-            Debug.Print("CREATING SPACE FOLDERS - FINISHED");
+            logger.Info("CREATING SPACE FOLDERS - FINISHED");
         }
 
         private static void CreatePlaceholders(PlaceholderCreateInfo info, string path)
