@@ -1,5 +1,18 @@
 ﻿namespace OnedataDrive.ErrorHandling
 {
+    public class ConfigurationException : Exception
+    {
+        public ConfigurationException() : base() { }
+        public ConfigurationException(string message) : base(message) { }
+        public ConfigurationException(string message, Exception innerException) : base(message, innerException) { }
+
+        public override string ToString()
+        {
+            return "ConfigurationException: " + base.ToString();
+        }
+
+    }
+
     public class RootFolderNotEmptyException : Exception
     {
         public RootFolderNotEmptyException() : base() { }

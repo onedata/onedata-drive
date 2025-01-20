@@ -97,6 +97,7 @@ namespace OnedataDrive
                 return CloudSyncReturnCodes.ERROR;
             }
             setAndOnline = true;
+            logger.Info("CLOUD SYNC IS RUNNING");
             return CloudSyncReturnCodes.SUCCESS;
         }
 
@@ -111,8 +112,10 @@ namespace OnedataDrive
             watcher.Dispose();
             logger.Info("FileWatcher stopped");
             setAndOnline = false;
+            logger.Info("CLOUD SYNC STOPPED");
         }
 
+        // may not be needed
         public static void AddFolderToSearchIndexer(string rootPath)
         {
             string url = @"file:" + rootPath;
@@ -178,7 +181,7 @@ namespace OnedataDrive
 
         public static void InitSpaceFolders()
         {
-            logger.Info("Creating space folders");
+            logger.Info("CREATING SPACE FOLDERS");
             using (PlaceholderCreateInfo info = new())
             {
                 TokenAccess tokenAccess = InferTokenAccess();
@@ -224,7 +227,6 @@ namespace OnedataDrive
                                     fileInfo.mtime,
                                     fileInfo.ctime);
                                 info.Add(Placeholders.createDirInfo(placeholderData));
-                                //logger.Info("Space Registered: {0}", spaceName);
 
                                 placeholderAdded = true;
 
@@ -238,7 +240,7 @@ namespace OnedataDrive
                         }
                         catch (Exception e)
                         {
-                            logger.Debug($"Registering Space with provider FAILED: {providerDomain}, space {spaceFolder.name}, {e}");
+                            logger.Warn($"Registering Space with provider FAILED: {providerDomain}, space {spaceFolder.name}, {e}");
                         }
                     }
                     if (placeholderAdded)
@@ -269,16 +271,15 @@ namespace OnedataDrive
                 HRESULT hres = CfCreatePlaceholders(path, infoArr, (uint)infoArr.Length, CF_CREATE_FLAGS.CF_CREATE_FLAG_NONE, out entriesProcessed);
                 if (hres != HRESULT.S_OK)
                 {
-                    Debug.Print("FAILED to init placeholders (CfCreatePlaceholders). HRESULT: {0}", hres);
+                    logger.Error("FAILED to init placeholders (CfCreatePlaceholders). HRESULT: {0}", hres);
                 }
             }
-            //Debug.Print("Placeholder create OK -> number of created: {0}", entriesProcessed);
-            Debug.Print("Placeholders created in dir:{0} -> {1} / {2}", path, entriesProcessed, infoArr.Length);
+            logger.Debug("Placeholders created in dirPath:{0} -> {1} / {2}", path, entriesProcessed, infoArr.Length);
         }
 
         public static void InitSpaceFoldersChildren()
         {
-            Debug.Print("CREATING PLACEHOLDERS WITHIN SPACES");
+            logger.Info("CREATING PLACEHOLDERS WITHIN SPACES");
             foreach (SpaceFolder spaceFolder in spaces.Values)
             {
                 var task5 = RestClient.GetFilesAndSubdirs(spaceFolder.dirId, spaceFolder.providerInfos);
@@ -287,12 +288,19 @@ namespace OnedataDrive
 
                 ChildrenPlaceholders(children, spaceFolder.name, spaceFolder);
             }
-            Debug.Print("CREATING PLACEHOLDERS WITHIN SPACES - FINISHED");
+            logger.Info("CREATING PLACEHOLDERS WITHIN SPACES - FINISHED");
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="dirChildren"></param>
+        /// <param name="rootDir">path starting from space</param>
+        /// <param name="spaceFolder"></param>
         public static void ChildrenPlaceholders(DirChildren dirChildren, string rootDir, SpaceFolder spaceFolder)
         {
             NameConvertor nameConvertor = new NameConvertor();
+            // childDirs - name parameter conains full path from space 
             List<SpaceFolder> childDirs = new();
 
             using (PlaceholderCreateInfo info = new())
@@ -322,21 +330,19 @@ namespace OnedataDrive
                 CreatePlaceholders(info, path);
             }
 
-            foreach (SpaceFolder dir in childDirs)
+            foreach (SpaceFolder dirPath in childDirs)
             {
                 try
                 {
-                    var task = RestClient.GetFilesAndSubdirs(dir.dirId, spaceFolder.providerInfos);
+                    var task = RestClient.GetFilesAndSubdirs(dirPath.dirId, spaceFolder.providerInfos);
                     task.Wait();
                     DirChildren subChildren = task.Result;
 
-                    ChildrenPlaceholders(subChildren, dir.name, spaceFolder);
+                    ChildrenPlaceholders(subChildren, dirPath.name, spaceFolder);
                 }
                 catch (Exception e)
                 {
-                    Debug.Print("Folder: {0}", dir.name);
-                    Debug.Print(e.Message);
-                    Debug.Print("");
+                    logger.Error($"Space children - folder: {dirPath.name}, {e}");
                 }
             }
         }
@@ -356,13 +362,13 @@ namespace OnedataDrive
                 configPath = Directory.GetCurrentDirectory() + @"\" + "config.json";
             }
 
-            Debug.Print("Reading configuration from: {0}", configPath);
+            logger.Info("Reading configuration from: {0}", configPath);
 
             Config config = new();
             config.Init(configPath);
             if (!config.IsComplete())
             {
-                throw new Exception("Failed to load configuration from: {0}" + configPath + ". Fields must not be empty and root_path must end with \"\\\"");
+                throw new ConfigurationException("Failed to load configuration from: {0}" + configPath + ". Fields must not be empty.");
             }
             return config;
         }
@@ -377,7 +383,7 @@ namespace OnedataDrive
             if (!Directory.Exists(configuration.root_path))
             {
                 _ = Directory.CreateDirectory(configuration.root_path);
-                Debug.Print("Creating new SyncRoot Directory.");
+                logger.Info("Creating new SyncRoot Directory.");
             }
 
             // test root folder permissions
@@ -387,257 +393,6 @@ namespace OnedataDrive
             if (Directory.EnumerateFileSystemEntries(configuration.root_path).Any())
             {
                 throw new RootFolderNotEmptyException("SyncRoot Directory must be empty.");
-            }
-        }
-
-        public static void ConsoleLogic()
-        {
-            bool terminateApp = false;
-            while (!terminateApp)
-            {
-                ConsoleKeyInfo key = Console.ReadKey();
-                Debug.Print("");
-                if (key.Key == ConsoleKey.R)
-                {
-                    Debug.Print("R was hit");
-                    RefreshPlaceholders();
-                }
-                else if (key.Key == ConsoleKey.Enter)
-                {
-                    Debug.Print("ENTER was hit -> terminate app");
-                    terminateApp = true;
-                }
-                else
-                {
-                    Debug.Print("Unknown command: R -> refresh placeholders, ENTER -> terminate app");
-                }
-            }
-        }
-
-        public static void RefreshPlaceholders()
-        {
-            watcher.Pause();
-            Debug.Print("REFRESHING PLACEHOLDERS");
-
-            foreach (SpaceFolder space in spaces.Values)
-            {
-                try
-                {
-                    Debug.Print("{0} - Refreshing placeholders", space.name);
-                    string folderPath = configuration.root_path + space.name;
-                    RefreshFolder(folderPath, space);
-                    Debug.Print("{0} - Placeholders refreshed", space.name);
-                }
-                catch (Exception e)
-                {
-                    Debug.Print(e.Message);
-                    Debug.Print("Refresh FAILED: {0}", space.name);
-                }
-
-            }
-            Debug.Print("Refresh placeholders FINISHED");
-
-            watcher.Resume();
-        }
-
-        public static void RefreshFolder(string folderPath, SpaceFolder space)
-        {
-            if (!Directory.Exists(folderPath))
-            {
-                return;
-            }
-            List<string> folderPaths = new();
-            using (PlaceholderCreateInfo createInfos = new())
-            {
-                FolderSetNotInSync(folderPath);
-                // folder get file metadata
-                CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(folderPath);
-                string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
-
-                DirChildren children;
-                try
-                {
-                    var task = RestClient.GetFilesAndSubdirs(id, space.providerInfos);
-                    task.Wait();
-                    children = task.Result;
-                }
-                catch (Exception e)
-                {
-                    Debug.Print(e.Message);
-                    Debug.Print("Failed to refresh folder {0}", folderPath);
-                    Debug.Print("");
-                    return;
-                }
-
-
-                // foreach metadata compare
-                foreach (Child cloudFile in children.children)
-                {
-                    string localPath = folderPath + "\\" + cloudFile.name;
-                    if (cloudFile.type == "DIR")
-                    {
-                        if (Directory.Exists(localPath))
-                        {
-                            CF_PLACEHOLDER_BASIC_INFO localFolderInfo = CldApiUtils.GetBasicInfo(localPath);
-                            string localFolderId = System.Text.Encoding.Unicode.GetString(localFolderInfo.FileIdentity);
-                            if (localFolderId == cloudFile.file_id)
-                            {
-                                SetSyncState(CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, localPath);
-                            }
-                            else
-                            {
-                                Directory.Delete(localPath, true);
-                                createInfos.Add(CreatePlaceholderInfo(cloudFile));
-                            }
-
-                        }
-                        else
-                        {
-                            createInfos.Add(CreatePlaceholderInfo(cloudFile));
-                        }
-                        folderPaths.Add(localPath);
-                    }
-                    else if (cloudFile.type == "REG")
-                    {
-                        if (File.Exists(localPath))
-                        {
-                            CF_PLACEHOLDER_STANDARD_INFO localFileInfo = CldApiUtils.GetStandardInfo(localPath);
-                            string localFolderId = System.Text.Encoding.Unicode.GetString(localFileInfo.FileIdentity);
-                            FileInfo localFileMetadata = new(localPath);
-
-                            // compare id, size, mtime
-                            if (localFolderId == cloudFile.file_id
-                                && localFileMetadata.Length == cloudFile.size
-                                && ((DateTimeOffset)localFileMetadata.LastWriteTime).ToUnixTimeSeconds() == cloudFile.mtime)
-                            {
-                                SetSyncState(CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, localPath);
-                            }
-                            else
-                            {
-                                File.Delete(localPath);
-                                createInfos.Add(CreatePlaceholderInfo(cloudFile));
-                            }
-                        }
-                        else
-                        {
-                            createInfos.Add(CreatePlaceholderInfo(cloudFile));
-                        }
-                    }
-                }
-
-                // create new placeholders
-                uint entries_processed;
-
-                CF_PLACEHOLDER_CREATE_INFO[] infoArr = createInfos.GetArray();
-
-                if (infoArr.Length > 0)
-                {
-                    HRESULT hres = CfCreatePlaceholders(folderPath, infoArr, (uint)infoArr.Length, CF_CREATE_FLAGS.CF_CREATE_FLAG_NONE, out entries_processed);
-                    if (hres != HRESULT.S_OK)
-                    {
-                        Console.Write("FAILED to create new placeholders (CfCreatePlaceholders): {0}", hres);
-                    }
-                    Debug.Print("Placeholder create in dir:{0} -> {1} / {2}", folderPath, entries_processed, infoArr.Length);
-                    Debug.Print("");
-                }
-            }
-            // check files -> if unsync -> delete
-            RemoveOutOfSyncFileFolder(folderPath);
-
-            // enter subfolders -> repeat
-            foreach (string folder in folderPaths)
-            {
-                RefreshFolder(folder, space);
-            }
-        }
-
-        public static void RemoveOutOfSyncFileFolder(string folderPath)
-        {
-            foreach (string file in Directory.GetFiles(folderPath))
-            {
-                CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(file);
-                if (info.InSyncState == CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_NOT_IN_SYNC)
-                {
-                    try
-                    {
-                        File.Delete(file);
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.Print(e.Message);
-                        Debug.Print("Failed to Delete {0}", file);
-                    }
-                }
-            }
-            foreach (string dir in Directory.GetDirectories(folderPath))
-            {
-                CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(dir);
-                if (info.InSyncState == CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_NOT_IN_SYNC)
-                {
-                    try
-                    {
-                        Directory.Delete(dir, true);
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.Print(e.Message);
-                        Debug.Print("Failed to Delete {0}", dir);
-                    }
-                }
-            }
-        }
-
-        public static CF_PLACEHOLDER_CREATE_INFO CreatePlaceholderInfo(Child child)
-        {
-            CF_PLACEHOLDER_CREATE_INFO info;
-            PlaceholderData data = new(
-                child.file_id,
-                child.name,
-                child.size,
-                child.atime,
-                child.mtime,
-                child.ctime);
-            if (child.type == "DIR")
-            {
-                info = Placeholders.createDirInfo(data);
-            }
-            else
-            {
-                info = Placeholders.createInfo(data);
-            }
-            return info;
-        }
-
-        public static void FolderSetNotInSync(string path)
-        {
-            if (!Directory.Exists(path))
-            {
-                return;
-            }
-            foreach (string file in Directory.GetFiles(path))
-            {
-                SetSyncState(CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_NOT_IN_SYNC, file);
-            }
-            foreach (string folder in Directory.GetDirectories(path))
-            {
-                SetSyncState(CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_NOT_IN_SYNC, folder);
-            }
-        }
-
-        public static void SetSyncState(CF_IN_SYNC_STATE state, string path)
-        {
-            SafeHCFFILE handle;
-            HRESULT hresOpen = CfOpenFileWithOplock(path, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out handle);
-            if (hresOpen != HRESULT.S_OK)
-            {
-                throw new Exception($"SetSyncState CfOpenFileWithOplock {path} : " + hresOpen);
-            }
-            HRESULT hresSync = CfSetInSyncState(handle.DangerousGetHandle(), state, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
-            CfCloseHandle(handle);
-
-            if (hresSync != HRESULT.S_OK)
-            {
-                throw new Exception($"SetSyncState CfSetSyncState {path} :" + hresOpen);
             }
         }
     }
