@@ -8,7 +8,7 @@ namespace OnedataDriveGUI
     public partial class ConnectForm : Form
     {
         private bool connectClicked = false;
-        private const string ROOT_DIR = "Onedata Drive";
+        private const string ROOT_DIR = "OnedataDrive";
         //private string exePath { get; } = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
         private string userProfilePath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         private string defaultRootPath
@@ -106,7 +106,7 @@ namespace OnedataDriveGUI
                 string message = "Can not connect, because Root Folder "
                 + config.root_path
                 + " is not empty. Do you want to delete contents of this folder?";
-                if (MessageBox.Show(message, "Onedata Drive", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                if (MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.Yes)
                 {
                     status = await Task.Run(() => CloudSync.Run(config, delete: true));
                 }
@@ -174,9 +174,9 @@ namespace OnedataDriveGUI
 
         private void ConnectForm_Closing(object sender, FormClosingEventArgs e)
         {
-            string message = "Are you sure you want to quit? This will disconnect Onedata Drive";
+            string message = $"Are you sure you want to quit? This will disconnect {ROOT_DIR}";
             if (statusImageGreen.Visible &&
-                MessageBox.Show(message, "Onedata Drive", MessageBoxButtons.YesNo) == DialogResult.No)
+                MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.No)
             {
                 e.Cancel = true;
             }
