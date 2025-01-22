@@ -203,15 +203,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Onedata Drive"
-        "ProductCode" = "8:{E0DCB990-A414-47FD-A399-80F4EC2055B2}"
-        "PackageCode" = "8:{10C7BE9A-6B03-4345-A511-2B953379D101}"
+        "ProductCode" = "8:{480B09BD-CC54-4909-B990-84DEB176E233}"
+        "PackageCode" = "8:{458A16E0-0AC5-4958-BE4F-ACD23818AC1B}"
         "UpgradeCode" = "8:{1A0420F3-CF57-41DF-809C-3098B2E589F9}"
         "AspNetVersion" = "8:"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:FALSE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:0.1.0"
+        "ProductVersion" = "8:0.2.0"
         "Manufacturer" = "8:Masaryk University"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
@@ -739,7 +739,7 @@
         {
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_190BDCC988A143959206E345C52F7E33"
             {
-            "SourcePath" = "8:..\\OnedataDriveGUI\\obj\\Debug\\net8.0-windows10.0.26100.0\\apphost.exe"
+            "SourcePath" = "8:..\\OnedataDriveGUI\\obj\\Release\\net8.0-windows10.0.26100.0\\apphost.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_9DCA72EB57EE482A92DC04DD94E04FD7"
