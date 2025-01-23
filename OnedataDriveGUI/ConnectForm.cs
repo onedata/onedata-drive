@@ -1,5 +1,4 @@
-﻿using OnedataDriveGUI.Properties;
-using OnedataDrive.ErrorHandling;
+﻿using OnedataDrive.ErrorHandling;
 using OnedataDrive;
 using OnedataDrive.JSON_Object;
 
@@ -9,7 +8,6 @@ namespace OnedataDriveGUI
     {
         private bool connectClicked = false;
         private const string ROOT_DIR = "OnedataDrive";
-        //private string exePath { get; } = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
         private string userProfilePath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         private string defaultRootPath
         {
@@ -18,8 +16,7 @@ namespace OnedataDriveGUI
                 return userProfilePath + "\\" + ROOT_DIR;
             }
         }
-        private string textBoxErrBC = "#d38787";
-        private string textBoxBC = "#ffffff";
+        private CustomSettings userSettings;
 
         public ConnectForm()
         {
@@ -28,7 +25,9 @@ namespace OnedataDriveGUI
             rootFolder_textBox.PlaceholderText = defaultRootPath;
             rootFolder_folderBrowserDialog.InitialDirectory = userProfilePath;
 
-            rootFolderDelete_checkBox.Checked = Settings.Default.RootFolderDeleteCheckBox;
+            this.userSettings = new();
+
+            rootFolderDelete_checkBox.Checked = userSettings.RootFolderDeleteCheckBox;
 
             LoadLastConfig();
         }
@@ -213,12 +212,12 @@ namespace OnedataDriveGUI
 
         private void LoadLastConfig()
         {
-            onezone_comboBox.Text = Settings.Default.Onezone;
-            oneproviderToken_textBox.Text = Settings.Default.OneproviderToken;
-            rootFolder_textBox.Text = Settings.Default.RootFolderPath;
+            onezone_comboBox.Text = userSettings.Onezone;
+            oneproviderToken_textBox.Text = userSettings.OneproviderToken;
+            rootFolder_textBox.Text = userSettings.RootFolderPath;
 
-            oneproviderTokenKeep_checkBox.Checked = Settings.Default.OneproviderTokenKeep;
-            rootFolderDelete_checkBox.Checked = Settings.Default.RootFolderDeleteCheckBox;
+            oneproviderTokenKeep_checkBox.Checked = userSettings.OneproviderTokenKeep;
+            rootFolderDelete_checkBox.Checked = userSettings.RootFolderDeleteCheckBox;
         }
 
         private void SetForm(Config config)
@@ -230,20 +229,20 @@ namespace OnedataDriveGUI
 
         private void SaveLastConfig()
         {
-            Settings.Default.RootFolderDeleteCheckBox = rootFolderDelete_checkBox.Checked;
-            Settings.Default.Onezone = onezone_comboBox.Text;
-            Settings.Default.RootFolderPath = rootFolder_textBox.Text;
-            Settings.Default.OneproviderTokenKeep = oneproviderTokenKeep_checkBox.Checked;
+            userSettings.RootFolderDeleteCheckBox = rootFolderDelete_checkBox.Checked;
+            userSettings.Onezone = onezone_comboBox.Text;
+            userSettings.RootFolderPath = rootFolder_textBox.Text;
+            userSettings.OneproviderTokenKeep = oneproviderTokenKeep_checkBox.Checked;
             if (oneproviderTokenKeep_checkBox.Checked)
             {
-                Settings.Default.OneproviderToken = oneproviderToken_textBox.Text;
+                userSettings.OneproviderToken = oneproviderToken_textBox.Text;
             }
             else
             {
-                Settings.Default.OneproviderToken = "";
+                userSettings.OneproviderToken = "";
             }
 
-            Settings.Default.Save();
+            userSettings.Save();
         }
     }
 }
