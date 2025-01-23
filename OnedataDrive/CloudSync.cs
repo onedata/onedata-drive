@@ -15,7 +15,7 @@ namespace OnedataDrive
         public static Config configuration = new();
         public static Dictionary<string, SpaceFolder> spaces = new();
         public static FileWatcher watcher = new();
-        public static bool setAndOnline { get; private set; } = false;
+        public static bool running { get; private set; } = false;
         public static Logger logger = LogManager.GetCurrentClassLogger();
         /// <summary>
         /// Method to start CloudSync
@@ -96,7 +96,7 @@ namespace OnedataDrive
                 logger.Error($"CLOUD SYNC FAIL, {e}");
                 return CloudSyncReturnCodes.ERROR;
             }
-            setAndOnline = true;
+            running = true;
             logger.Info("CLOUD SYNC IS RUNNING");
             return CloudSyncReturnCodes.SUCCESS;
         }
@@ -111,7 +111,7 @@ namespace OnedataDrive
             logger.Info("Rest client stopped");
             watcher.Dispose();
             logger.Info("FileWatcher stopped");
-            setAndOnline = false;
+            running = false;
             logger.Info("CLOUD SYNC STOPPED");
         }
 

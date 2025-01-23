@@ -1,11 +1,13 @@
 ﻿using OnedataDrive.ErrorHandling;
 using OnedataDrive;
 using OnedataDrive.JSON_Object;
+using NLog;
 
 namespace OnedataDriveGUI
 {
     public partial class ConnectForm : Form
     {
+        public static Logger logger = LogManager.GetCurrentClassLogger();
         private bool connectClicked = false;
         private const string ROOT_DIR = "OnedataDrive";
         private string userProfilePath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -20,6 +22,7 @@ namespace OnedataDriveGUI
 
         public ConnectForm()
         {
+            logger.Info("APP GUI LAUNCHED");
             InitializeComponent();
             disconect_button.Enabled = false;
             rootFolder_textBox.PlaceholderText = defaultRootPath;
@@ -156,7 +159,11 @@ namespace OnedataDriveGUI
         {
             SetDisplayStatus(Status.DISCONNECTING);
             statusMessage.Text = "Disconnecting";
-            CloudSync.Stop();
+            if (CloudSync.running)
+            {
+                CloudSync.Stop();
+            }
+            logger.Info("APP GUI STOPPED");
         }
 
         private void advanced_button_Click(object sender, EventArgs e)
