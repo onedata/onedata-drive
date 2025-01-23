@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace OnedataDriveGUI
 {
+    using NLog;
     using System;
     using System.Configuration;
     using System.IO;
@@ -16,6 +17,7 @@ namespace OnedataDriveGUI
         public string filePath { get; private set; }
         public string folderPath { get; private set; }
         public string fileName { get; private set; }
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public override string ApplicationName
         {
@@ -28,7 +30,7 @@ namespace OnedataDriveGUI
             folderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OnedataDrive");
             fileName = "UserSettings.config";
             filePath = Path.Combine(folderPath, fileName);
-            // TODO: log path
+            logger.Info("User settings path: {0}", filePath);
         }
 
         public override void Initialize(string name, System.Collections.Specialized.NameValueCollection config)
@@ -108,7 +110,7 @@ namespace OnedataDriveGUI
             }
             catch (Exception e)
             {
-                // TODO: log
+                logger.Error($"Failed to save User Settigs: {e}");
             }
         }
     }
