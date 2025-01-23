@@ -10,6 +10,7 @@
 	<ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
 	<ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>
 	<PlatformTarget>x64</PlatformTarget>
+	<Version>0.2.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
