@@ -60,6 +60,7 @@
             statusMessage = new ToolStripStatusLabel();
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
+            version_label = new Label();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             form_panel.SuspendLayout();
@@ -72,6 +73,7 @@
             // header_panel
             // 
             header_panel.BackColor = SystemColors.ControlDarkDark;
+            header_panel.Controls.Add(version_label);
             header_panel.Controls.Add(pictureBox1);
             header_panel.Dock = DockStyle.Top;
             header_panel.Location = new Point(0, 0);
@@ -349,6 +351,15 @@
             scrollPanel.Size = new Size(784, 489);
             scrollPanel.TabIndex = 24;
             // 
+            // version_label
+            // 
+            version_label.AutoSize = true;
+            version_label.Location = new Point(292, 89);
+            version_label.Name = "version_label";
+            version_label.Size = new Size(39, 19);
+            version_label.TabIndex = 2;
+            version_label.Text = "0.2.1";
+            // 
             // ConnectForm
             // 
             AutoScaleDimensions = new SizeF(8F, 19F);
@@ -368,6 +379,7 @@
             FormClosing += ConnectForm_Closing;
             FormClosed += ConnectForm_FormClosed;
             header_panel.ResumeLayout(false);
+            header_panel.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             form_panel.ResumeLayout(false);
             form_panel.PerformLayout();
@@ -414,5 +426,6 @@
         private ToolStripStatusLabel statusImageBlue;
         private PictureBox pictureBox1;
         private ComboBox onezone_comboBox;
+        private Label version_label;
     }
 }
