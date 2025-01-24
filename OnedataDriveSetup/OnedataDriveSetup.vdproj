@@ -202,7 +202,7 @@
         "Product"
         {
         "Name" = "8:Microsoft Visual Studio"
-        "ProductName" = "8:Onedata Drive"
+        "ProductName" = "8:OnedataDrive"
         "ProductCode" = "8:{8EE9B9C6-C999-431E-A920-2A1F527A59FE}"
         "PackageCode" = "8:{665E6DC8-ECC8-4274-A86B-FA94E733F864}"
         "UpgradeCode" = "8:{1A0420F3-CF57-41DF-809C-3098B2E589F9}"
@@ -215,7 +215,7 @@
         "Manufacturer" = "8:Masaryk University"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
-        "Title" = "8:Onedata Drive"
+        "Title" = "8:OnedataDrive"
         "Subject" = "8:"
         "ARPCONTACT" = "8:Masaryk University"
         "Keywords" = "8:"

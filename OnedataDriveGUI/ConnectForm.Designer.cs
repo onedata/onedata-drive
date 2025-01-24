@@ -31,6 +31,7 @@
             components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ConnectForm));
             header_panel = new Panel();
+            version_label = new Label();
             pictureBox1 = new PictureBox();
             onezone_label = new Label();
             rootFolder_textBox = new TextBox();
@@ -60,7 +61,6 @@
             statusMessage = new ToolStripStatusLabel();
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
-            version_label = new Label();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             form_panel.SuspendLayout();
@@ -81,6 +81,15 @@
             header_panel.Name = "header_panel";
             header_panel.Size = new Size(767, 119);
             header_panel.TabIndex = 3;
+            // 
+            // version_label
+            // 
+            version_label.AutoSize = true;
+            version_label.Location = new Point(292, 89);
+            version_label.Name = "version_label";
+            version_label.Size = new Size(39, 19);
+            version_label.TabIndex = 2;
+            version_label.Text = "0.2.1";
             // 
             // pictureBox1
             // 
@@ -351,15 +360,6 @@
             scrollPanel.Size = new Size(784, 489);
             scrollPanel.TabIndex = 24;
             // 
-            // version_label
-            // 
-            version_label.AutoSize = true;
-            version_label.Location = new Point(292, 89);
-            version_label.Name = "version_label";
-            version_label.Size = new Size(39, 19);
-            version_label.TabIndex = 2;
-            version_label.Text = "0.2.1";
-            // 
             // ConnectForm
             // 
             AutoScaleDimensions = new SizeF(8F, 19F);
@@ -375,7 +375,7 @@
             MaximumSize = new Size(800, 1080);
             MinimumSize = new Size(800, 550);
             Name = "ConnectForm";
-            Text = "Onedata Drive";
+            Text = "OnedataDrive";
             FormClosing += ConnectForm_Closing;
             FormClosed += ConnectForm_FormClosed;
             header_panel.ResumeLayout(false);
