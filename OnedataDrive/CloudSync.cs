@@ -103,6 +103,7 @@ namespace OnedataDrive
 
         public static void Stop()
         {
+            watcher.Pause();
             CloudProvider.DisconectCallbacks();
             logger.Info("Callbacks disconected");
             CloudProvider.UnregisterSafely();

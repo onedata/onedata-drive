@@ -1,4 +1,5 @@
-﻿using OnedataDrive.JSON_Object;
+﻿using NLog;
+using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
 using System.IO;
@@ -15,6 +16,7 @@ namespace OnedataDrive
 {
     public static class CloudProvider
     {
+        public static Logger logger = LogManager.GetCurrentClassLogger();
         public static string ID = @"TestStorageProvider";
         public static string ACCOUNT = @"TestAccount";
 
@@ -39,7 +41,7 @@ namespace OnedataDrive
                 icon = exeDir + "\\icon-dark.ico,0";
             }
 
-            Debug.Print("Icon path: {0}", icon);
+            logger.Debug("Icon path: {0}", icon);
             info.IconResource = icon;
             info.HydrationPolicy = StorageProviderHydrationPolicy.Full;
             info.HydrationPolicyModifier = StorageProviderHydrationPolicyModifier.None;
@@ -54,10 +56,10 @@ namespace OnedataDrive
             info.Context = CryptographicBuffer.ConvertStringToBinary(folderPath, BinaryStringEncoding.Utf8);
 
             StorageProviderSyncRootManager.Register(info);
-            Debug.Print("SyncRoot ID: {0}", info.Id);
+            logger.Debug("SyncRoot ID: {0}", info.Id);
 
             var info2 = StorageProviderSyncRootManager.GetCurrentSyncRoots();
-            Debug.Print("Number of syncRoots: " + info2.Count);
+            logger.Debug("Number of syncRoots: " + info2.Count);
         }
 
         public static void UnregisterSafely(string syncRootId = "")
@@ -70,12 +72,12 @@ namespace OnedataDrive
 
             var info = StorageProviderSyncRootManager.GetCurrentSyncRoots();
             int matchingSyncRootsCount = info.Where(x => x.Id == syncRootId).ToArray().Length;
-            Debug.Print("Total number of syncRoots before unregister: " + info.Count);
-            Debug.Print("Number of matching syncRoots before unregister: " + matchingSyncRootsCount);
+            logger.Debug("Total number of syncRoots before unregister: " + info.Count);
+            logger.Debug("Number of matching syncRoots before unregister: " + matchingSyncRootsCount);
 
             if (info.Where(x => x.Id == syncRootId).ToArray().Length < 1)
             {
-                Debug.Print("Can not unregister syncRoot with id \"{0}\", because it does not exist", syncRootId);
+                logger.Warn("Can not unregister syncRoot with id \"{0}\", because it does not exist", syncRootId);
                 return;
             }
 
@@ -83,8 +85,8 @@ namespace OnedataDrive
 
             info = StorageProviderSyncRootManager.GetCurrentSyncRoots();
             matchingSyncRootsCount = info.Where(x => x.Id == syncRootId).ToArray().Length;
-            Debug.Print("Total number of syncRoots after unregister: " + info.Count);
-            Debug.Print("Number of matching syncRoots before unregister: " + matchingSyncRootsCount);
+            logger.Debug("Total number of syncRoots after unregister: " + info.Count);
+            logger.Debug("Number of matching syncRoots before unregister: " + matchingSyncRootsCount);
 
         }
 
@@ -167,7 +169,7 @@ namespace OnedataDrive
             );
             if (hresConnectSyncRoot != HRESULT.S_OK)
             {
-                Debug.Print("HRES CfConnectSyncRoot: {0}", hresConnectSyncRoot);
+                logger.Error("HRES CfConnectSyncRoot: {0}", hresConnectSyncRoot);
                 throw new Exception("Failed to connect callbacks");
             }
         }
@@ -185,8 +187,8 @@ namespace OnedataDrive
 
         public static void OnFetchData(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            Debug.Print("FETCH DATA");
-            PrintInfo(CallbackInfo, CallbackParameters);
+            //Debug.Print("FETCH DATA");
+            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Debug, "Fetch Data", "START");
 
             CF_OPERATION_INFO oi = new()
             {
@@ -240,7 +242,6 @@ namespace OnedataDrive
                 {
                     read = stream.Read(buffer, 0, CHUNK);
 
-
                     while (read != CHUNK && read + offset < CallbackInfo.FileSize)
                     {
                         read += stream.Read(buffer, read, CHUNK - read);
@@ -255,9 +256,7 @@ namespace OnedataDrive
 
                     op = CF_OPERATION_PARAMETERS.Create(td);
 
-
                     CfReportProviderProgress(CallbackInfo.ConnectionKey, CallbackInfo.TransferKey, CallbackInfo.FileSize, offset);
-
 
                     var hres = CfExecute(oi, ref op);
                     if (hres != HRESULT.S_OK)
@@ -266,12 +265,14 @@ namespace OnedataDrive
                         return;
                     }
                 } while (read == CHUNK);
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Debug,"Fetch Data", "OK");
 
             }
             catch (Exception e)
             {
-                Debug.Print(e.Message);
-                Debug.Print("FAILED TO FETCH DATA");
+                // TODO: CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED) - seems to be wrong
+                // It does not terminate fetch request (copy window does not close)
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "Fetch Data", "FAIL", e);
                 td = new()
                 {
                     CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED),
@@ -284,6 +285,7 @@ namespace OnedataDrive
                 op = CF_OPERATION_PARAMETERS.Create(td);
 
                 var hres = CfExecute(oi, ref op);
+                Debug.Print("HRES: {0}", hres);
             }
             finally
             {
@@ -500,8 +502,19 @@ namespace OnedataDrive
 
         private static void PrintInfo(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            Debug.Print("File identity {0}", Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int)CallbackInfo.FileIdentityLength / 2));
-            Debug.Print("File path: {0}", CallbackInfo.NormalizedPath);
+            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Debug);
+        }
+
+        private static void PrintInfo(
+            in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters, LogLevel logLevel,
+            string method = "unknown", string status = "", Exception? exception = null)
+        {
+            string msg = $"{method}\t {status}\n\t File path: {CallbackInfo.NormalizedPath}";
+            if (exception is not null)
+            {
+                msg += $"\n\t{exception}";
+            }
+            logger.Log(logLevel, msg);
         }
     }
 }
