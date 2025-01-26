@@ -7,34 +7,106 @@ namespace OnedataDriveGUI
 {
     public partial class ConnectForm : Form
     {
+        private const string ROOT_DIR = "OnedataDrive";
+        public const string VERSION = "0.2.1";
+
         public static Logger logger = LogManager.GetCurrentClassLogger();
         private bool connectClicked = false;
-        private const string ROOT_DIR = "OnedataDrive";
         private string userProfilePath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        private string defaultRootPath
-        {
-            get
-            {
-                return userProfilePath + "\\" + ROOT_DIR;
-            }
-        }
-        private CustomSettings userSettings;
+        private string defaultRootPath { get => userProfilePath + "\\" + ROOT_DIR; }
+        private CustomSettings userSettings = new();
 
         public ConnectForm()
         {
-            logger.Info("APP GUI LAUNCHED");
+            logger.Info("APP GUI LAUNCHED - version: " + VERSION);
             InitializeComponent();
-            disconect_button.Enabled = false;
-            rootFolder_textBox.PlaceholderText = defaultRootPath;
-            rootFolder_folderBrowserDialog.InitialDirectory = userProfilePath;
 
-            this.userSettings = new();
-
-            rootFolderDelete_checkBox.Checked = userSettings.RootFolderDeleteCheckBox;
+            InitGuiValues();
 
             LoadLastConfig();
         }
 
+        private void InitGuiValues()
+        {
+            disconect_button.Enabled = false;
+            rootFolder_textBox.PlaceholderText = defaultRootPath;
+            rootFolder_folderBrowserDialog.InitialDirectory = userProfilePath;
+        }
+
+        private void LoadLastConfig()
+        {
+            onezone_comboBox.Text = userSettings.Onezone;
+            oneproviderToken_textBox.Text = userSettings.OneproviderToken;
+            rootFolder_textBox.Text = userSettings.RootFolderPath;
+
+            oneproviderTokenKeep_checkBox.Checked = userSettings.OneproviderTokenKeep;
+            rootFolderDelete_checkBox.Checked = userSettings.RootFolderDeleteCheckBox;
+        }
+
+        private async Task<CloudSyncReturnCodes> LaunchCloudSyncAsync(Config config)
+        {
+            CloudSyncReturnCodes status;
+
+            status = await Task.Run(() => CloudSync.Run(config, delete: rootFolderDelete_checkBox.Checked));
+
+            if (status == CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY && !rootFolderDelete_checkBox.Checked)
+            {
+                string message = "Can not connect, because Root Folder "
+                + config.root_path
+                + " is not empty. Do you want to delete contents of this folder?";
+                if (MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    status = await Task.Run(() => CloudSync.Run(config, delete: true));
+                }
+            }
+            return status;
+        }
+
+        private void SaveLastConfig()
+        {
+            userSettings.RootFolderDeleteCheckBox = rootFolderDelete_checkBox.Checked;
+            userSettings.Onezone = onezone_comboBox.Text;
+            userSettings.RootFolderPath = rootFolder_textBox.Text;
+            userSettings.OneproviderTokenKeep = oneproviderTokenKeep_checkBox.Checked;
+            if (oneproviderTokenKeep_checkBox.Checked)
+            {
+                userSettings.OneproviderToken = oneproviderToken_textBox.Text;
+            }
+            else
+            {
+                userSettings.OneproviderToken = "";
+            }
+
+            userSettings.Save();
+        }
+
+        private void SetDisplayStatus(Status status)
+        {
+            Dictionary<Status, bool> mask = new()
+            {
+                { Status.CONNECTED, false },
+                { Status.NOT_CONNECTED, false },
+                { Status.ERROR, false },
+                { Status.CONNECTING, false },
+                { Status.DISCONNECTING, false },
+            };
+
+            mask[status] = true;
+
+            statusImageBlue.Visible = mask[Status.CONNECTING] || mask[Status.DISCONNECTING];
+            statusImageGrey.Visible = mask[Status.NOT_CONNECTED];
+            statusImageGreen.Visible = mask[Status.CONNECTED];
+            statusImageRed.Visible = mask[Status.ERROR];
+
+            advanced_panel.Enabled = form_panel.Enabled = mask[Status.NOT_CONNECTED] || mask[Status.ERROR];
+
+            connect_button.Enabled = mask[Status.NOT_CONNECTED] || mask[Status.ERROR];
+            disconect_button.Enabled = !connect_button.Enabled;
+        }
+
+        /* ---------- EVENT FUNCTIONS ---------- */
+        /*          |                 |          */
+        /*          V                 V          */
         private async void connect_button_Click(object sender, EventArgs e)
         {
             // prohibit double click
@@ -95,25 +167,6 @@ namespace OnedataDriveGUI
 
             // prohibit double click
             connectClicked = false;
-        }
-
-        private async Task<CloudSyncReturnCodes> LaunchCloudSyncAsync(Config config)
-        {
-            CloudSyncReturnCodes status;
-
-            status = await Task.Run(() => CloudSync.Run(config, delete: rootFolderDelete_checkBox.Checked));
-
-            if (status == CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY && !rootFolderDelete_checkBox.Checked)
-            {
-                string message = "Can not connect, because Root Folder "
-                + config.root_path
-                + " is not empty. Do you want to delete contents of this folder?";
-                if (MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.Yes)
-                {
-                    status = await Task.Run(() => CloudSync.Run(config, delete: true));
-                }
-            }
-            return status;
         }
 
         private void disconect_button_Click(object sender, EventArgs e)
@@ -188,68 +241,9 @@ namespace OnedataDriveGUI
             }
         }
 
-        private void SetDisplayStatus(Status status)
-        {
-            Dictionary<Status, bool> mask = new()
-            {
-                { Status.CONNECTED, false },
-                { Status.NOT_CONNECTED, false },
-                { Status.ERROR, false },
-                { Status.CONNECTING, false },
-                { Status.DISCONNECTING, false },
-            };
-
-            mask[status] = true;
-
-            statusImageBlue.Visible = mask[Status.CONNECTING] || mask[Status.DISCONNECTING];
-            statusImageGrey.Visible = mask[Status.NOT_CONNECTED];
-            statusImageGreen.Visible = mask[Status.CONNECTED];
-            statusImageRed.Visible = mask[Status.ERROR];
-
-            advanced_panel.Enabled = form_panel.Enabled = mask[Status.NOT_CONNECTED] || mask[Status.ERROR];
-
-            connect_button.Enabled = mask[Status.NOT_CONNECTED] || mask[Status.ERROR];
-            disconect_button.Enabled = !connect_button.Enabled;
-        }
-
         private void rootFolderErase_button_Click(object sender, EventArgs e)
         {
             rootFolder_textBox.Text = "";
-        }
-
-        private void LoadLastConfig()
-        {
-            onezone_comboBox.Text = userSettings.Onezone;
-            oneproviderToken_textBox.Text = userSettings.OneproviderToken;
-            rootFolder_textBox.Text = userSettings.RootFolderPath;
-
-            oneproviderTokenKeep_checkBox.Checked = userSettings.OneproviderTokenKeep;
-            rootFolderDelete_checkBox.Checked = userSettings.RootFolderDeleteCheckBox;
-        }
-
-        private void SetForm(Config config)
-        {
-            rootFolder_textBox.Text = config.root_path;
-            onezone_comboBox.Text = config.onezone;
-            oneproviderToken_textBox.Text = config.provider_token;
-        }
-
-        private void SaveLastConfig()
-        {
-            userSettings.RootFolderDeleteCheckBox = rootFolderDelete_checkBox.Checked;
-            userSettings.Onezone = onezone_comboBox.Text;
-            userSettings.RootFolderPath = rootFolder_textBox.Text;
-            userSettings.OneproviderTokenKeep = oneproviderTokenKeep_checkBox.Checked;
-            if (oneproviderTokenKeep_checkBox.Checked)
-            {
-                userSettings.OneproviderToken = oneproviderToken_textBox.Text;
-            }
-            else
-            {
-                userSettings.OneproviderToken = "";
-            }
-
-            userSettings.Save();
         }
     }
 }

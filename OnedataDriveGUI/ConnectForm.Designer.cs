@@ -89,7 +89,7 @@
             version_label.Name = "version_label";
             version_label.Size = new Size(39, 19);
             version_label.TabIndex = 2;
-            version_label.Text = "0.2.1";
+            version_label.Text = "0.0.0";
             // 
             // pictureBox1
             // 
@@ -162,8 +162,6 @@
             // rootFolderDelete_checkBox
             // 
             rootFolderDelete_checkBox.AutoSize = true;
-            rootFolderDelete_checkBox.Checked = true;
-            rootFolderDelete_checkBox.CheckState = CheckState.Checked;
             rootFolderDelete_checkBox.Location = new Point(161, 59);
             rootFolderDelete_checkBox.Margin = new Padding(2, 3, 2, 3);
             rootFolderDelete_checkBox.Name = "rootFolderDelete_checkBox";
