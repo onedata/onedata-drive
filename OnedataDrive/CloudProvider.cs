@@ -21,17 +21,14 @@ namespace OnedataDrive
         public static void RegisterWithShell(string folderPath)
         {
             StorageProviderSyncRootInfo info = new();
-            info.DisplayNameResource = "Onedata";
+            info.DisplayNameResource = "OnedataDrive";
             info.Id = GetSyncRootId();
 
-            //info.Path = await StorageFolder.GetFolderFromPathAsync(folderPath);
-            Task<StorageFolder> x = StorageFolder.GetFolderFromPathAsync(folderPath).AsTask();
-            x.Wait();
-            info.Path = x.Result;
+            Task<StorageFolder> storageFolderTask = StorageFolder.GetFolderFromPathAsync(folderPath).AsTask();
+            storageFolderTask.Wait();
+            info.Path = storageFolderTask.Result;
 
-            //string icon = "C:\\Users\\User\\Desktop\\win-client\\CloudSync\\bin\\Debug\\net8.0-windows10.0.26100.0" + "\\favicon.ico,0";
             string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
-
             string icon;
             if (WindowsTheme.IsSystemDarkMode())
             {
