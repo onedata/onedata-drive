@@ -17,6 +17,7 @@ namespace OnedataDrive
         public static FileWatcher watcher = new();
         public static bool running { get; private set; } = false;
         public static Logger logger = LogManager.GetCurrentClassLogger();
+        public const string VERSION = "0.2.1";
         /// <summary>
         /// Method to start CloudSync
         /// </summary>

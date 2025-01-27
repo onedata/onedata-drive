@@ -8,7 +8,6 @@ namespace OnedataDriveGUI
     public partial class ConnectForm : Form
     {
         private const string ROOT_DIR = "OnedataDrive";
-        public const string VERSION = "0.2.1";
 
         public static Logger logger = LogManager.GetCurrentClassLogger();
         private bool connectClicked = false;
@@ -18,19 +17,20 @@ namespace OnedataDriveGUI
 
         public ConnectForm()
         {
-            logger.Info("APP GUI LAUNCHED - version: " + VERSION);
+            logger.Info("APP GUI LAUNCHED - version: " + CloudSync.VERSION);
             InitializeComponent();
 
-            InitGuiValues();
+            InitGuiValuesDefaults();
 
             LoadLastConfig();
         }
 
-        private void InitGuiValues()
+        private void InitGuiValuesDefaults()
         {
             disconect_button.Enabled = false;
             rootFolder_textBox.PlaceholderText = defaultRootPath;
             rootFolder_folderBrowserDialog.InitialDirectory = userProfilePath;
+            version_label.Text = CloudSync.VERSION;
         }
 
         private void LoadLastConfig()
