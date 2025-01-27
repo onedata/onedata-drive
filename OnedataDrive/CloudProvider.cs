@@ -187,8 +187,7 @@ namespace OnedataDrive
 
         public static void OnFetchData(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            //Debug.Print("FETCH DATA");
-            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Debug, "Fetch Data", "START");
+            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "Fetch Data", "START");
 
             CF_OPERATION_INFO oi = new()
             {
@@ -213,6 +212,7 @@ namespace OnedataDrive
                 if (fileInfo.size != CallbackInfo.FileSize)
                 {
                     throw new Exception("Size of cloud file does not match local file size. Try to refresh placeholders (R)");
+                    // TODO: update placeholder, so operation runs OK
                 }
 
                 Task<Stream> taskData = RestClient.GetStream(
@@ -258,21 +258,19 @@ namespace OnedataDrive
 
                     CfReportProviderProgress(CallbackInfo.ConnectionKey, CallbackInfo.TransferKey, CallbackInfo.FileSize, offset);
 
-                    var hres = CfExecute(oi, ref op);
+                    HRESULT hres = CfExecute(oi, ref op);
                     if (hres != HRESULT.S_OK)
                     {
-                        Debug.Print("Fetch data CfExecute FAIL: {0}", hres);
-                        return;
+                        throw new Exception($"Fetch data CfExecute FAIL - HRES: {hres}");
                     }
                 } while (read == CHUNK);
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Debug,"Fetch Data", "OK");
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info,"Fetch Data", "OK");
 
             }
             catch (Exception e)
             {
                 // TODO: CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED) - seems to be wrong
                 // It does not terminate fetch request (copy window does not close)
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "Fetch Data", "FAIL", e);
                 td = new()
                 {
                     CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED),
@@ -284,29 +282,30 @@ namespace OnedataDrive
 
                 op = CF_OPERATION_PARAMETERS.Create(td);
 
-                var hres = CfExecute(oi, ref op);
-                Debug.Print("HRES: {0}", hres);
+                HRESULT hres = CfExecute(oi, ref op);
+                if (hres != HRESULT.S_OK)
+                {
+                    e = new Exception($"CfExecute Stop operation HRES: {hres}", e);
+                }
+
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "Fetch Data", "FAIL", e);
             }
             finally
             {
                 Marshal.FreeHGlobal(unmanagedPointer);
-                Debug.Print("");
             }
         }
 
         public static void OnCancelFetchData(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
             // TODO (not needed)
-            Debug.Print("OnCancelFetchData");
+            Debug.Print("OnCancelFetchData - not implemented (why do I see this?)");
             return;
         }
 
         public static void OnDelete(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            Debug.Print("DELETE");
-            PrintInfo(CallbackInfo, CallbackParameters);
-
-            //nint file_identity = CallbackInfo.FileIdentity;
+            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "DELETE", "START");
 
             CF_OPERATION_INFO oi = new()
             {
@@ -316,40 +315,48 @@ namespace OnedataDrive
             };
             oi.StructSize = (uint)Marshal.SizeOf(oi);
 
-            NTStatus status;
-
             try
             {
                 if (CloudSync.configuration.root_path + PathUtils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath) ==
                     CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath)
                 {
-                    Debug.Print("Can not delete SPACE");
                     throw new Exception("Can not delete space folder");
                 }
                 var task = RestClient.Delete(
                     CloudSync.spaces[PathUtils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath)].providerInfos,
                     Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int)CallbackInfo.FileIdentityLength / 2) ?? "");
                 task.Wait();
-                status = new NTStatus((uint)NTStatus.STATUS_SUCCESS);
-            }
-            catch (Exception)
-            {
-                status = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_UNSUCCESSFUL);
-            }
 
-            CF_OPERATION_PARAMETERS.ACKDELETE del = new()
-            {
-                CompletionStatus = status,
-                Flags = CF_OPERATION_ACK_DELETE_FLAGS.CF_OPERATION_ACK_DELETE_FLAG_NONE
-            };
-            CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(del);
+                CF_OPERATION_PARAMETERS.ACKDELETE del = new()
+                {
+                    CompletionStatus = new NTStatus((uint)NTStatus.STATUS_SUCCESS),
+                    Flags = CF_OPERATION_ACK_DELETE_FLAGS.CF_OPERATION_ACK_DELETE_FLAG_NONE
+                };
+                CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(del);
 
-            var hres = CfExecute(oi, ref op);
-            if (hres != HRESULT.S_OK)
-            {
-                Debug.Print("Delete CfExecute FAIL {0}", hres);
+                var hres = CfExecute(oi, ref op);
+                if (hres != HRESULT.S_OK)
+                {
+                    throw new Exception($"Delete CfExecute FAIL - HRES: {hres}");
+                }
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "DELETE", "OK");
             }
-            Debug.Print("");
+            catch (Exception e)
+            {
+                CF_OPERATION_PARAMETERS.ACKDELETE del = new()
+                {
+                    CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_UNSUCCESSFUL),
+                    Flags = CF_OPERATION_ACK_DELETE_FLAGS.CF_OPERATION_ACK_DELETE_FLAG_NONE
+                };
+                CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(del);
+
+                HRESULT hres = CfExecute(oi, ref op);
+                if (hres != HRESULT.S_OK)
+                {
+                    e = new Exception($"CfExecute Stop operation HRES: {hres}", e);
+                }
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "DELETE", "FAIL", e);
+            }
             return;
         }
 
