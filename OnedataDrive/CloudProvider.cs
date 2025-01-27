@@ -362,8 +362,7 @@ namespace OnedataDrive
 
         public static void OnRename(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            Debug.Print("RENAME");
-            PrintInfo(CallbackInfo, CallbackParameters);
+            //Debug.Print("RENAME");
 
             string fileIdentity = Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int)CallbackInfo.FileIdentityLength / 2) ?? "";
 
@@ -371,8 +370,16 @@ namespace OnedataDrive
             string sourcePath = CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath;
             string recycleBin = CallbackInfo.VolumeDosName + @"\$Recycle.Bin\";
 
-            Debug.Print("Source path: {0}", sourcePath);
-            Debug.Print("Target path: {0}", targetPath);
+            List<string> paths = new List<string>
+            {
+                $"Source path: {sourcePath}",
+                $"Target path: {targetPath}"
+            };
+
+            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "START", moreInfo: paths);
+
+            //Debug.Print("Source path: {0}", sourcePath);
+            //Debug.Print("Target path: {0}", targetPath);
 
             CF_OPERATION_INFO oi = new()
             {
@@ -392,7 +399,7 @@ namespace OnedataDrive
 
                 if (targetPath.StartsWith(spacePath))
                 {
-                    Debug.Print("Move/rename file within space");
+                    //Debug.Print("Move/rename file within space");
                     
                     List<ProviderInfo> providerInfos = CloudSync.spaces[PathUtils.GetSpaceName(sourcePath)].providerInfos;
                     
@@ -400,16 +407,21 @@ namespace OnedataDrive
                     string src_fs = PathUtils.GetServerCorrectPath(sourcePath);
                     string trgt_fs;
 
+                    string logOpName = "";
+
                     if (PathUtils.GetLastInPath(sourcePath) == PathUtils.GetLastInPath(targetPath))
                     {
-                        Debug.Print("Move file");
+                        //Debug.Print("Move file");
+                        logOpName = "CLOUD MOVE";
                         // watch out for special characters --> %,?,",#,[,],\
                         string trgtFromSpace = PathUtils.GetServerCorrectPath(PathUtils.GetParentPath(targetPath));
                         trgt_fs = trgtFromSpace + PathUtils.GetLastInPath(src_fs, separator: '/');
                     }
                     else
                     {
-                        Debug.Print("Rename file");
+                        //Debug.Print("Rename file");
+                        logOpName = "CLOUD RENAME";
+                        // watch out for special ch
                         // watch out for special characters --> ",\
                         trgt_fs = PathUtils.GetParentPath(src_fs, separator: '/') + PathUtils.GetLastInPath(targetPath);
                     }
@@ -417,29 +429,39 @@ namespace OnedataDrive
                     trgt_fs = trgt_fs.TrimEnd('/');
                     
 
-                    Debug.Print("CDMI src_fs:  {0}", src_fs);
-                    Debug.Print("CDMI trgt_fs: {0}", trgt_fs);
+                    //Debug.Print("CDMI src_fs:  {0}", src_fs);
+                    //Debug.Print("CDMI trgt_fs: {0}", trgt_fs);
+
+                    List<string> cdmiPaths = new List<string>
+                    {
+                        $"CDMI src_fs:  {src_fs}",
+                        $"CDMI trgt_fs: {trgt_fs}"
+                    };
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, logOpName, "CONTINUE", moreInfo: cdmiPaths);
+
                     var task = RestClient.Move(providerInfos, src_fs, trgt_fs);
                     task.Wait();
 
-                    Debug.Print("File was renamed/moved on cloud");
+                    //Debug.Print("File was renamed/moved on cloud");
 
                 }
                 else if (targetPath.StartsWith(recycleBin))
                 {
                     // success
-                    Debug.Print("Move to recycle bin.");
+                    //Debug.Print("Move to recycle bin.");
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "MOVE TO BIN", "CONTINUE");
                 }
                 else if (targetPath.StartsWith(CloudSync.configuration.root_path) && !targetPath.StartsWith(spacePath))
                 {
                     // fail
-                    Debug.Print("Can not move file to different space. Try to copy the file.");
-                    throw new Exception();
+                    //Debug.Print("Can not move file to different space. Try to copy the file.");
+                    throw new Exception("Can not move file to different space. Try to copy the file.");
                 }
                 else
                 {
                     // success
-                    Debug.Print("Move file outside SyncRoot -> File deleted on cloud");
+                    //Debug.Print("Move file outside SyncRoot -> File deleted on cloud");
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "MOVE OUT OF CLOUD", "CONTINUE");
                     List<ProviderInfo> providerInfos = CloudSync.spaces[PathUtils.GetSpaceName(sourcePath)].providerInfos;
                     var taskRemove = RestClient.Delete(providerInfos, fileIdentity);
                     taskRemove.Wait();
@@ -447,8 +469,9 @@ namespace OnedataDrive
             }
             catch (Exception e)
             {
-                Debug.Print(e.Message);
-                Debug.Print("Move/Rename FAIL");
+                //Debug.Print(e.Message);
+                //Debug.Print("Move/Rename FAIL");
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "RENAME/MOVE", "FAIL");
                 status = new NTStatus((uint)1);
             }
 
@@ -514,9 +537,18 @@ namespace OnedataDrive
 
         private static void PrintInfo(
             in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters, LogLevel logLevel,
-            string method = "unknown", string status = "", Exception? exception = null)
+            string method = "unknown", string status = "", Exception? exception = null, List<string>? moreInfo = null)
         {
-            string msg = $"{method}\t {status}\n\t File path: {CallbackInfo.NormalizedPath}";
+            string msg = $"{method}\t {status}\n\tFile path: {CallbackInfo.NormalizedPath}";
+
+            if (moreInfo is not null && moreInfo.Count > 0)
+            {
+                foreach (string info in moreInfo) 
+                { 
+                    msg += $"\n\t{info}";
+                }
+            }
+
             if (exception is not null)
             {
                 msg += $"\n\t{exception}";
