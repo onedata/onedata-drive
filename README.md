@@ -1,11 +1,13 @@
 # Onedata Drive
 
+Onedata Drive is a graphical interface application allowing Windows users to work with data stored in Onedata system. 
+
 ## Requirements
-- dotnet 8 must be installed
-- Windows version -  **Windows 10, version 1803** and later
-- might **not work** in **Windows Sandbox**
-- virtual machines (e.g. Hyper-V) should work fine
-- you should not need to run as admin, as long you have access to root_path (see config)
+- Supported Windows version: **Windows 10 (version 1803)** and **Windows 11**
+- **.NET Desktop Runtime 8** must be installed
+- Might **not work** in **Windows Sandbox**
+- Virtual machines (e.g. Hyper-V) should work fine
+- You should not need to run as admin, as long you have access to the Root Folder
 
 ## Running the app
 - in order to access files Onedata Drive must be running
@@ -14,27 +16,27 @@
 - **Oneprovider Token** must have REST/CDMI access
 
 ### Filling the connect form
-You can fill the connect form manually or you can create [config file](#config-file) and load it from menu (Advanced -> Load configuration from file)
+All options can be set in the graphicall user interface. You can fill the connect form manually or you can load existing configuration file (`Advanced` -> `Load configuration from file`). 
 
-### Config file
-JSON file type
+### Configuration
+ The configuration is stored in the file at `C:\Users\username\AppData\Local\OnedataDrive\UserSettings.config`. 
 
-    {
-    "onezone" : "datahub.egi.eu",
-    "provider_token" : "abcd...",
-    "root_path" : "C:\\Users\\User\\Desktop\\onedata-cloud-sync\\syncRoot\\"
-    }
-- **root_path** (double `\\` -> character escaping)
-    - path to the local client folder
-    - original content of the folder will be deleted
-- **provider token**
-    - must have REST/CDMI access
-    - must have access to providers (onezone access is not required)
-    - limiting token access to specific paths (during token creation) might not work as expected with spaces of which you are not owner
+Selected configuration options:
+
+- **Root Folder**
+    - path to the local folder where directories and files are synced.
+    - the original contents of the directory will be deleted when connecting.
+- **Oneprovider token**
+    - must have REST/CDMI access,
+    - must have access to Oneproviders (Onezone access is not required),
+    - limiting token access to specific paths (during token creation) might not work as expected with spaces of which you are not owner.
+
+## Logging
+Files with logs can be found at `C:\Users\username\AppData\Local\OnedataDrive\logs\`. 
 
 ## Required packages (for develompent and compilation)
-
 ``
 dotnet add package Vanara.PInvoke.CldApi
 ``
+
 - install to use win32 api (cloudfilter)
