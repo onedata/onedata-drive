@@ -7,6 +7,7 @@ using OnedataDrive.JSON_Object;
 using OnedataDrive.ErrorHandling;
 using NLog;
 using NLog.Targets;
+using System.Runtime.InteropServices;
 
 namespace OnedataDrive
 {
@@ -117,18 +118,27 @@ namespace OnedataDrive
             logger.Info("CLOUD SYNC STOPPED");
         }
 
-        // may not be needed
+        /// <summary>
+        /// Add mounted folder to Windows Search Indexing service
+        /// </summary>
         public static void AddFolderToSearchIndexer(string rootPath)
         {
-            string url = @"file:" + rootPath;
+            try
+            {
+                ISearchManager searchManager = (ISearchManager)new CSearchManager();
+                ISearchCatalogManager searchCatalogManager = searchManager.GetCatalog("SystemIndex");
+                ISearchCrawlScopeManager searchCrawlScopeManager = searchCatalogManager.GetCrawlScopeManager();
 
-            ISearchManager searchManager = (ISearchManager)new CSearchManager();
-            ISearchCatalogManager searchCatalogManager = searchManager.GetCatalog("SystemIndex");
-            ISearchCrawlScopeManager searchCrawlScopeManager = searchCatalogManager.GetCrawlScopeManager();
-            searchCrawlScopeManager.AddDefaultScopeRule(url, true, FOLLOW_FLAGS.FF_INDEXCOMPLEXURLS);
-            searchCrawlScopeManager.SaveAll();
+                string url = @"file:" + rootPath;
+                searchCrawlScopeManager.AddDefaultScopeRule(url, true, FOLLOW_FLAGS.FF_INDEXCOMPLEXURLS);
+                searchCrawlScopeManager.SaveAll();
 
-            logger.Info("AddFolderToSearchIndexer with path: " + url);
+                logger.Info("AddFolderToSearchIndexer with path: " + url);
+            }
+            catch (COMException e)
+            {
+                logger.Warn($"Failed to add folder to search indexer, {e}");
+            }
         }
 
         public static int Repair(string syncRootId = "")
