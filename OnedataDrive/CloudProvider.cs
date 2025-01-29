@@ -11,6 +11,7 @@ using Windows.Security.Cryptography;
 using Windows.Storage;
 using Windows.Storage.Provider;
 using static Vanara.PInvoke.CldApi;
+using static Vanara.PInvoke.Shell32;
 
 namespace OnedataDrive
 {
@@ -298,7 +299,7 @@ namespace OnedataDrive
 
         public static void OnCancelFetchData(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            // TODO (not needed)
+            // (not needed)
             Debug.Print("OnCancelFetchData - not implemented (why do I see this?)");
             return;
         }
@@ -362,47 +363,101 @@ namespace OnedataDrive
 
         public static void OnRename(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            //Debug.Print("RENAME");
-
-            string fileIdentity = Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int)CallbackInfo.FileIdentityLength / 2) ?? "";
-
-            string targetPath = CallbackInfo.VolumeDosName + CallbackParameters.Rename.TargetPath;
-            string sourcePath = CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath;
-            string recycleBin = CallbackInfo.VolumeDosName + @"\$Recycle.Bin\";
-
-            List<string> paths = new List<string>
-            {
-                $"Source path: {sourcePath}",
-                $"Target path: {targetPath}"
-            };
-
-            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "START", moreInfo: paths);
-
-            //Debug.Print("Source path: {0}", sourcePath);
-            //Debug.Print("Target path: {0}", targetPath);
-
-            CF_OPERATION_INFO oi = new()
-            {
-                Type = CF_OPERATION_TYPE.CF_OPERATION_TYPE_ACK_RENAME,
-                ConnectionKey = CallbackInfo.ConnectionKey,
-                TransferKey = CallbackInfo.TransferKey
-            };
-            oi.StructSize = (uint)Marshal.SizeOf(oi);
-
-            NTStatus status = (uint)NTStatus.STATUS_SUCCESS;
-
-            CloudSync.watcher.Pause();
-
             try
             {
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "START");
+                CloudSync.watcher.Pause();
+
+                NTStatus status;
+
+                if (RenameOnCloud(CallbackInfo, CallbackParameters))
+                {
+                    status = (uint)NTStatus.STATUS_SUCCESS;
+                }
+                else
+                {
+                    status = new NTStatus((uint)1);
+                }
+
+                CF_OPERATION_PARAMETERS.ACKRENAME rename = new()
+                {
+                    CompletionStatus = status,
+                    Flags = CF_OPERATION_ACK_RENAME_FLAGS.CF_OPERATION_ACK_RENAME_FLAG_NONE
+                };
+                CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(rename);
+
+                CF_OPERATION_INFO oi = new()
+                {
+                    Type = CF_OPERATION_TYPE.CF_OPERATION_TYPE_ACK_RENAME,
+                    ConnectionKey = CallbackInfo.ConnectionKey,
+                    TransferKey = CallbackInfo.TransferKey
+                };
+                oi.StructSize = (uint)Marshal.SizeOf(oi);
+
+                HRESULT hres = CfExecute(oi, ref op);
+                
+                if (hres != HRESULT.S_OK || status != (uint)NTStatus.STATUS_SUCCESS)
+                {
+                    List<string> errorMessages = new();
+                    if (hres != HRESULT.S_OK)
+                    {
+                        errorMessages.Add($"Rename CfExecute FAIL {hres}.");
+                    }
+                    if (status != (uint)NTStatus.STATUS_SUCCESS)
+                    {
+                        errorMessages.Add("File was not moved/renamed on cloud.");
+                    }
+                    throw new Exception(string.Join("\n", errorMessages));
+                }
+
+                //Debug.Print("Move/Rename OK");
+                //Debug.Print("");
+
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "OK");
+            }
+            catch (Exception e)
+            {
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "RENAME/MOVE", "FAIL", e);
+            }
+            finally
+            {
+                Thread.Sleep(250);
+                CloudSync.watcher.Resume();
+            }
+        }
+
+        /// <summary>
+        /// Rename/Move file on cloud
+        /// </summary>
+        /// <param name="CallbackInfo"></param>
+        /// <param name="CallbackParameters"></param>
+        /// <returns><c>true</c> in case of success, <c>false</c> otherwise</returns>
+        private static bool RenameOnCloud(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
+        {
+            try
+            {
+                string targetPath = CallbackInfo.VolumeDosName + CallbackParameters.Rename.TargetPath;
+                string sourcePath = CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath;
+                string recycleBin = CallbackInfo.VolumeDosName + @"\$Recycle.Bin\";
+
+                List<string> paths = new List<string>
+                {
+                    $"Source path: {sourcePath}",
+                    $"Target path: {targetPath}"
+                };
+
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "Rename/Move on Cloud", "START", moreInfo: paths);
+
+                string fileIdentity = Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int)CallbackInfo.FileIdentityLength / 2) ?? "";
+
                 string spacePath = CloudSync.configuration.root_path + PathUtils.GetSpaceName(sourcePath) + "\\";
 
                 if (targetPath.StartsWith(spacePath))
                 {
                     //Debug.Print("Move/rename file within space");
-                    
+
                     List<ProviderInfo> providerInfos = CloudSync.spaces[PathUtils.GetSpaceName(sourcePath)].providerInfos;
-                    
+
                     // path variable names which end in _fs -> use forward slash as separator
                     string src_fs = PathUtils.GetServerCorrectPath(sourcePath);
                     string trgt_fs;
@@ -412,7 +467,7 @@ namespace OnedataDrive
                     if (PathUtils.GetLastInPath(sourcePath) == PathUtils.GetLastInPath(targetPath))
                     {
                         //Debug.Print("Move file");
-                        logOpName = "CLOUD MOVE";
+                        logOpName = "Move";
                         // watch out for special characters --> %,?,",#,[,],\
                         string trgtFromSpace = PathUtils.GetServerCorrectPath(PathUtils.GetParentPath(targetPath));
                         trgt_fs = trgtFromSpace + PathUtils.GetLastInPath(src_fs, separator: '/');
@@ -420,14 +475,14 @@ namespace OnedataDrive
                     else
                     {
                         //Debug.Print("Rename file");
-                        logOpName = "CLOUD RENAME";
+                        logOpName = "Rename";
                         // watch out for special ch
                         // watch out for special characters --> ",\
                         trgt_fs = PathUtils.GetParentPath(src_fs, separator: '/') + PathUtils.GetLastInPath(targetPath);
                     }
                     src_fs = src_fs.TrimEnd('/');
                     trgt_fs = trgt_fs.TrimEnd('/');
-                    
+
 
                     //Debug.Print("CDMI src_fs:  {0}", src_fs);
                     //Debug.Print("CDMI trgt_fs: {0}", trgt_fs);
@@ -449,7 +504,7 @@ namespace OnedataDrive
                 {
                     // success
                     //Debug.Print("Move to recycle bin.");
-                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "MOVE TO BIN", "CONTINUE");
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "Move to Bin", "CONTINUE");
                 }
                 else if (targetPath.StartsWith(CloudSync.configuration.root_path) && !targetPath.StartsWith(spacePath))
                 {
@@ -461,40 +516,19 @@ namespace OnedataDrive
                 {
                     // success
                     //Debug.Print("Move file outside SyncRoot -> File deleted on cloud");
-                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "MOVE OUT OF CLOUD", "CONTINUE");
+                    List<string> msg = new List<string> { "Delete file on cloud" };
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "Move out of Cloud", "CONTINUE", moreInfo: msg);
                     List<ProviderInfo> providerInfos = CloudSync.spaces[PathUtils.GetSpaceName(sourcePath)].providerInfos;
                     var taskRemove = RestClient.Delete(providerInfos, fileIdentity);
                     taskRemove.Wait();
                 }
+                return true;
             }
             catch (Exception e)
             {
-                //Debug.Print(e.Message);
-                //Debug.Print("Move/Rename FAIL");
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "RENAME/MOVE", "FAIL");
-                status = new NTStatus((uint)1);
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "Rename/Move on Cloud", "FAIL", e);
+                return false;
             }
-
-
-            CF_OPERATION_PARAMETERS.ACKRENAME rename = new()
-            {
-                CompletionStatus = status,
-                Flags = CF_OPERATION_ACK_RENAME_FLAGS.CF_OPERATION_ACK_RENAME_FLAG_NONE
-            };
-            CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(rename);
-
-            var hres = CfExecute(oi, ref op);
-            if (hres != HRESULT.S_OK)
-            {
-                Debug.Print("Rename CfExecute FAIL {0}", hres);
-            }
-
-            Thread.Sleep(250);
-            CloudSync.watcher.Resume();
-
-            Debug.Print("Move/Rename OK");
-            Debug.Print("");
-            return;
         }
 
         public static void OnRenameCompletion(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
@@ -523,7 +557,7 @@ namespace OnedataDrive
             // TODO
             Debug.Print("DELETE COMPLETITION");
             PrintInfo(CallbackInfo, CallbackParameters);
-            // free memory (allocated during placeholder creation)
+            // free memory (allocated during placeholder creation) - not needed
             // Marshal.FreeCoTaskMem(CallbackInfo.FileIdentity);
 
             Debug.Print("");
