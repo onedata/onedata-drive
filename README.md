@@ -5,8 +5,7 @@ Onedata Drive is a graphical interface application allowing Windows users to wor
 ## Requirements
 - Supported Windows version: **Windows 10 (version 1803)** and **Windows 11**
 - **.NET Desktop Runtime 8** must be installed
-- Might **not work** in **Windows Sandbox**
-- Virtual machines (e.g. Hyper-V) should work fine
+- Before the installation of the new version, the old one has to be uninstalled (The installer will be improved later to make this step unnecessary)
 - You should not need to run as admin, as long you have access to the Root Folder
 
 ## Running the app
@@ -40,3 +39,7 @@ dotnet add package Vanara.PInvoke.CldApi
 ``
 
 - install to use win32 api (cloudfilter)
+
+## Notes
+- Not work in Windows Sandbox. In virtual machine (e.g. in Hyper-V) it works fine.
+- The application is not signed, so Windows Defender SmartScreen might block it. You can run it anyway by clicking `More info` and `Run anyway`.
