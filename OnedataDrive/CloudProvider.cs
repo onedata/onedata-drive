@@ -401,17 +401,14 @@ namespace OnedataDrive
                     List<string> errorMessages = new();
                     if (hres != HRESULT.S_OK)
                     {
-                        errorMessages.Add($"Rename CfExecute FAIL {hres}.");
+                        errorMessages.Add($"Rename CfExecute FAIL - HRES: {hres}");
                     }
                     if (status != (uint)NTStatus.STATUS_SUCCESS)
                     {
                         errorMessages.Add("File was not moved/renamed on cloud.");
                     }
-                    throw new Exception(string.Join("\n", errorMessages));
+                    throw new Exception(string.Join("\n\t", errorMessages));
                 }
-
-                //Debug.Print("Move/Rename OK");
-                //Debug.Print("");
 
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "OK");
             }
@@ -454,7 +451,7 @@ namespace OnedataDrive
 
                 if (targetPath.StartsWith(spacePath))
                 {
-                    //Debug.Print("Move/rename file within space");
+                    // Move/rename file within space
 
                     List<ProviderInfo> providerInfos = CloudSync.spaces[PathUtils.GetSpaceName(sourcePath)].providerInfos;
 
@@ -466,26 +463,19 @@ namespace OnedataDrive
 
                     if (PathUtils.GetLastInPath(sourcePath) == PathUtils.GetLastInPath(targetPath))
                     {
-                        //Debug.Print("Move file");
                         logOpName = "Move";
-                        // watch out for special characters --> %,?,",#,[,],\
+                        // watch out for special characters --> %,?,",#,[,],\ (send as URL)
                         string trgtFromSpace = PathUtils.GetServerCorrectPath(PathUtils.GetParentPath(targetPath));
                         trgt_fs = trgtFromSpace + PathUtils.GetLastInPath(src_fs, separator: '/');
                     }
                     else
                     {
-                        //Debug.Print("Rename file");
                         logOpName = "Rename";
-                        // watch out for special ch
-                        // watch out for special characters --> ",\
+                        // watch out for special characters --> ",\ (send as JSON)
                         trgt_fs = PathUtils.GetParentPath(src_fs, separator: '/') + PathUtils.GetLastInPath(targetPath);
                     }
                     src_fs = src_fs.TrimEnd('/');
                     trgt_fs = trgt_fs.TrimEnd('/');
-
-
-                    //Debug.Print("CDMI src_fs:  {0}", src_fs);
-                    //Debug.Print("CDMI trgt_fs: {0}", trgt_fs);
 
                     List<string> cdmiPaths = new List<string>
                     {
@@ -497,25 +487,25 @@ namespace OnedataDrive
                     var task = RestClient.Move(providerInfos, src_fs, trgt_fs);
                     task.Wait();
 
-                    //Debug.Print("File was renamed/moved on cloud");
+                    // File was renamed/moved on cloud
 
                 }
                 else if (targetPath.StartsWith(recycleBin))
                 {
                     // success
-                    //Debug.Print("Move to recycle bin.");
+                    // Move to recycle bin
                     PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "Move to Bin", "CONTINUE");
                 }
                 else if (targetPath.StartsWith(CloudSync.configuration.root_path) && !targetPath.StartsWith(spacePath))
                 {
                     // fail
-                    //Debug.Print("Can not move file to different space. Try to copy the file.");
+                    // Can not move file to different space. Try to copy the file
                     throw new Exception("Can not move file to different space. Try to copy the file.");
                 }
                 else
                 {
                     // success
-                    //Debug.Print("Move file outside SyncRoot -> File deleted on cloud");
+                    // Move file outside SyncRoot -> delete file on cloud
                     List<string> msg = new List<string> { "Delete file on cloud" };
                     PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "Move out of Cloud", "CONTINUE", moreInfo: msg);
                     List<ProviderInfo> providerInfos = CloudSync.spaces[PathUtils.GetSpaceName(sourcePath)].providerInfos;
@@ -545,9 +535,12 @@ namespace OnedataDrive
                 }
                 else
                 {
-                    Debug.Print("Open: {0}", hresOpen);
-                    Debug.Print("SetInSync: {0}", hresSync);
-                    Debug.Print("Set InSync FAIL");
+                    List<string> moreInfo = new List<string>()
+                    {
+                        $"CfOpenFileWithOplock HRES: {hresOpen}",
+                        $"CfSetInSyncState HRES: {hresOpen}"
+                    };
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "Rename Completion", "FAIL");
                 }
             }
         }
