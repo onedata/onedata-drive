@@ -1,6 +1,7 @@
 ﻿using SharpShell.Attributes;
 using SharpShell.SharpContextMenu;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -17,7 +18,26 @@ namespace ContextMenu
     {
         protected override bool CanShowMenu()
         {
-            return true;
+            try
+            {
+                string pipeName = "testpipe";
+                bool pipeExists = Directory.GetFiles(@"\\.\pipe\").Contains($"\\\\.\\pipe\\{pipeName}", StringComparer.OrdinalIgnoreCase);
+                if (pipeExists)
+                {
+                    Debug.Print("PIPE EXISTS");
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+                
+            }
+            catch
+            {
+                return true;
+            }
+            
         }
 
         protected override ContextMenuStrip CreateMenu()
