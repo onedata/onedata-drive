@@ -25,7 +25,14 @@ namespace ContextMenu
                 if (pipeExists)
                 {
                     Debug.Print("PIPE EXISTS");
-                    return true;
+                    if (SelectedItemPaths.ToList<string>().Any(s => s.StartsWith("C:\\Users\\User\\OnedataDrive")))
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
                 else
                 {
@@ -53,7 +60,7 @@ namespace ContextMenu
             {
                 Text = "Perform Action"
             };
-            actionItem.Click += (sender, e) => MessageBox.Show("Action performed!");
+            //actionItem.Click += (sender, e) => MessageBox.Show("Action performed!");
 
             mainItem.DropDownItems.Add(actionItem);
             menu.Items.Add(mainItem);
