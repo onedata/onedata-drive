@@ -20,7 +20,7 @@ namespace OnedataDrive
         public static bool running { get; private set; } = false;
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public const string VERSION = "0.2.1";
-        private static Task pipe;
+        public static PipeServer pipeServer;
         /// <summary>
         /// Method to start CloudSync
         /// </summary>
@@ -30,8 +30,6 @@ namespace OnedataDrive
         public static CloudSyncReturnCodes Run(Config config, bool delete = false)
         {
             logger.Info("CLOUD SYNC: Start Connecting");
-
-            pipe = Task.Run(() => Loop());
 
             configuration = config;
             spaces = new();
@@ -78,6 +76,10 @@ namespace OnedataDrive
                 // start file watcher
                 watcher = new(configuration.root_path);
                 logger.Info("Filewatcher Start -> OK");
+
+                pipeServer = new();
+                pipeServer.Start("testpipe");
+
             }
             catch (OnezoneException e)
             {
@@ -105,45 +107,7 @@ namespace OnedataDrive
             running = true;
             logger.Info("CLOUD SYNC IS RUNNING");
 
-            string pipeName = "testpipe";
-            bool isPipeRunning = Directory.GetFiles(@"\\.\pipe\").Contains($"\\\\.\\pipe\\{pipeName}", StringComparer.OrdinalIgnoreCase);
-            if (isPipeRunning)
-            {
-                Debug.Print("PIPE EXISTS");
-            }
-
             return CloudSyncReturnCodes.SUCCESS;
-        }
-
-        private static void Loop()
-        {
-            using (var server = new NamedPipeServerStream("Testpipe", PipeDirection.InOut))
-            {
-                Debug.Print("PIPE SERVER running");
-
-                server.WaitForConnection();
-                Debug.Print("SOMEBODY CONNECTED");
-                StreamReader reader = new StreamReader(server);
-
-                while (true)
-                {
-                    if (server.IsConnected)
-                    {
-                        Debug.Print("CONNECTED");
-                    }
-                    else
-                    {
-                        Debug.Print("NOT CONNECTED");
-                    }
-                    if (reader.EndOfStream)
-                    {
-                        Task.Delay(100).Wait();
-                        break;
-                    }
-                    string msg = reader.ReadLine() ?? "NO_VALUE";
-                    Debug.Print("PIPE MSG: " + msg);
-                }
-            }
         }
 
         public static void Stop()
@@ -159,17 +123,7 @@ namespace OnedataDrive
             logger.Info("FileWatcher stopped");
             running = false;
             logger.Info("CLOUD SYNC STOPPED");
-
-            string pipeName = "testpipe";
-            bool isPipeRunning = Directory.GetFiles(@"\\.\pipe\").Contains($"\\\\.\\pipe\\{pipeName}");
-            if (isPipeRunning)
-            {
-                Debug.Print("PIPE EXISTS");
-            }
-            else
-            {
-                Debug.Print("NO PIPE");
-            }
+            pipeServer.Stop();
         }
 
         /// <summary>
