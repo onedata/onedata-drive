@@ -2,9 +2,12 @@
 using SharpShell.SharpContextMenu;
 using System;
 using System.Diagnostics;
+using System.IO.Pipes;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using OnedataDrive;
+using OnedataDrive.Utils;
 
 namespace ContextMenu
 {
@@ -61,11 +64,38 @@ namespace ContextMenu
                 Text = "Perform Action"
             };
             //actionItem.Click += (sender, e) => MessageBox.Show("Action performed!");
+            actionItem.Click += ActionItem_Click;
 
             mainItem.DropDownItems.Add(actionItem);
             menu.Items.Add(mainItem);
 
             return menu;
+        }
+
+        private void ActionItem_Click(object? sender, EventArgs e)
+        {
+            using (NamedPipeClientStream client = new(".", "testpipe", PipeDirection.InOut))
+            {
+                client.Connect(100);
+                StreamWriter writer = new(client);
+                StreamReader reader = new(client);
+                writer.WriteLine(NamedPipeUtils.CreateCommandMsg(Commands.SEND_ROOT));
+                while (client.IsConnected)
+                {
+                    if (reader.EndOfStream)
+                    {
+                        Task.Delay(10).Wait();
+                        continue;
+                    }
+                    else
+                    {
+                        MessageBox.Show("Action performed - " + reader.ReadLine());
+                    }
+                }
+
+            }
+                
+            throw new NotImplementedException();
         }
 
         [ComRegisterFunction]
@@ -113,10 +143,4 @@ namespace ContextMenu
             }
         }
     }
-
-    private NamedPipe ConnecteToPipe()
-    {
-
-    }
-
 }

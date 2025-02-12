@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OnedataDrive.Utils;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Pipes;
@@ -93,14 +94,6 @@ namespace OnedataDrive
             }
         }
 
-        public enum Commands
-        {
-            SEND_ROOT,
-            SELECTED_PATHS,
-            RECEIVED,
-            FAIL
-        }
-
         public string CreateCommandMsg(Commands command, string[]? content = null)
         {
             content = content ?? Array.Empty<string>();
@@ -119,9 +112,12 @@ namespace OnedataDrive
                 throw new Exception();
             }
             Commands command;
+            List<string> content;
             try
             {
-                command = (Commands)Int32.Parse(msg.Split("|").First());
+                string[] rawContent = msg.Split("|");
+                command = (Commands)Int32.Parse(rawContent[0]);
+                content = rawContent.Skip(1).ToList();
             }
             catch (Exception e)
             {
@@ -135,14 +131,18 @@ namespace OnedataDrive
             {
                 case Commands.SEND_ROOT:
                     // do something
-                    response = CreateCommandMsg(Commands.RECEIVED);
+                    Debug.Print("Send root");
+                    response = CreateCommandMsg(Commands.RECEIVED, [CloudSync.configuration.root_path]);
                     break;
                 case Commands.SELECTED_PATHS:
                     // do something
+                    Debug.Print("Selected paths");
+                    content.ForEach(x => Debug.Print(x));
                     response = CreateCommandMsg(Commands.RECEIVED);
                     break;
                 default:
                     response = CreateCommandMsg(Commands.FAIL);
+                    Debug.Print("Default");
                     break;
             }
             Debug.Print("PIPE SERVER msg received");
