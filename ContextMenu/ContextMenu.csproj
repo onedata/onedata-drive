@@ -14,4 +14,8 @@
     <PackageReference Include="SharpShell" Version="2.7.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\OnedataDrive\OnedataDrive.csproj" />
+  </ItemGroup>
+
 </Project>

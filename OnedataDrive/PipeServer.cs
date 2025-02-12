@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Vanara.PInvoke;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace OnedataDrive
 {
@@ -68,41 +69,36 @@ namespace OnedataDrive
                     }
 
                     Debug.Print("PIPE SERVER: listening for client`s messages");
+                    ValueTask<string?> readerTask = reader.ReadLineAsync(cToken);
                     while (server.IsConnected)
                     {
-                        if (reader.EndOfStream)
-                        {
-                            Task.Delay(100).Wait();
-                            continue;
-                        }
-                        else
-                        {
-                            string received = reader.ReadLine() ?? "";
-                            Debug.Print("RECEIVED: " + received);
-                            string response = HandleCommand(received);
-                            writer.WriteLine(response);
-                            writer.Flush();
-                        }
+                        Debug.Print("1");
                         if (cToken.IsCancellationRequested)
                         {
                             server.Close();
                             return;
                         }
+                        Debug.Print("2");
+                        if (!readerTask.IsCompleted)
+                        {
+                            Task.Delay(100).Wait();
+                            Debug.Print("4");
+                            continue;
+                        }
+                        else
+                        {
+                            string received = readerTask.Result ?? "";
+                            Debug.Print("RECEIVED: " + received);
+                            string response = HandleCommand(received);
+                            writer.WriteLine(response);
+                            writer.Flush();
+                            readerTask = reader.ReadLineAsync(cToken);
+                        }
+                        Debug.Print("3");
                     }
                     Debug.Print("PIPE SERVER: client disconnected");
                 }
             }
-        }
-
-        public string CreateCommandMsg(Commands command, string[]? content = null)
-        {
-            content = content ?? Array.Empty<string>();
-            string msg = Commands.SELECTED_PATHS.ToString();
-            if (content.Length != 0)
-            {
-                msg += "|" + string.Join("|", content);
-            }
-            return msg;
         }
 
         private string HandleCommand(string msg)
@@ -116,13 +112,15 @@ namespace OnedataDrive
             try
             {
                 string[] rawContent = msg.Split("|");
-                command = (Commands)Int32.Parse(rawContent[0]);
+                //command = (Commands)Int32.Parse(rawContent[0]);
+                command = (Commands)Enum.Parse(typeof(Commands), rawContent[0]);
                 content = rawContent.Skip(1).ToList();
             }
             catch (Exception e)
             {
-                Debug.Print("Invalid command");
-                throw new Exception("Invalid command", e);
+                Debug.Print($"Invalid command {msg}");
+                return NamedPipeUtils.CreateCommandMsg(Commands.FAIL);
+                //throw new Exception("Invalid command", e);
             }
             
             string response = "";
@@ -132,16 +130,16 @@ namespace OnedataDrive
                 case Commands.SEND_ROOT:
                     // do something
                     Debug.Print("Send root");
-                    response = CreateCommandMsg(Commands.RECEIVED, [CloudSync.configuration.root_path]);
+                    response = NamedPipeUtils.CreateCommandMsg(Commands.RECEIVED, [CloudSync.configuration.root_path]);
                     break;
                 case Commands.SELECTED_PATHS:
                     // do something
                     Debug.Print("Selected paths");
                     content.ForEach(x => Debug.Print(x));
-                    response = CreateCommandMsg(Commands.RECEIVED);
+                    response = NamedPipeUtils.CreateCommandMsg(Commands.RECEIVED);
                     break;
                 default:
-                    response = CreateCommandMsg(Commands.FAIL);
+                    response = NamedPipeUtils.CreateCommandMsg(Commands.FAIL);
                     Debug.Print("Default");
                     break;
             }

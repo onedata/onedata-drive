@@ -80,6 +80,7 @@ namespace ContextMenu
                 StreamWriter writer = new(client);
                 StreamReader reader = new(client);
                 writer.WriteLine(NamedPipeUtils.CreateCommandMsg(Commands.SEND_ROOT));
+                writer.Flush();
                 while (client.IsConnected)
                 {
                     if (reader.EndOfStream)
