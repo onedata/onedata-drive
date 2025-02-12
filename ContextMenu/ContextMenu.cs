@@ -114,4 +114,9 @@ namespace ContextMenu
         }
     }
 
+    private NamedPipe ConnecteToPipe()
+    {
+
+    }
+
 }
