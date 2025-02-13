@@ -112,15 +112,13 @@ namespace OnedataDrive
             try
             {
                 string[] rawContent = msg.Split("|");
-                //command = (Commands)Int32.Parse(rawContent[0]);
                 command = (Commands)Enum.Parse(typeof(Commands), rawContent[0]);
                 content = rawContent.Skip(1).ToList();
             }
             catch (Exception e)
             {
                 Debug.Print($"Invalid command {msg}");
-                return NamedPipeUtils.CreateCommandMsg(Commands.FAIL);
-                //throw new Exception("Invalid command", e);
+                return new PipeCommand(Commands.FAIL).ToString();
             }
             
             string response = "";
@@ -130,16 +128,16 @@ namespace OnedataDrive
                 case Commands.SEND_ROOT:
                     // do something
                     Debug.Print("Send root");
-                    response = NamedPipeUtils.CreateCommandMsg(Commands.RECEIVED, [CloudSync.configuration.root_path]);
+                    response = new PipeCommand(Commands.RECEIVED, [CloudSync.configuration.root_path]).ToString();
                     break;
                 case Commands.SELECTED_PATHS:
                     // do something
                     Debug.Print("Selected paths");
                     content.ForEach(x => Debug.Print(x));
-                    response = NamedPipeUtils.CreateCommandMsg(Commands.RECEIVED);
+                    response = new PipeCommand(Commands.RECEIVED).ToString();
                     break;
                 default:
-                    response = NamedPipeUtils.CreateCommandMsg(Commands.FAIL);
+                    response = new PipeCommand(Commands.FAIL).ToString();
                     Debug.Print("Default");
                     break;
             }

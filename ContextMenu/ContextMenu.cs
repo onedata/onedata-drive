@@ -19,11 +19,12 @@ namespace ContextMenu
     [Guid("B3B9C5B6-5C92-4D1B-85E6-2F80B72F6E28")]
     public class SimpleContextMenu : SharpContextMenu
     {
+        protected string pipeName = "testpipe";
         protected override bool CanShowMenu()
         {
             try
             {
-                string pipeName = "testpipe";
+                
                 bool pipeExists = Directory.GetFiles(@"\\.\pipe\").Contains($"\\\\.\\pipe\\{pipeName}", StringComparer.OrdinalIgnoreCase);
                 if (pipeExists)
                 {
@@ -56,20 +57,58 @@ namespace ContextMenu
 
             var mainItem = new ToolStripMenuItem
             {
-                Text = "Simple Extension Action"
+                Text = "OnedataDrive"
             };
 
-            var actionItem = new ToolStripMenuItem
+            var refreshFolder = new ToolStripMenuItem
             {
-                Text = "Perform Action"
+                Text = "Refresh Folder"
             };
-            //actionItem.Click += (sender, e) => MessageBox.Show("Action performed!");
-            actionItem.Click += ActionItem_Click;
+            var refreshSpace = new ToolStripMenuItem
+            {
+                Text = "Refresh Space"
+            };
+            refreshFolder.Click += ActionItem_Click;
+            refreshSpace.Click += ActionItem_Click;
 
-            mainItem.DropDownItems.Add(actionItem);
+            mainItem.DropDownItems.Add(refreshFolder);
+            mainItem.DropDownItems.Add(refreshSpace);
             menu.Items.Add(mainItem);
 
             return menu;
+        }
+
+        private string? GetRootPath()
+        {
+            NamedPipeClientStream client = new(".", pipeName, PipeDirection.InOut);
+            try
+            {
+                string rootPath = null;
+                client.Connect(100);
+                if (client.IsConnected)
+                {
+                    StreamWriter writer = new(client);
+                    StreamReader reader = new(client);
+                    writer.WriteLine(new PipeCommand(Commands.SEND_ROOT).ToString());
+                    writer.Flush();
+                    string rawMsg = reader.ReadLine() ?? "";
+
+                    
+                }
+                return rootPath;
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
+            finally
+            {
+                if (client.IsConnected)
+                {
+                    client.Close();
+                    client.Dispose();
+                }
+            }
         }
 
         private void ActionItem_Click(object? sender, EventArgs e)
