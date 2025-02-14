@@ -47,10 +47,10 @@ namespace OnedataDrive
 
     public enum Commands
     {
-        SEND_ROOT,
-        SELECTED_PATHS,
-        RECEIVED,
+        UNKNOWN_COMMAND,
+        OK,
         FAIL,
-        UNKNOWN_COMMAND
+        SEND_ROOT,
+        REQUEST_REFRESH
     }
 }

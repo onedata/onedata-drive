@@ -88,7 +88,7 @@ namespace OnedataDrive
                         else
                         {
                             string received = readerTask.Result ?? "";
-                            Debug.Print("RECEIVED: " + received);
+                            Debug.Print("OK: " + received);
                             string response = HandleCommand(received);
                             writer.WriteLine(response);
                             writer.Flush();
@@ -126,15 +126,14 @@ namespace OnedataDrive
             switch (command)
             {
                 case Commands.SEND_ROOT:
-                    // do something
                     Debug.Print("Send root");
-                    response = new PipeCommand(Commands.RECEIVED, [CloudSync.configuration.root_path]).ToString();
+                    response = new PipeCommand(Commands.OK, [CloudSync.configuration.root_path]).ToString();
                     break;
-                case Commands.SELECTED_PATHS:
+                case Commands.REQUEST_REFRESH:
                     // do something
                     Debug.Print("Selected paths");
                     content.ForEach(x => Debug.Print(x));
-                    response = new PipeCommand(Commands.RECEIVED).ToString();
+                    response = new PipeCommand(Commands.OK).ToString();
                     break;
                 default:
                     response = new PipeCommand(Commands.FAIL).ToString();

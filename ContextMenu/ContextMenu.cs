@@ -24,29 +24,16 @@ namespace ContextMenu
         {
             try
             {
-                
-                bool pipeExists = Directory.GetFiles(@"\\.\pipe\").Contains($"\\\\.\\pipe\\{pipeName}", StringComparer.OrdinalIgnoreCase);
-                if (pipeExists)
+                string? path = GetRootPath();
+                if (path != null)
                 {
-                    Debug.Print("PIPE EXISTS");
-                    if (SelectedItemPaths.ToList<string>().Any(s => s.StartsWith("C:\\Users\\User\\OnedataDrive")))
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
+                    return SelectedItemPaths.All(x => x.StartsWith(path));
                 }
-                else
-                {
-                    return false;
-                }
-                
+                return false;
             }
             catch
             {
-                return true;
+                return false;
             }
             
         }
@@ -68,8 +55,8 @@ namespace ContextMenu
             {
                 Text = "Refresh Space"
             };
-            refreshFolder.Click += ActionItem_Click;
-            refreshSpace.Click += ActionItem_Click;
+            refreshFolder.Click += RequestRefresh;
+            refreshSpace.Click += RequestRefresh;
 
             mainItem.DropDownItems.Add(refreshFolder);
             mainItem.DropDownItems.Add(refreshSpace);
@@ -83,7 +70,7 @@ namespace ContextMenu
             NamedPipeClientStream client = new(".", pipeName, PipeDirection.InOut);
             try
             {
-                string rootPath = null;
+                string? rootPath = null;
                 client.Connect(100);
                 if (client.IsConnected)
                 {
@@ -91,9 +78,23 @@ namespace ContextMenu
                     StreamReader reader = new(client);
                     writer.WriteLine(new PipeCommand(Commands.SEND_ROOT).ToString());
                     writer.Flush();
-                    string rawMsg = reader.ReadLine() ?? "";
-
-                    
+                    CancellationTokenSource tokenSource = new CancellationTokenSource();
+                    ValueTask<string?> readerTask = reader.ReadLineAsync(tokenSource.Token);
+                    tokenSource.CancelAfter(120);
+                    for (int i = 0; i < 4; i++)
+                    {
+                        Task.Delay(30).Wait();
+                        if (readerTask.IsCompletedSuccessfully)
+                        {
+                            string rawMsg = readerTask.Result ?? "";
+                            PipeCommand command = new(rawMsg);
+                            if (command.command == Commands.OK)
+                            {
+                                rootPath = command.payload[0];
+                            }
+                            break;
+                        }
+                    }          
                 }
                 return rootPath;
             }
@@ -111,31 +112,52 @@ namespace ContextMenu
             }
         }
 
-        private void ActionItem_Click(object? sender, EventArgs e)
+        private void RequestRefresh(object? sender, EventArgs e)
         {
-            using (NamedPipeClientStream client = new(".", "testpipe", PipeDirection.InOut))
+            CancellationTokenSource tokenSource = new CancellationTokenSource();
+            Task.Run(() => 
             {
-                client.Connect(100);
-                StreamWriter writer = new(client);
-                StreamReader reader = new(client);
-                writer.WriteLine(NamedPipeUtils.CreateCommandMsg(Commands.SEND_ROOT));
-                writer.Flush();
-                while (client.IsConnected)
+                using (NamedPipeClientStream client = new(".", pipeName, PipeDirection.InOut))
                 {
-                    if (reader.EndOfStream)
+                    client.Connect(100);
+                    if (client.IsConnected)
                     {
-                        Task.Delay(10).Wait();
-                        continue;
-                    }
-                    else
-                    {
-                        MessageBox.Show("Action performed - " + reader.ReadLine());
-                    }
-                }
+                        StreamWriter writer = new(client);
+                        StreamReader reader = new(client);
+                        writer.WriteLine(new PipeCommand(Commands.REQUEST_REFRESH, SelectedItemPaths.ToList()).ToString());
+                        writer.Flush();
 
-            }
-                
-            throw new NotImplementedException();
+                        ValueTask<string?> readerTask = reader.ReadLineAsync(tokenSource.Token);
+
+                        for (int i = 0; i < 4; i++)
+                        {
+                            Task.Delay(100).Wait();
+                            if (readerTask.IsCompletedSuccessfully)
+                            {
+                                PipeCommand command = new(readerTask.Result ?? "");
+                                if (command.command == Commands.OK)
+                                {
+                                    MessageBox.Show("Refresh Started");
+                                }
+                                else
+                                {
+                                    MessageBox.Show("Refresh Did NOT start");
+                                }
+                                break;
+                            }
+                            if (readerTask.IsFaulted)
+                            {
+                                break;
+                            }
+                        }
+                        if (!readerTask.IsCompleted)
+                        {
+                            tokenSource.Cancel();
+                        }
+                    }
+
+                }
+            }, tokenSource.Token);           
         }
 
         [ComRegisterFunction]
