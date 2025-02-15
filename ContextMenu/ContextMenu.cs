@@ -16,10 +16,11 @@ namespace ContextMenu
     [COMServerAssociation(AssociationType.AllFilesAndFolders)]
     [COMServerAssociation(AssociationType.Directory)]
     [COMServerAssociation(AssociationType.DirectoryBackground)]
-    [Guid("B3B9C5B6-5C92-4D1B-85E6-2F80B72F6E28")]
+    [Guid("9D369C15-EDCD-4916-B8B9-0BBD1666A47F")]
     public class SimpleContextMenu : SharpContextMenu
     {
-        protected string pipeName = "testpipe";
+        protected string pipeName = CloudSync.PIPE_SERVER_NAME;
+        protected const string CONTEXT_MENU_NAME = "OnedataDriveContextMenu";
         protected override bool CanShowMenu()
         {
             try
@@ -47,17 +48,23 @@ namespace ContextMenu
                 Text = "OnedataDrive"
             };
 
+            var refreshFiles = new ToolStripMenuItem
+            {
+                Text = "Refresh Selected Items"
+            };
             var refreshFolder = new ToolStripMenuItem
             {
-                Text = "Refresh Folder"
+                Text = "Refresh Current Folder"
             };
             var refreshSpace = new ToolStripMenuItem
             {
                 Text = "Refresh Space"
             };
-            refreshFolder.Click += RequestRefresh;
-            refreshSpace.Click += RequestRefresh;
+            refreshFiles.Click += RefreshFiles;
+            refreshFolder.Click += RefreshFolder;
+            refreshSpace.Click += RefreshSpace;
 
+            mainItem.DropDownItems.Add(refreshFiles);
             mainItem.DropDownItems.Add(refreshFolder);
             mainItem.DropDownItems.Add(refreshSpace);
             menu.Items.Add(mainItem);
@@ -112,7 +119,25 @@ namespace ContextMenu
             }
         }
 
-        private void RequestRefresh(object? sender, EventArgs e)
+        private void RefreshFiles(object? sender, EventArgs e)
+        {
+            PipeCommand command = new(Commands.REFRESH_FILES, SelectedItemPaths.ToList());
+            SendCommand(command);
+        }
+
+        private void RefreshFolder(object? sender, EventArgs e)
+        {
+            PipeCommand command = new(Commands.REFRESH_FOLDER, SelectedItemPaths.ToList());
+            SendCommand(command);
+        }
+
+        private void RefreshSpace(object? sender, EventArgs e)
+        {
+            PipeCommand command = new(Commands.REFRESH_SPACE, SelectedItemPaths.ToList());
+            SendCommand(command);
+        }
+
+        private void SendCommand(PipeCommand commandToSend)
         {
             CancellationTokenSource tokenSource = new CancellationTokenSource();
             Task.Run(() => 
@@ -124,7 +149,7 @@ namespace ContextMenu
                     {
                         StreamWriter writer = new(client);
                         StreamReader reader = new(client);
-                        writer.WriteLine(new PipeCommand(Commands.REQUEST_REFRESH, SelectedItemPaths.ToList()).ToString());
+                        writer.WriteLine(commandToSend.ToString());
                         writer.Flush();
 
                         ValueTask<string?> readerTask = reader.ReadLineAsync(tokenSource.Token);
@@ -134,8 +159,8 @@ namespace ContextMenu
                             Task.Delay(100).Wait();
                             if (readerTask.IsCompletedSuccessfully)
                             {
-                                PipeCommand command = new(readerTask.Result ?? "");
-                                if (command.command == Commands.OK)
+                                PipeCommand commandReceived = new(readerTask.Result ?? "");
+                                if (commandReceived.command == Commands.OK)
                                 {
                                     MessageBox.Show("Refresh Started");
                                 }
@@ -155,7 +180,6 @@ namespace ContextMenu
                             tokenSource.Cancel();
                         }
                     }
-
                 }
             }, tokenSource.Token);           
         }
@@ -170,7 +194,7 @@ namespace ContextMenu
 
         private static void RegisterContextMenu(Type t, string basePath)
         {
-            string keyPath = basePath + "SimpleContextMenu";
+            string keyPath = basePath + CONTEXT_MENU_NAME;
             using (var key = Microsoft.Win32.Registry.ClassesRoot.CreateSubKey(keyPath))
             {
                 if (key == null)
@@ -194,7 +218,7 @@ namespace ContextMenu
 
         private static void UnregisterContextMenu(string basePath)
         {
-            string keyPath = basePath + "SimpleContextMenu";
+            string keyPath = basePath + CONTEXT_MENU_NAME;
             try
             {
                 Microsoft.Win32.Registry.ClassesRoot.DeleteSubKeyTree(keyPath, false);

@@ -1,13 +1,5 @@
-﻿using OnedataDrive.Utils;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.Pipes;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Vanara.PInvoke;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace OnedataDrive
 {
@@ -72,29 +64,25 @@ namespace OnedataDrive
                     ValueTask<string?> readerTask = reader.ReadLineAsync(cToken);
                     while (server.IsConnected)
                     {
-                        Debug.Print("1");
                         if (cToken.IsCancellationRequested)
                         {
                             server.Close();
                             return;
                         }
-                        Debug.Print("2");
                         if (!readerTask.IsCompleted)
                         {
                             Task.Delay(100).Wait();
-                            Debug.Print("4");
                             continue;
                         }
                         else
                         {
                             string received = readerTask.Result ?? "";
-                            Debug.Print("OK: " + received);
+                            Debug.Print("PIPE SERVER received: " + received);
                             string response = HandleCommand(received);
                             writer.WriteLine(response);
                             writer.Flush();
                             readerTask = reader.ReadLineAsync(cToken);
                         }
-                        Debug.Print("3");
                     }
                     Debug.Print("PIPE SERVER: client disconnected");
                 }
@@ -103,36 +91,30 @@ namespace OnedataDrive
 
         private string HandleCommand(string msg)
         {
-            if (msg.Length == 0)
-            {
-                throw new Exception();
-            }
-            Commands command;
-            List<string> content;
-            try
-            {
-                string[] rawContent = msg.Split("|");
-                command = (Commands)Enum.Parse(typeof(Commands), rawContent[0]);
-                content = rawContent.Skip(1).ToList();
-            }
-            catch (Exception e)
-            {
-                Debug.Print($"Invalid command {msg}");
-                return new PipeCommand(Commands.FAIL).ToString();
-            }
-            
+            PipeCommand received = new(msg ?? "");
+
             string response = "";
-            
-            switch (command)
+
+            switch (received.command)
             {
                 case Commands.SEND_ROOT:
                     Debug.Print("Send root");
                     response = new PipeCommand(Commands.OK, [CloudSync.configuration.root_path]).ToString();
                     break;
-                case Commands.REQUEST_REFRESH:
+                case Commands.REFRESH_SPACE:
                     // do something
-                    Debug.Print("Selected paths");
-                    content.ForEach(x => Debug.Print(x));
+                    Debug.Print("Refresh space");
+                    received.payload.ForEach(x => Debug.Print($"Path: {x}"));
+                    response = new PipeCommand(Commands.OK).ToString();
+                    break;
+                case Commands.REFRESH_FILES:
+                    Debug.Print("Refresh files");
+                    received.payload.ForEach(x => Debug.Print($"Path: {x}"));
+                    response = new PipeCommand(Commands.OK).ToString();
+                    break;
+                case Commands.REFRESH_FOLDER:
+                    Debug.Print("Refresh folder");
+                    received.payload.ForEach(x => Debug.Print($"Path: {x}"));
                     response = new PipeCommand(Commands.OK).ToString();
                     break;
                 default:

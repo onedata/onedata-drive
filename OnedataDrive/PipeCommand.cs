@@ -9,6 +9,7 @@ namespace OnedataDrive
 {
     public class PipeCommand
     {
+        public const string SEPARATOR = "|";
         public Commands command;
         public List<string> payload;
         public PipeCommand(Commands command, List<string>? payload = null)
@@ -20,7 +21,7 @@ namespace OnedataDrive
         public PipeCommand(string msg)
         {
             this.payload = new();
-            string[] rawContent = msg.Split("|");
+            string[] rawContent = msg.Split(SEPARATOR);
             try
             {
                 this.command = (Commands)Enum.Parse(typeof(Commands), rawContent[0]);
@@ -38,7 +39,7 @@ namespace OnedataDrive
             string msg = command.ToString();
             if (payload.Count != 0)
             {
-                msg += "|" + string.Join("|", payload);
+                msg += SEPARATOR + string.Join(SEPARATOR, payload);
             }
             return msg;
         }
@@ -51,6 +52,8 @@ namespace OnedataDrive
         OK,
         FAIL,
         SEND_ROOT,
-        REQUEST_REFRESH
+        REFRESH_SPACE,
+        REFRESH_FOLDER,
+        REFRESH_FILES
     }
 }
