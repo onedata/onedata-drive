@@ -28,7 +28,7 @@ namespace ContextMenu
                 string? path = GetRootPath();
                 if (path != null)
                 {
-                    return SelectedItemPaths.All(x => x.StartsWith(path));
+                    return SelectedItemPaths.All(x => x.StartsWith(path)) && FolderPath.StartsWith(path);
                 }
                 return false;
             }
@@ -122,24 +122,21 @@ namespace ContextMenu
         private void RefreshFiles(object? sender, EventArgs e)
         {
             PipeCommand command = new(Commands.REFRESH_FILES, SelectedItemPaths.ToList());
-            command.payload.Add("Class name1: " + typeof(RefreshContextMenu).Name);
-            command.payload.Add("Class name2: " + this.GetType().Name);
-            command.payload.Add("Class name3: " + nameof(RefreshContextMenu));
-            command.payload.Add("Class name4: " + MethodBase.GetCurrentMethod().DeclaringType.Name);
-            command.payload.Add("Class name5: " + this.GetType().BaseType.Name);
-            command.payload.Add("Class name6: " + nameof(RefreshContextMenu));
+            command.payload.Add("Folder path: " + FolderPath);
             SendCommand(command);
         }
 
         private void RefreshFolder(object? sender, EventArgs e)
         {
             PipeCommand command = new(Commands.REFRESH_FOLDER, SelectedItemPaths.ToList());
+            command.payload.Add("Folder path: " + FolderPath);
             SendCommand(command);
         }
 
         private void RefreshSpace(object? sender, EventArgs e)
         {
             PipeCommand command = new(Commands.REFRESH_SPACE, SelectedItemPaths.ToList());
+            command.payload.Add("Folder path: " + FolderPath);
             SendCommand(command);
         }
 
@@ -200,7 +197,7 @@ namespace ContextMenu
 
         private static void RegisterContextMenu(Type t, string basePath)
         {
-            string keyPath = basePath + "RefreshContextMenu";
+            string keyPath = basePath + nameof(RefreshContextMenu);
             using (var key = Microsoft.Win32.Registry.ClassesRoot.CreateSubKey(keyPath))
             {
                 if (key == null)
@@ -224,7 +221,7 @@ namespace ContextMenu
 
         private static void UnregisterContextMenu(string basePath)
         {
-            string keyPath = basePath + "RefreshContextMenu";
+            string keyPath = basePath + nameof(RefreshContextMenu);
             try
             {
                 Microsoft.Win32.Registry.ClassesRoot.DeleteSubKeyTree(keyPath, false);
