@@ -28,7 +28,7 @@ namespace ContextMenu
                 string? path = GetRootPath();
                 if (path != null)
                 {
-                    return SelectedItemPaths.All(x => x.StartsWith(path)) && FolderPath.StartsWith(path);
+                    return SelectedItemPaths.Any(x => x.StartsWith(path)) || (FolderPath + "\\").StartsWith(path);
                 }
                 return false;
             }
@@ -48,13 +48,13 @@ namespace ContextMenu
                 Text = "OnedataDrive"
             };
 
-            var refreshFiles = new ToolStripMenuItem
-            {
-                Text = "Refresh Selected Items"
-            };
             var refreshFolder = new ToolStripMenuItem
             {
                 Text = "Refresh Current Folder"
+            };
+            var refreshFiles = new ToolStripMenuItem
+            {
+                Text = "Refresh Current Folder and Subfolders"
             };
             var refreshSpace = new ToolStripMenuItem
             {
@@ -119,24 +119,35 @@ namespace ContextMenu
             }
         }
 
+        private List<string> GetCurrentFolderPath()
+        {
+            List<string> paths = new List<string>();
+            if (SelectedItemPaths.Count() == 0)
+            {
+                paths.Add(FolderPath + "\\");
+            }
+            else
+            {
+                paths.Add(PathUtils.GetParentPath(SelectedItemPaths.First()));
+            }
+            return paths;
+        }
+
         private void RefreshFiles(object? sender, EventArgs e)
         {
-            PipeCommand command = new(Commands.REFRESH_FILES, SelectedItemPaths.ToList());
-            command.payload.Add("Folder path: " + FolderPath);
+            PipeCommand command = new(Commands.REFRESH_FILES, GetCurrentFolderPath());
             SendCommand(command);
         }
 
         private void RefreshFolder(object? sender, EventArgs e)
         {
-            PipeCommand command = new(Commands.REFRESH_FOLDER, SelectedItemPaths.ToList());
-            command.payload.Add("Folder path: " + FolderPath);
+            PipeCommand command = new(Commands.REFRESH_FOLDER, GetCurrentFolderPath());
             SendCommand(command);
         }
 
         private void RefreshSpace(object? sender, EventArgs e)
         {
-            PipeCommand command = new(Commands.REFRESH_SPACE, SelectedItemPaths.ToList());
-            command.payload.Add("Folder path: " + FolderPath);
+            PipeCommand command = new(Commands.REFRESH_SPACE, GetCurrentFolderPath());
             SendCommand(command);
         }
 
@@ -165,11 +176,11 @@ namespace ContextMenu
                                 PipeCommand commandReceived = new(readerTask.Result ?? "");
                                 if (commandReceived.command == Commands.OK)
                                 {
-                                    MessageBox.Show("Refresh Started");
+                                    Task.Run(() => MessageBox.Show("Refresh Started"));
                                 }
                                 else
                                 {
-                                    MessageBox.Show("Refresh Did NOT start");
+                                    Task.Run(() => MessageBox.Show("Refresh Did NOT start"));
                                 }
                                 break;
                             }
