@@ -17,10 +17,9 @@ namespace ContextMenu
     [COMServerAssociation(AssociationType.Directory)]
     [COMServerAssociation(AssociationType.DirectoryBackground)]
     [Guid("9D369C15-EDCD-4916-B8B9-0BBD1666A47F")]
-    public class SimpleContextMenu : SharpContextMenu
+    public class ContextMenu : SharpContextMenu
     {
         protected string pipeName = CloudSync.PIPE_SERVER_NAME;
-        protected const string CONTEXT_MENU_NAME = "OnedataDriveContextMenu";
         protected override bool CanShowMenu()
         {
             try
@@ -78,7 +77,7 @@ namespace ContextMenu
             try
             {
                 string? rootPath = null;
-                client.Connect(100);
+                client.Connect(200);
                 if (client.IsConnected)
                 {
                     StreamWriter writer = new(client);
@@ -87,10 +86,9 @@ namespace ContextMenu
                     writer.Flush();
                     CancellationTokenSource tokenSource = new CancellationTokenSource();
                     ValueTask<string?> readerTask = reader.ReadLineAsync(tokenSource.Token);
-                    tokenSource.CancelAfter(120);
-                    for (int i = 0; i < 4; i++)
+                    for (int i = 0; i < 5; i++)
                     {
-                        Task.Delay(30).Wait();
+                        Task.Delay(50).Wait();
                         if (readerTask.IsCompletedSuccessfully)
                         {
                             string rawMsg = readerTask.Result ?? "";
@@ -101,7 +99,8 @@ namespace ContextMenu
                             }
                             break;
                         }
-                    }          
+                    }
+                    tokenSource.Cancel();
                 }
                 return rootPath;
             }
@@ -144,7 +143,7 @@ namespace ContextMenu
             {
                 using (NamedPipeClientStream client = new(".", pipeName, PipeDirection.InOut))
                 {
-                    client.Connect(100);
+                    client.Connect(300);
                     if (client.IsConnected)
                     {
                         StreamWriter writer = new(client);
@@ -154,7 +153,7 @@ namespace ContextMenu
 
                         ValueTask<string?> readerTask = reader.ReadLineAsync(tokenSource.Token);
 
-                        for (int i = 0; i < 4; i++)
+                        for (int i = 0; i < 10; i++)
                         {
                             Task.Delay(100).Wait();
                             if (readerTask.IsCompletedSuccessfully)
@@ -194,7 +193,7 @@ namespace ContextMenu
 
         private static void RegisterContextMenu(Type t, string basePath)
         {
-            string keyPath = basePath + CONTEXT_MENU_NAME;
+            string keyPath = basePath + "ContextMenu";
             using (var key = Microsoft.Win32.Registry.ClassesRoot.CreateSubKey(keyPath))
             {
                 if (key == null)
@@ -218,7 +217,7 @@ namespace ContextMenu
 
         private static void UnregisterContextMenu(string basePath)
         {
-            string keyPath = basePath + CONTEXT_MENU_NAME;
+            string keyPath = basePath + "ContextMenu";
             try
             {
                 Microsoft.Win32.Registry.ClassesRoot.DeleteSubKeyTree(keyPath, false);
