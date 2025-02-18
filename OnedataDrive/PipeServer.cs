@@ -2,6 +2,7 @@
 using OnedataDrive.Utils;
 using System.Diagnostics;
 using System.IO.Pipes;
+using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
 
 namespace OnedataDrive
@@ -153,16 +154,16 @@ namespace OnedataDrive
                 Task<DirChildren> dirChildrenTask = RestClient.GetFilesAndSubdirs(dirId, sf.providerInfos);
 
                 // get local info on all files/folders
-                List<CF_PLACEHOLDER_STANDARD_INFO> localInfos = new();
+                List<(CF_PLACEHOLDER_BASIC_INFO info, string path)> localInfos = new();
                 Task localDirChildrenTask = Task.Run(() =>
                 {
                     foreach (string path in Directory.GetDirectories(folderPath))
                     {
-                        localInfos.Add(CldApiUtils.GetStandardInfo(path));
+                        localInfos.Add((CldApiUtils.GetBasicInfo(path), path));
                     }
                     foreach (string path in Directory.GetFiles(folderPath))
                     {
-                        localInfos.Add(CldApiUtils.GetStandardInfo(path));
+                        localInfos.Add((CldApiUtils.GetBasicInfo(path), path));
                     }
                 });
                 
@@ -173,24 +174,25 @@ namespace OnedataDrive
                 localDirChildrenTask.Wait();
 
                 // compare them
-                foreach (CF_PLACEHOLDER_STANDARD_INFO localInfo in localInfos)
+                foreach ((CF_PLACEHOLDER_BASIC_INFO localInfo, string localPath) in localInfos)
                 {
                     string localId = System.Text.Encoding.Unicode.GetString(localInfo.FileIdentity);
                     int index = cloudInfos.FindIndex(item => item.child.file_id == localId);
                     if (index < 0)
                     {
                         // delete local file/dir
-                        Debug.Print("Placeholder delete needed: " + localId);
+                        Debug.Print("Placeholder delete needed: " + localPath);
                     }
                     else
                     {
                         cloudInfos[index] = (cloudInfos[index].child, true);
                         Child cloudInfo = cloudInfos[index].child;
                         // compare size
-                        if (cloudInfo.size != localInfo.OnDiskDataSize && cloudInfo.type == "REG")
+                        FileInfo localFileInfo = new(localPath);
+                        if (cloudInfo.size != localFileInfo.Length && cloudInfo.type == "REG")
                         {
                             // update placeholder
-                            Debug.Print("Placeholder update needed: " + localId);
+                            Debug.Print("Placeholder update needed: " + localPath);
                         }
                         // compare name
                     }
