@@ -188,11 +188,15 @@ namespace OnedataDrive
                         cloudInfos[index] = (cloudInfos[index].child, true);
                         Child cloudInfo = cloudInfos[index].child;
                         // compare size
-                        FileInfo localFileInfo = new(localPath);
-                        if (cloudInfo.size != localFileInfo.Length && cloudInfo.type == "REG")
+                        
+                        if (cloudInfo.type == "REG")
                         {
+                            FileInfo localFileInfo = new(localPath);
+                            if (cloudInfo.size != localFileInfo.Length)
+                            {
+                                Debug.Print("Placeholder update needed: " + localPath);
+                            }
                             // update placeholder
-                            Debug.Print("Placeholder update needed: " + localPath);
                         }
                         // compare name
                     }
