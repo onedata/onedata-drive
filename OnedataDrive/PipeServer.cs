@@ -156,7 +156,11 @@ namespace OnedataDrive
                 List<CF_PLACEHOLDER_STANDARD_INFO> localInfos = new();
                 Task localDirChildrenTask = Task.Run(() =>
                 {
-                    foreach (string path in Directory.GetFiles(folderPath, "*", SearchOption.AllDirectories))
+                    foreach (string path in Directory.GetDirectories(folderPath))
+                    {
+                        localInfos.Add(CldApiUtils.GetStandardInfo(path));
+                    }
+                    foreach (string path in Directory.GetFiles(folderPath))
                     {
                         localInfos.Add(CldApiUtils.GetStandardInfo(path));
                     }
@@ -194,7 +198,7 @@ namespace OnedataDrive
                 List<Child> newChildren = cloudInfos.Where(x => x.visited == false).Select(x => x.child).ToList();
                 foreach (Child cloudInfo in newChildren)
                 {
-                    Debug.Print("NEW PLACEHOLDER: ", cloudInfo.name);
+                    Debug.Print("NEW PLACEHOLDER: " + cloudInfo.name);
                 }
                 Debug.Print("REFRESH FINISHED");
 
