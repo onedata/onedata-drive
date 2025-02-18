@@ -52,7 +52,7 @@ namespace ContextMenu
             {
                 Text = "Refresh Current Folder"
             };
-            var refreshFiles = new ToolStripMenuItem
+            var refreshFolderDown = new ToolStripMenuItem
             {
                 Text = "Refresh Current Folder and Subfolders"
             };
@@ -60,11 +60,11 @@ namespace ContextMenu
             {
                 Text = "Refresh Space"
             };
-            refreshFiles.Click += RefreshFiles;
+            refreshFolderDown.Click += RefreshFolderDown;
             refreshFolder.Click += RefreshFolder;
             refreshSpace.Click += RefreshSpace;
 
-            mainItem.DropDownItems.Add(refreshFiles);
+            mainItem.DropDownItems.Add(refreshFolderDown);
             mainItem.DropDownItems.Add(refreshFolder);
             mainItem.DropDownItems.Add(refreshSpace);
             menu.Items.Add(mainItem);
@@ -133,9 +133,9 @@ namespace ContextMenu
             return paths;
         }
 
-        private void RefreshFiles(object? sender, EventArgs e)
+        private void RefreshFolderDown(object? sender, EventArgs e)
         {
-            PipeCommand command = new(Commands.REFRESH_FILES, GetCurrentFolderPath());
+            PipeCommand command = new(Commands.REFRESH_FOLDER_DOWN, GetCurrentFolderPath());
             SendCommand(command);
         }
 
@@ -191,6 +191,7 @@ namespace ContextMenu
                         }
                         if (!readerTask.IsCompleted)
                         {
+                            Task.Run(() => MessageBox.Show("No response. Closing client"));
                             tokenSource.Cancel();
                         }
                     }

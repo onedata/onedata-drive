@@ -54,6 +54,6 @@ namespace OnedataDrive
         SEND_ROOT,
         REFRESH_SPACE,
         REFRESH_FOLDER,
-        REFRESH_FILES
+        REFRESH_FOLDER_DOWN
     }
 }

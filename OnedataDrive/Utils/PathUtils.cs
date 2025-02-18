@@ -20,6 +20,16 @@ namespace OnedataDrive.Utils
             return temp;
         }
 
+        public static bool IsSpacePath(string fullPath)
+        {
+            if (fullPath.StartsWith(CloudSync.configuration.root_path))
+            {
+                string temp = fullPath.Replace(CloudSync.configuration.root_path, string.Empty);
+                return CloudSync.spaces.Keys.Contains(temp.Split("//")[0]);
+            }
+            return false;
+        }
+
         public static string GetLastInPath(string fullPath, char separator = '\\')
         {
             string temp = fullPath;

@@ -15,6 +15,7 @@ namespace OnedataDrive
     public static class CloudSync
     {
         public static Config configuration = new();
+        // spaces: KEY is space name
         public static Dictionary<string, SpaceFolder> spaces = new();
         public static FileWatcher watcher = new();
         public static bool running { get; private set; } = false;

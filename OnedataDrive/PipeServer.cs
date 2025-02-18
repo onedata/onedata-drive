@@ -1,5 +1,8 @@
-﻿using System.Diagnostics;
+﻿using OnedataDrive.JSON_Object;
+using OnedataDrive.Utils;
+using System.Diagnostics;
 using System.IO.Pipes;
+using static Vanara.PInvoke.CldApi;
 
 namespace OnedataDrive
 {
@@ -44,47 +47,54 @@ namespace OnedataDrive
         {
             while (true)
             {
-                using (NamedPipeServerStream server = new(pipeName, PipeDirection.InOut))
+                try
                 {
-                    StreamReader reader = new StreamReader(server);
-                    StreamWriter writer = new StreamWriter(server);
-                    Debug.Print("PIPE SERVER: ready for client");
-                    Task waitForConnection = server.WaitForConnectionAsync();
-                    while (!waitForConnection.IsCompleted)
+                    using (NamedPipeServerStream server = new(pipeName, PipeDirection.InOut))
                     {
-                        if (cToken.IsCancellationRequested)
+                        StreamReader reader = new StreamReader(server);
+                        StreamWriter writer = new StreamWriter(server);
+                        Debug.Print("PIPE SERVER: ready for client");
+                        Task waitForConnection = server.WaitForConnectionAsync();
+                        while (!waitForConnection.IsCompleted)
                         {
-                            server.Close();
-                            return;
+                            if (cToken.IsCancellationRequested)
+                            {
+                                server.Close();
+                                return;
+                            }
+                            Task.Delay(10).Wait();
                         }
-                        Task.Delay(10).Wait();
-                    }
 
-                    Debug.Print("PIPE SERVER: listening for client`s messages");
-                    ValueTask<string?> readerTask = reader.ReadLineAsync(cToken);
-                    while (server.IsConnected)
-                    {
-                        if (cToken.IsCancellationRequested)
+                        Debug.Print("PIPE SERVER: listening for client`s messages");
+                        ValueTask<string?> readerTask = reader.ReadLineAsync(cToken);
+                        while (server.IsConnected)
                         {
-                            server.Close();
-                            return;
+                            if (cToken.IsCancellationRequested)
+                            {
+                                server.Close();
+                                return;
+                            }
+                            if (!readerTask.IsCompleted)
+                            {
+                                Task.Delay(100).Wait();
+                                continue;
+                            }
+                            else
+                            {
+                                string received = readerTask.Result ?? "";
+                                Debug.Print("PIPE SERVER received: " + received);
+                                string response = HandleCommand(received);
+                                writer.WriteLine(response);
+                                writer.FlushAsync().Wait();
+                                readerTask = reader.ReadLineAsync(cToken);
+                            }
                         }
-                        if (!readerTask.IsCompleted)
-                        {
-                            Task.Delay(100).Wait();
-                            continue;
-                        }
-                        else
-                        {
-                            string received = readerTask.Result ?? "";
-                            Debug.Print("PIPE SERVER received: " + received);
-                            string response = HandleCommand(received);
-                            writer.WriteLine(response);
-                            writer.Flush();
-                            readerTask = reader.ReadLineAsync(cToken);
-                        }
+                        Debug.Print("PIPE SERVER: client disconnected");
                     }
-                    Debug.Print("PIPE SERVER: client disconnected");
+                }
+                catch (Exception ex)
+                {
+                    Debug.Print("PIPE SERVER FAILED: " + ex.ToString());
                 }
             }
         }
@@ -107,14 +117,15 @@ namespace OnedataDrive
                     received.payload.ForEach(x => Debug.Print($"Path: {x}"));
                     response = new PipeCommand(Commands.OK).ToString();
                     break;
-                case Commands.REFRESH_FILES:
-                    Debug.Print("Refresh files");
+                case Commands.REFRESH_FOLDER_DOWN:
+                    Debug.Print("Refresh folder down");
                     received.payload.ForEach(x => Debug.Print($"Path: {x}"));
                     response = new PipeCommand(Commands.OK).ToString();
                     break;
                 case Commands.REFRESH_FOLDER:
                     Debug.Print("Refresh folder");
                     received.payload.ForEach(x => Debug.Print($"Path: {x}"));
+                    RefreshFolder(received.payload[0]);
                     response = new PipeCommand(Commands.OK).ToString();
                     break;
                 default:
@@ -124,6 +135,74 @@ namespace OnedataDrive
             }
             Debug.Print("PIPE SERVER msg received");
             return response;
+        }
+
+        private void RefreshFolder(string folderPath)
+        {
+            if (Directory.Exists(folderPath) && PathUtils.IsSpacePath(folderPath))
+            {
+                Debug.Print("REFRESH START");
+                // get folder path id
+                CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(folderPath);
+                string dirId = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
+
+                // based on id get contents info from server
+                SpaceFolder sf = CloudSync.spaces[PathUtils.GetSpaceName(folderPath)];
+                Task<DirChildren> dirChildrenTask = RestClient.GetFilesAndSubdirs(dirId, sf.providerInfos);
+
+                // get local info on all files/folders
+                List<CF_PLACEHOLDER_STANDARD_INFO> localInfos = new();
+                Task localDirChildrenTask = Task.Run(() =>
+                {
+                    foreach (string path in Directory.GetFiles(folderPath, "*", SearchOption.AllDirectories))
+                    {
+                        localInfos.Add(CldApiUtils.GetStandardInfo(path));
+                    }
+                });
+                
+
+                // get result from cloud and local
+                DirChildren dirChildren = dirChildrenTask.Result;
+                List<(Child child, bool visited)> cloudInfos = dirChildren.children.ConvertAll(x => (x, false));
+                localDirChildrenTask.Wait();
+
+                // compare them
+                foreach (CF_PLACEHOLDER_STANDARD_INFO localInfo in localInfos)
+                {
+                    string localId = System.Text.Encoding.Unicode.GetString(localInfo.FileIdentity);
+                    int index = cloudInfos.FindIndex(item => item.child.file_id == localId);
+                    if (index < 0)
+                    {
+                        // delete local file/dir
+                        Debug.Print("Placeholder delete needed: " + localId);
+                    }
+                    else
+                    {
+                        cloudInfos[index] = (cloudInfos[index].child, true);
+                        Child cloudInfo = cloudInfos[index].child;
+                        // compare size
+                        if (cloudInfo.size != localInfo.OnDiskDataSize && cloudInfo.type == "REG")
+                        {
+                            // update placeholder
+                            Debug.Print("Placeholder update needed: " + localId);
+                        }
+                        // compare name
+                    }
+                }
+                List<Child> newChildren = cloudInfos.Where(x => x.visited == false).Select(x => x.child).ToList();
+                foreach (Child cloudInfo in newChildren)
+                {
+                    Debug.Print("NEW PLACEHOLDER: ", cloudInfo.name);
+                }
+                Debug.Print("REFRESH FINISHED");
+
+
+                // remove those which did not match
+                // update changed files/folder
+                // create new ones
+                // execute create new placeholders
+                // if new folders are created create their contents
+            }
         }
     }
 }
