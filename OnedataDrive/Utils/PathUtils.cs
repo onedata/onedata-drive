@@ -25,7 +25,7 @@ namespace OnedataDrive.Utils
             if (fullPath.StartsWith(CloudSync.configuration.root_path))
             {
                 string temp = fullPath.Replace(CloudSync.configuration.root_path, string.Empty);
-                return CloudSync.spaces.Keys.Contains(temp.Split("//")[0]);
+                return CloudSync.spaces.Keys.Contains(temp.Split("\\")[0]);
             }
             return false;
         }

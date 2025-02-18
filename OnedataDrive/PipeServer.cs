@@ -139,6 +139,8 @@ namespace OnedataDrive
 
         private void RefreshFolder(string folderPath)
         {
+            Debug.Print("Is space path: " + PathUtils.IsSpacePath(folderPath));
+            Debug.Print("Is directory: " + Directory.Exists(folderPath));
             if (Directory.Exists(folderPath) && PathUtils.IsSpacePath(folderPath))
             {
                 Debug.Print("REFRESH START");
