@@ -182,6 +182,22 @@ namespace OnedataDrive
                     {
                         // delete local file/dir
                         Debug.Print("Placeholder delete needed: " + localPath);
+                        try
+                        {
+                            if (File.Exists(localPath))
+                            {
+                                File.Delete(localPath);
+                            }
+                            else
+                            {
+                                Directory.Delete(localPath, true);
+                            }
+                            Debug.Print("File delete OK");
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.Print("FAILED to remove file: " + e);
+                        }
                     }
                     else
                     {
