@@ -218,10 +218,31 @@ namespace OnedataDrive
                     }
                 }
                 List<Child> newChildren = cloudInfos.Where(x => x.visited == false).Select(x => x.child).ToList();
+                PlaceholderCreateInfo createInfo = new PlaceholderCreateInfo();
+                NameConvertor nameConvertor = new NameConvertor();
                 foreach (Child cloudInfo in newChildren)
                 {
                     Debug.Print("NEW PLACEHOLDER: " + cloudInfo.name);
+                    string windowsCorrectName = nameConvertor.MakeWindowsCorrectDistinct(cloudInfo.name, cloudInfo.file_id, createInfo);
+                    PlaceholderData placeholderData = new(
+                        cloudInfo.file_id,
+                        windowsCorrectName,
+                        cloudInfo.size,
+                        cloudInfo.atime,
+                        cloudInfo.mtime,
+                        cloudInfo.ctime
+                        );
+                    if (cloudInfo.type == "REG")
+                    {
+                        createInfo.Add(Placeholders.createInfo(placeholderData));
+                    }
+                    else if (cloudInfo.type == "DIR")
+                    {
+                        createInfo.Add(Placeholders.createDirInfo(placeholderData));
+                    }
+                    
                 }
+                CloudSync.CreatePlaceholders(createInfo, folderPath);
                 Debug.Print("REFRESH FINISHED");
 
 

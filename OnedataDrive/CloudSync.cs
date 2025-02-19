@@ -282,7 +282,7 @@ namespace OnedataDrive
             logger.Info("CREATING SPACE FOLDERS - FINISHED");
         }
 
-        private static void CreatePlaceholders(PlaceholderCreateInfo info, string path)
+        public static void CreatePlaceholders(PlaceholderCreateInfo info, string path)
         {
             uint entriesProcessed = 0;
 
