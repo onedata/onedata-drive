@@ -237,7 +237,7 @@ namespace OnedataDrive
             FileAttribute attribute = task.Result;
 
             CF_FS_METADATA metadata = Placeholders.CreateFSMetadata(attribute);
-            metadata.FileSize = info.PropertiesSize;
+            //metadata.FileSize = info.PropertiesSize;
 
             long updateUsn = 0;
             HRESULT hres = CfUpdatePlaceholder(FileHandle: handle.DangerousGetHandle(),
