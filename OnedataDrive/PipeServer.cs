@@ -2,6 +2,7 @@
 using OnedataDrive.Utils;
 using System.Diagnostics;
 using System.IO.Pipes;
+using System.Reflection.Metadata;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
 
@@ -141,7 +142,7 @@ namespace OnedataDrive
         private void RefreshFolder(string folderPath)
         {
             Debug.Print("Is space path: " + PathUtils.IsSpacePath(folderPath));
-            Debug.Print("Is directory: " + Directory.Exists(folderPath));
+            Debug.Print("Is isDirectory: " + Directory.Exists(folderPath));
             if (Directory.Exists(folderPath) && PathUtils.IsSpacePath(folderPath))
             {
                 Debug.Print("REFRESH START");
@@ -205,12 +206,14 @@ namespace OnedataDrive
                         Child cloudInfo = cloudInfos[index].child;
                         // compare size
                         
+
                         if (cloudInfo.type == "REG")
                         {
                             FileInfo localFileInfo = new(localPath);
                             if (cloudInfo.size != localFileInfo.Length)
                             {
                                 Debug.Print("Placeholder update needed: " + localPath);
+                                UpdatePlaceholder(localPath, cloudInfo);
                             }
                             // update placeholder
                         }
@@ -252,6 +255,34 @@ namespace OnedataDrive
                 // execute create new placeholders
                 // if new folders are created create their contents
             }
+
         }
+
+        private void UpdatePlaceholder(string placeholderPath, Child cloudInfo, bool isDirectory = false)
+        {
+            PlaceholderData placeholderData = new(
+                cloudInfo.file_id, 
+                cloudInfo.name, 
+                cloudInfo.size, 
+                cloudInfo.atime, 
+                cloudInfo.mtime, 
+                cloudInfo.ctime);
+            
+            CfOpenFileWithOplock(placeholderPath, 
+                CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE,
+                out SafeHCFFILE handle);
+
+            long updateUsn = 0;
+            HRESULT hres = CfUpdatePlaceholder(FileHandle: handle.DangerousGetHandle(),
+                                FsMetadata: Placeholders.CreateFSMetadata(placeholderData, isDirectory),
+                                FileIdentity: 0,
+                                FileIdentityLength: 0,
+                                DehydrateRangeCount: 0,
+                                UpdateFlags: CF_UPDATE_FLAGS.CF_UPDATE_FLAG_MARK_IN_SYNC,
+                                UpdateUsn: ref updateUsn
+                                );
+            CfCloseHandle(handle);
+        }
+
     }
 }
