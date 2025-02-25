@@ -254,41 +254,6 @@ namespace OnedataDrive
             }
         }
 
-        private void SetInSyncState(FileSystemEventArgs e)
-        {
-            SafeHCFFILE handle;
-            HRESULT openHres = CfOpenFileWithOplock(e.FullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out handle);
-
-            if (openHres != HRESULT.S_OK)
-            {
-                Debug.Print("Handle NOT OK");
-            }
-            HRESULT hresSync = CfSetInSyncState(handle.DangerousGetHandle(), CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
-            if (hresSync != HRESULT.S_OK)
-            {
-                Debug.Print("SetSyncState NOT OK");
-            }
-            else
-            {
-                throw new Exception("CfSetInSyncState hres: " + hresSync);
-            }
-
-            CfCloseHandle(handle);
-        }
-
-        private void SetInSyncState(SafeHCFFILE handle)
-        {
-            HRESULT hresSync = CfSetInSyncState(handle.DangerousGetHandle(), CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
-            if (hresSync != HRESULT.S_OK)
-            {
-                Debug.Print("SetSyncState NOT OK");
-            }
-            else
-            {
-                throw new Exception("CfSetInSyncState hres: " + hresSync);
-            }
-        }
-
         private FileId PushNewFolderToCloud(string fullPath)
         {
             CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(PathUtils.GetParentPath(fullPath));

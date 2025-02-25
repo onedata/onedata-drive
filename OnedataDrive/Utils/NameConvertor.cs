@@ -127,7 +127,7 @@ namespace OnedataDrive.Utils
             }
         }
 
-        private string IdSuffix(string fileId)
+        public static string IdSuffix(string fileId)
         {
             if (fileId.Length >= 36)
             {

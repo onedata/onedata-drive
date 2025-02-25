@@ -174,6 +174,8 @@ namespace OnedataDrive
                 List<(Child child, bool visited)> cloudInfos = dirChildren.children.ConvertAll(x => (x, false));
                 localDirChildrenTask.Wait();
 
+                NameConvertor nameConvertor = new NameConvertor();
+
                 // compare them
                 foreach ((CF_PLACEHOLDER_BASIC_INFO localInfo, string localPath) in localInfos)
                 {
@@ -202,27 +204,43 @@ namespace OnedataDrive
                     }
                     else
                     {
-                        cloudInfos[index] = (cloudInfos[index].child, true);
-                        Child cloudInfo = cloudInfos[index].child;
-                        // compare size
-                        
-
-                        if (cloudInfo.type == "REG")
+                        CloudSync.watcher.Pause();
+                        try
                         {
-                            FileInfo localFileInfo = new(localPath);
-                            if (cloudInfo.size != localFileInfo.Length)
+                            cloudInfos[index] = (cloudInfos[index].child, true);
+                            Child cloudInfo = cloudInfos[index].child;
+                            // compare size
+
+
+                            if (cloudInfo.type == "REG")
                             {
-                                Debug.Print("Placeholder update needed: " + localPath);
-                                UpdatePlaceholder(localPath, cloudInfo);
+                                FileInfo localFileInfo = new(localPath);
+                                if (cloudInfo.size != localFileInfo.Length)
+                                {
+                                    // update placeholder
+                                    Debug.Print("Placeholder update needed: " + localPath);
+                                    UpdatePlaceholder(localPath, cloudInfo);
+                                }
                             }
-                            // update placeholder
+
+                            // compare name
+                            string cloudWindowsName = nameConvertor.MakeWindowsCorrect(cloudInfo.name, out bool idAttached, cloudInfo.file_id);
+                            string localName = PathUtils.GetLastInPath(localPath);
+                            if (localName != cloudWindowsName)
+                            {
+                                RenamePlaceholder(localPath, cloudWindowsName, idAttached, cloudInfo.file_id);
+                            }
                         }
-                        // compare name
+                        catch (Exception e)
+                        {
+                            Debug.Print("FAILED to update placeholder: " + e);
+                        }
+                        CloudSync.watcher.Resume();
                     }
                 }
                 List<Child> newChildren = cloudInfos.Where(x => x.visited == false).Select(x => x.child).ToList();
                 PlaceholderCreateInfo createInfo = new PlaceholderCreateInfo();
-                NameConvertor nameConvertor = new NameConvertor();
+                
                 foreach (Child cloudInfo in newChildren)
                 {
                     Debug.Print("NEW PLACEHOLDER: " + cloudInfo.name);
@@ -257,6 +275,55 @@ namespace OnedataDrive
             }
 
         }
+
+        private void RenamePlaceholder(string localPath, string windowsCorrectName, bool idAttached, string id)
+        {
+            string parentPath = PathUtils.GetParentPath(localPath);
+            string suffix = "";
+            for (int i = 1; i < 1000; i++)
+            {
+                string newName = windowsCorrectName + suffix;
+                try
+                {
+                    string newPath = Path.Join(parentPath, newName);
+                    Rename(localPath, newPath);
+                    Debug.Print($"Renamed {newPath}");
+                    CldApiUtils.SetInSyncState(newPath);
+                    break;
+                }
+                catch (IOException e)
+                {
+                    Debug.Print("Rename FAIL: " + e);
+                }
+
+                if (!idAttached)
+                {
+                    windowsCorrectName += NameConvertor.IdSuffix(id);
+                    idAttached = true;
+                }
+                else
+                {
+                    if (i == 1)
+                    {
+                        i = 2;
+                    }
+                    suffix = $"({i})";
+                }
+            }
+        }
+
+        private void Rename(string oldPath, string newPath)
+        {
+            if (Directory.Exists(oldPath))
+            {
+                    Directory.Move(oldPath, newPath);
+            }
+            else if (File.Exists(oldPath))
+            {
+                    File.Move(oldPath, newPath);
+            }
+        }
+          
 
         private void UpdatePlaceholder(string placeholderPath, Child cloudInfo, bool isDirectory = false)
         {

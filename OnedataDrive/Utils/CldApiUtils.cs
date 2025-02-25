@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using Vanara.PInvoke;
@@ -54,5 +55,23 @@ static class CldApiUtils
         Marshal.FreeCoTaskMem(pointer);
 
         return info;
+    }
+
+    public static void SetInSyncState(string fullPath)
+    {
+        SafeHCFFILE handle;
+        HRESULT openHres = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out handle);
+
+        if (openHres != HRESULT.S_OK)
+        {
+            Debug.Print("Handle NOT OK");
+            return;
+        }
+        HRESULT hresSync = CfSetInSyncState(handle.DangerousGetHandle(), CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
+        if (hresSync != HRESULT.S_OK)
+        {
+            Debug.Print("SetSyncState NOT OK");
+        }
+        CfCloseHandle(handle);
     }
 }
