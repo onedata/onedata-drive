@@ -15,6 +15,12 @@
     {
         "Entry"
         {
+        "MsmKey" = "8:_0225A5564A8648F2B4BA5BA16F377763"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_190BDCC988A143959206E345C52F7E33"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -22,6 +28,18 @@
         "Entry"
         {
         "MsmKey" = "8:_5BD52ADB823549C2B1899ACEB89051CE"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_933DB5382B754DFE99568C78AA319D81"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_C407F1BBD2C4433B87BD3F49A8F8942E"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -102,6 +120,48 @@
     {
         "CustomAction"
         {
+            "{4AA51A2D-7D85-4A59-BA75-B0809FC8B380}:_631833BDB61B4CFE8A83C1B91C8291D2"
+            {
+            "Name" = "8:cmd.exe"
+            "Condition" = "8:"
+            "Object" = "8:_933DB5382B754DFE99568C78AA319D81"
+            "FileType" = "3:2"
+            "InstallAction" = "3:2"
+            "Arguments" = "8:/c \"[TARGETDIR]ContextMenu\\Register.bat\""
+            "EntryPoint" = "8:"
+            "Sequence" = "3:1"
+            "Identifier" = "8:_E2278FE4_58FF_4E92_99B1_262D4F446E62"
+            "InstallerClass" = "11:FALSE"
+            "CustomActionData" = "8:"
+            }
+            "{4AA51A2D-7D85-4A59-BA75-B0809FC8B380}:_70FDDBA384F14DEE8ACA6E30A6AC3B4C"
+            {
+            "Name" = "8:cmd.exe"
+            "Condition" = "8:"
+            "Object" = "8:_933DB5382B754DFE99568C78AA319D81"
+            "FileType" = "3:2"
+            "InstallAction" = "3:4"
+            "Arguments" = "8:/c \"[TARGETDIR]ContextMenu\\Unregister.bat\""
+            "EntryPoint" = "8:"
+            "Sequence" = "3:1"
+            "Identifier" = "8:_37DB6530_E6F8_4907_AB87_7FCF9E249ADD"
+            "InstallerClass" = "11:FALSE"
+            "CustomActionData" = "8:"
+            }
+            "{4AA51A2D-7D85-4A59-BA75-B0809FC8B380}:_812D53A3F9A24C84B2B22B268D008D39"
+            {
+            "Name" = "8:cmd.exe"
+            "Condition" = "8:"
+            "Object" = "8:_933DB5382B754DFE99568C78AA319D81"
+            "FileType" = "3:2"
+            "InstallAction" = "3:3"
+            "Arguments" = "8:/c \"[TARGETDIR]ContextMenu\\Unregister.bat\""
+            "EntryPoint" = "8:"
+            "Sequence" = "3:1"
+            "Identifier" = "8:_52DEE2B4_F2B5_4B16_9AD2_CAD532A1A66D"
+            "InstallerClass" = "11:FALSE"
+            "CustomActionData" = "8:"
+            }
         }
         "DefaultFeature"
         {
@@ -127,12 +187,72 @@
         }
         "File"
         {
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_0225A5564A8648F2B4BA5BA16F377763"
+            {
+            "SourcePath" = "8:..\\Register.bat"
+            "TargetName" = "8:Register.bat"
+            "Tag" = "8:"
+            "Folder" = "8:_26B51BD228264DC5A010EBCC8C47C92A"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_5BD52ADB823549C2B1899ACEB89051CE"
             {
             "SourcePath" = "8:..\\OnedataDrive\\resources\\icon-dark.ico"
             "TargetName" = "8:icon-dark.ico"
             "Tag" = "8:"
             "Folder" = "8:_9DCA72EB57EE482A92DC04DD94E04FD7"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_933DB5382B754DFE99568C78AA319D81"
+            {
+            "SourcePath" = "8:C:\\Windows\\System32\\cmd.exe"
+            "TargetName" = "8:cmd.exe"
+            "Tag" = "8:"
+            "Folder" = "8:_26B51BD228264DC5A010EBCC8C47C92A"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_C407F1BBD2C4433B87BD3F49A8F8942E"
+            {
+            "SourcePath" = "8:..\\Unregister.bat"
+            "TargetName" = "8:Unregister.bat"
+            "Tag" = "8:"
+            "Folder" = "8:_26B51BD228264DC5A010EBCC8C47C92A"
             "Condition" = "8:"
             "Transitive" = "11:FALSE"
             "Vital" = "11:TRUE"
@@ -185,6 +305,17 @@
             "Property" = "8:TARGETDIR"
                 "Folders"
                 {
+                    "{9EF0B969-E518-4E46-987F-47570745A589}:_26B51BD228264DC5A010EBCC8C47C92A"
+                    {
+                    "Name" = "8:ContextMenu"
+                    "AlwaysCreate" = "11:FALSE"
+                    "Condition" = "8:"
+                    "Transitive" = "11:FALSE"
+                    "Property" = "8:_B818E71DB83A44B782F7530340494219"
+                        "Folders"
+                        {
+                        }
+                    }
                 }
             }
         }
@@ -203,15 +334,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:OnedataDrive"
-        "ProductCode" = "8:{8EE9B9C6-C999-431E-A920-2A1F527A59FE}"
-        "PackageCode" = "8:{665E6DC8-ECC8-4274-A86B-FA94E733F864}"
+        "ProductCode" = "8:{DC40A52C-E78C-417F-8241-3C4134F88B23}"
+        "PackageCode" = "8:{2C089B6F-CBE1-42A2-9477-E10D225AF2BC}"
         "UpgradeCode" = "8:{1A0420F3-CF57-41DF-809C-3098B2E589F9}"
         "AspNetVersion" = "8:"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:FALSE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:0.2.1"
+        "ProductVersion" = "8:0.3.0-devel"
         "Manufacturer" = "8:Masaryk University"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
@@ -760,6 +891,34 @@
             "OutputConfiguration" = "8:"
             "OutputGroupCanonicalName" = "8:PublishItems"
             "OutputProjectGuid" = "8:{B11D6C87-30A4-4C5D-A9C6-E433E5791AD5}"
+            "ShowKeyOutput" = "11:TRUE"
+                "ExcludeFilters"
+                {
+                }
+            }
+            "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_8A9BE038E46A496EBFB78B476AE8431A"
+            {
+            "SourcePath" = "8:"
+            "TargetName" = "8:"
+            "Tag" = "8:"
+            "Folder" = "8:_26B51BD228264DC5A010EBCC8C47C92A"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            "ProjectOutputGroupRegister" = "3:1"
+            "OutputConfiguration" = "8:"
+            "OutputGroupCanonicalName" = "8:PublishItems"
+            "OutputProjectGuid" = "8:{1EE64333-269A-4CDC-BF2F-18CFB9945CE7}"
             "ShowKeyOutput" = "11:TRUE"
                 "ExcludeFilters"
                 {

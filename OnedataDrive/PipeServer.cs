@@ -56,7 +56,7 @@ namespace OnedataDrive
                         StreamReader reader = new StreamReader(server);
                         StreamWriter writer = new StreamWriter(server);
                         Debug.Print("PIPE SERVER: ready for client");
-                        Task waitForConnection = server.WaitForConnectionAsync();
+                        Task waitForConnection = server.WaitForConnectionAsync(cToken);
                         while (!waitForConnection.IsCompleted)
                         {
                             if (cToken.IsCancellationRequested)
@@ -73,6 +73,7 @@ namespace OnedataDrive
                         {
                             if (cToken.IsCancellationRequested)
                             {
+                                server.Disconnect();
                                 server.Close();
                                 return;
                             }
@@ -92,11 +93,19 @@ namespace OnedataDrive
                             }
                         }
                         Debug.Print("PIPE SERVER: client disconnected");
+                        if (cToken.IsCancellationRequested)
+                        {
+                            return;
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
                     Debug.Print("PIPE SERVER FAILED: " + ex.ToString());
+                    if (cToken.IsCancellationRequested)
+                    {
+                        return;
+                    }
                 }
             }
         }
