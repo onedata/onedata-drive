@@ -130,12 +130,12 @@ namespace OnedataDrive
                     // do something
                     Debug.Print("Refresh space");
                     received.payload.ForEach(x => Debug.Print($"Path: {x}"));
-                    response = new PipeCommand(Commands.OK).ToString();
+                    response = new PipeCommand(Commands.FAIL).ToString();
                     break;
                 case Commands.REFRESH_FOLDER_DOWN:
                     Debug.Print("Refresh folder down");
                     received.payload.ForEach(x => Debug.Print($"Path: {x}"));
-                    response = new PipeCommand(Commands.OK).ToString();
+                    response = new PipeCommand(Commands.FAIL).ToString();
                     break;
                 case Commands.REFRESH_FOLDER:
                     Debug.Print("Refresh folder");
@@ -278,13 +278,6 @@ namespace OnedataDrive
                 }
                 CloudSync.CreatePlaceholders(createInfo, folderPath);
                 Debug.Print("REFRESH FINISHED");
-
-
-                // remove those which did not match
-                // update changed files/folder
-                // create new ones
-                // execute create new placeholders
-                // if new folders are created create their contents
             }
 
         }

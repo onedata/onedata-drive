@@ -64,9 +64,9 @@ namespace ContextMenu
             refreshFolder.Click += RefreshFolder;
             refreshSpace.Click += RefreshSpace;
 
-            mainItem.DropDownItems.Add(refreshFolderDown);
+            //mainItem.DropDownItems.Add(refreshFolderDown);
             mainItem.DropDownItems.Add(refreshFolder);
-            mainItem.DropDownItems.Add(refreshSpace);
+            //mainItem.DropDownItems.Add(refreshSpace);
             menu.Items.Add(mainItem);
 
             return menu;
@@ -105,7 +105,7 @@ namespace ContextMenu
                 }
                 return rootPath;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return null;
             }
