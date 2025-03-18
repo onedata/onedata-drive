@@ -1,6 +1,7 @@
 ﻿using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipes;
 using System.Reflection.Metadata;
 using Vanara.PInvoke;
@@ -12,8 +13,8 @@ namespace OnedataDrive
     {
         public bool running { get; private set; } = false;
         public string pipeName { get; private set; } = "";
-        private CancellationTokenSource cts;
-        private Task serverTask;
+        private CancellationTokenSource cts = new();
+        private Task? serverTask;
         
         public void Start(string pipeName)
         {
@@ -35,7 +36,10 @@ namespace OnedataDrive
                 return;
             }
             cts.Cancel();
-            this.serverTask.Wait();
+            if (this.serverTask is not null)
+            {
+                this.serverTask.Wait();
+            }
             this.running = false;
             Debug.Print("PIPE SERVER: stopped");
         }

@@ -1,14 +1,11 @@
-﻿using System.Diagnostics;
-using Vanara.PInvoke;
+﻿using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
 using static Vanara.PInvoke.SearchApi;
 using OnedataDrive.Utils;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.ErrorHandling;
 using NLog;
-using NLog.Targets;
 using System.Runtime.InteropServices;
-using System.IO.Pipes;
 
 namespace OnedataDrive
 {
@@ -22,7 +19,7 @@ namespace OnedataDrive
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public const string VERSION = "0.3.0-unstable";
         public const string PIPE_SERVER_NAME = "onedatadrive{998B9E8D-1218-41B3-B360-15A776172DEB}";
-        public static PipeServer pipeServer;
+        public static PipeServer pipeServer = new();
         /// <summary>
         /// Method to start CloudSync
         /// </summary>
