@@ -2,6 +2,7 @@
 using OnedataDrive;
 using OnedataDrive.JSON_Object;
 using NLog;
+using System.Diagnostics;
 
 namespace OnedataDriveGUI
 {
@@ -244,6 +245,13 @@ namespace OnedataDriveGUI
         private void rootFolderErase_button_Click(object sender, EventArgs e)
         {
             rootFolder_textBox.Text = "";
+        }
+
+        private void openLogFolder_button_Click(object sender, EventArgs e)
+        {
+            string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string logPath = Path.Join(appDataPath, "OnedataDrive\\logs");
+            Process.Start("explorer.exe", logPath);
         }
     }
 }

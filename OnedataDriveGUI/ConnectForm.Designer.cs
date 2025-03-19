@@ -61,6 +61,7 @@
             statusMessage = new ToolStripStatusLabel();
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
+            openLogFolder_button = new Button();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             form_panel.SuspendLayout();
@@ -275,6 +276,7 @@
             // 
             advanced_panel.BackColor = SystemColors.Control;
             advanced_panel.BorderStyle = BorderStyle.FixedSingle;
+            advanced_panel.Controls.Add(openLogFolder_button);
             advanced_panel.Controls.Add(rootFolderErase_button);
             advanced_panel.Controls.Add(loadFromFile_button);
             advanced_panel.Controls.Add(rootFolderDelete_checkBox);
@@ -284,7 +286,7 @@
             advanced_panel.Dock = DockStyle.Top;
             advanced_panel.Location = new Point(0, 300);
             advanced_panel.Name = "advanced_panel";
-            advanced_panel.Size = new Size(767, 163);
+            advanced_panel.Size = new Size(767, 203);
             advanced_panel.TabIndex = 21;
             advanced_panel.Visible = false;
             // 
@@ -293,7 +295,7 @@
             controls_panel.Controls.Add(connect_button);
             controls_panel.Controls.Add(disconect_button);
             controls_panel.Dock = DockStyle.Top;
-            controls_panel.Location = new Point(0, 463);
+            controls_panel.Location = new Point(0, 503);
             controls_panel.Name = "controls_panel";
             controls_panel.Size = new Size(767, 97);
             controls_panel.TabIndex = 22;
@@ -357,6 +359,18 @@
             scrollPanel.Name = "scrollPanel";
             scrollPanel.Size = new Size(784, 489);
             scrollPanel.TabIndex = 24;
+            // 
+            // openLogFolder_button
+            // 
+            openLogFolder_button.BackColor = SystemColors.Window;
+            openLogFolder_button.Location = new Point(159, 146);
+            openLogFolder_button.Margin = new Padding(2, 3, 2, 3);
+            openLogFolder_button.Name = "openLogFolder_button";
+            openLogFolder_button.Size = new Size(194, 33);
+            openLogFolder_button.TabIndex = 20;
+            openLogFolder_button.Text = "Open folder with logs";
+            openLogFolder_button.UseVisualStyleBackColor = false;
+            openLogFolder_button.Click += openLogFolder_button_Click;
             // 
             // ConnectForm
             // 
@@ -425,5 +439,6 @@
         private PictureBox pictureBox1;
         private ComboBox onezone_comboBox;
         private Label version_label;
+        private Button openLogFolder_button;
     }
 }
