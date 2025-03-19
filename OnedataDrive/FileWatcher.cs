@@ -1,4 +1,5 @@
-﻿using OnedataDrive.JSON_Object;
+﻿using OnedataDrive.ErrorHandling;
+using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -200,6 +201,21 @@ namespace OnedataDrive
             try
             {
                 PushToCloudUpdate(e.FullPath, info);
+            }
+            catch (AggregateException ae)
+            {
+                if (ae.InnerException is NoSuchCloudFile)
+                {
+                    Debug.Print(ae.ToString());
+                    File.Delete(e.FullPath);
+                    Debug.Print("File was deleted, because it does not exist on cloud");
+                    return;
+                }
+                else
+                {
+                    throw;
+                }
+
             }
             catch (Exception exception)
             {

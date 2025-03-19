@@ -130,6 +130,14 @@ namespace OnedataDrive
             };
 
             var response = await client.SendAsync(RequestMsg);
+            if (!response.IsSuccessStatusCode)
+            {
+                string responseContent = await response.Content.ReadAsStringAsync();
+                if (responseContent.Contains("\"errno\":\"enoent\""))
+                {
+                    throw new NoSuchCloudFile(response);
+                }
+            }
             response.EnsureSuccessStatusCode();
 
             return;
@@ -304,6 +312,7 @@ namespace OnedataDrive
 
         public static async Task PostFileContent(List<ProviderInfo> providerInfos, string id, FileStream stream)
         {
+            List<Exception> exceptionList = new();
             foreach (ProviderInfo info in providerInfos)
             {
                 try
@@ -318,10 +327,11 @@ namespace OnedataDrive
                 }
                 catch (HttpRequestException e)
                 {
-                    Console.WriteLine(e.Message);
+                    exceptionList.Add(e);
+                    Debug.Print(e.Message);
                 }
             }
-            throw new Exception("Failed to put file");
+            throw new AggregateException("Failed to put file.", exceptionList);
         }
 
         public static async Task Move(List<ProviderInfo> providerInfos, string source, string dest, string spaceName)
