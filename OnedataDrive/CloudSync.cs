@@ -17,7 +17,7 @@ namespace OnedataDrive
         public static FileWatcher watcher = new();
         public static bool running { get; private set; } = false;
         public static Logger logger = LogManager.GetCurrentClassLogger();
-        public const string VERSION = "0.3.0-unstable";
+        public const string VERSION = "0.3.1-unstable";
         public const string PIPE_SERVER_NAME = "onedatadrive{998B9E8D-1218-41B3-B360-15A776172DEB}";
         public static PipeServer pipeServer = new();
         /// <summary>
