@@ -1,0 +1,10 @@
+
+dotnet-test:
+  image:
+    name: mcr.microsoft.com/dotnet/sdk:8.0.407
+  stage: test
+  script:
+    - cd TestProject
+    - dotnet test -r linux-x64 -p:EnableWindowsTargeting=true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "cicd"'
