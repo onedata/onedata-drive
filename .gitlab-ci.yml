@@ -6,5 +6,5 @@ dotnet-test:
   script:
     - cd TestProject
     - dotnet test -r linux-x64 -p:EnableWindowsTargeting=true
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "cicd"'
+#  rules:
+#    - if: '$CI_COMMIT_BRANCH == "cicd"'
