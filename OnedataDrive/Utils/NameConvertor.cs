@@ -1,11 +1,13 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 
 namespace OnedataDrive.Utils
 {
     public class NameConvertor
     {
-        //public const string PROHIBITED_CHARS = "<>:\"/\\|?*";
-        char[] prohibitedChars = Path.GetInvalidFileNameChars();
+        // windows prohibited chars + unprintable chars
+        public string prohibitedChars = "<>:\"/\\|?*" + new string(Enumerable.Range(0,32).Select(x => (char)x).ToArray());
+        //char[] prohibitedChars = Path.GetInvalidFileNameChars();
         List<string> prohibitedNames = new() {
             "CON", "PRN", "AUX", "NUL", "COM0", "COM1", "COM2", 
             "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", 
@@ -42,7 +44,6 @@ namespace OnedataDrive.Utils
         /// <returns>Correct Windows name</returns>
         public string MakeWindowsCorrect(string name, out bool modified, string fileId, char replaceChar = '_')
         {
-
             string? fixedName = FixName(name, replaceChar);
             if (fixedName == null)
             {
