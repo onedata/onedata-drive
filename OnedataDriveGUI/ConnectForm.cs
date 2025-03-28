@@ -225,9 +225,11 @@ namespace OnedataDriveGUI
             if (advanced_panel.Visible)
             {
                 advanced_panel.Hide();
+                this.Size = new System.Drawing.Size(this.Size.Width, this.Size.Height - advanced_panel.Size.Height);
             }
             else
             {
+                this.Size = new System.Drawing.Size(this.Size.Width, this.Size.Height + advanced_panel.Size.Height);
                 advanced_panel.Show();
             }
         }
@@ -252,6 +254,34 @@ namespace OnedataDriveGUI
             string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             string logPath = Path.Join(appDataPath, "OnedataDrive\\logs");
             Process.Start("explorer.exe", logPath);
+        }
+
+        /// <summary>
+        /// Creates border around advanced_panel
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void advanced_panel_paint(object sender, PaintEventArgs e)
+        {
+            if (advanced_panel.BorderStyle == BorderStyle.None)
+            {
+                int thickness = 20;//it's up to you
+                int halfThickness = thickness / 2;
+                using (Pen p = new Pen(SystemColors.Control, thickness))
+                {
+                    /*
+                    e.Graphics.DrawRectangle(p, new Rectangle(halfThickness,
+                                                              halfThickness,
+                                                              advanced_panel.ClientSize.Width - thickness,
+                                                              advanced_panel.ClientSize.Height - thickness));
+                    */
+                    e.Graphics.DrawLine(p, new Point(halfThickness, 0), new Point(halfThickness, advanced_panel.ClientSize.Height));
+                    e.Graphics.DrawLine(
+                        p, 
+                        new Point(advanced_panel.ClientSize.Width - halfThickness, 0), 
+                        new Point(advanced_panel.ClientSize.Width - halfThickness, advanced_panel.ClientSize.Height));
+                }
+            }
         }
     }
 }

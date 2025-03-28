@@ -115,7 +115,7 @@
             // 
             // rootFolder_textBox
             // 
-            rootFolder_textBox.Location = new Point(160, 14);
+            rootFolder_textBox.Location = new Point(178, 19);
             rootFolder_textBox.Margin = new Padding(2, 3, 2, 3);
             rootFolder_textBox.Name = "rootFolder_textBox";
             rootFolder_textBox.ReadOnly = true;
@@ -125,7 +125,7 @@
             // rootFolder_label
             // 
             rootFolder_label.AutoSize = true;
-            rootFolder_label.Location = new Point(17, 18);
+            rootFolder_label.Location = new Point(35, 23);
             rootFolder_label.Margin = new Padding(2, 0, 2, 0);
             rootFolder_label.Name = "rootFolder_label";
             rootFolder_label.Size = new Size(80, 19);
@@ -152,7 +152,7 @@
             // 
             // folderBrowser_button
             // 
-            folderBrowser_button.Location = new Point(638, 15);
+            folderBrowser_button.Location = new Point(656, 20);
             folderBrowser_button.Margin = new Padding(2, 3, 2, 3);
             folderBrowser_button.Name = "folderBrowser_button";
             folderBrowser_button.Size = new Size(31, 24);
@@ -164,7 +164,7 @@
             // rootFolderDelete_checkBox
             // 
             rootFolderDelete_checkBox.AutoSize = true;
-            rootFolderDelete_checkBox.Location = new Point(161, 59);
+            rootFolderDelete_checkBox.Location = new Point(179, 64);
             rootFolderDelete_checkBox.Margin = new Padding(2, 3, 2, 3);
             rootFolderDelete_checkBox.Name = "rootFolderDelete_checkBox";
             rootFolderDelete_checkBox.Size = new Size(186, 23);
@@ -199,7 +199,7 @@
             // loadFromFile_button
             // 
             loadFromFile_button.BackColor = SystemColors.Window;
-            loadFromFile_button.Location = new Point(159, 98);
+            loadFromFile_button.Location = new Point(177, 103);
             loadFromFile_button.Margin = new Padding(2, 3, 2, 3);
             loadFromFile_button.Name = "loadFromFile_button";
             loadFromFile_button.Size = new Size(194, 33);
@@ -263,7 +263,7 @@
             // 
             // rootFolderErase_button
             // 
-            rootFolderErase_button.Location = new Point(673, 15);
+            rootFolderErase_button.Location = new Point(691, 20);
             rootFolderErase_button.Margin = new Padding(2, 3, 2, 3);
             rootFolderErase_button.Name = "rootFolderErase_button";
             rootFolderErase_button.Size = new Size(31, 24);
@@ -275,8 +275,7 @@
             // 
             // advanced_panel
             // 
-            advanced_panel.BackColor = SystemColors.Control;
-            advanced_panel.BorderStyle = BorderStyle.FixedSingle;
+            advanced_panel.BackColor = Color.FromArgb(225, 225, 225);
             advanced_panel.Controls.Add(openLogFolder_button);
             advanced_panel.Controls.Add(rootFolderErase_button);
             advanced_panel.Controls.Add(loadFromFile_button);
@@ -287,14 +286,15 @@
             advanced_panel.Dock = DockStyle.Top;
             advanced_panel.Location = new Point(0, 300);
             advanced_panel.Name = "advanced_panel";
-            advanced_panel.Size = new Size(767, 203);
+            advanced_panel.Size = new Size(767, 200);
             advanced_panel.TabIndex = 21;
             advanced_panel.Visible = false;
+            advanced_panel.Paint += advanced_panel_paint;
             // 
             // openLogFolder_button
             // 
             openLogFolder_button.BackColor = SystemColors.Window;
-            openLogFolder_button.Location = new Point(159, 146);
+            openLogFolder_button.Location = new Point(177, 151);
             openLogFolder_button.Margin = new Padding(2, 3, 2, 3);
             openLogFolder_button.Name = "openLogFolder_button";
             openLogFolder_button.Size = new Size(194, 33);
@@ -308,7 +308,7 @@
             controls_panel.Controls.Add(connect_button);
             controls_panel.Controls.Add(disconect_button);
             controls_panel.Dock = DockStyle.Top;
-            controls_panel.Location = new Point(0, 503);
+            controls_panel.Location = new Point(0, 500);
             controls_panel.Name = "controls_panel";
             controls_panel.Size = new Size(767, 97);
             controls_panel.TabIndex = 22;
@@ -385,7 +385,7 @@
             Icon = (Icon)resources.GetObject("$this.Icon");
             Margin = new Padding(2, 3, 2, 3);
             MaximizeBox = false;
-            MaximumSize = new Size(800, 1080);
+            MaximumSize = new Size(900, 1080);
             MinimumSize = new Size(800, 550);
             Name = "ConnectForm";
             Text = "OnedataDrive";
