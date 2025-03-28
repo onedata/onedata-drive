@@ -316,7 +316,7 @@
             // statusStrip
             // 
             statusStrip.Items.AddRange(new ToolStripItem[] { statusImageGrey, statusImageBlue, statusImageRed, statusImageGreen, statusLabel, statusMessage });
-            statusStrip.Location = new Point(0, 489);
+            statusStrip.Location = new Point(0, 464);
             statusStrip.Name = "statusStrip";
             statusStrip.Size = new Size(784, 22);
             statusStrip.TabIndex = 23;
@@ -370,7 +370,7 @@
             scrollPanel.Dock = DockStyle.Fill;
             scrollPanel.Location = new Point(0, 0);
             scrollPanel.Name = "scrollPanel";
-            scrollPanel.Size = new Size(784, 489);
+            scrollPanel.Size = new Size(784, 464);
             scrollPanel.TabIndex = 24;
             // 
             // ConnectForm
@@ -378,7 +378,7 @@
             AutoScaleDimensions = new SizeF(8F, 19F);
             AutoScaleMode = AutoScaleMode.Font;
             AutoScroll = true;
-            ClientSize = new Size(784, 511);
+            ClientSize = new Size(784, 486);
             Controls.Add(scrollPanel);
             Controls.Add(statusStrip);
             Font = new Font("Microsoft YaHei", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
@@ -386,7 +386,7 @@
             Margin = new Padding(2, 3, 2, 3);
             MaximizeBox = false;
             MaximumSize = new Size(900, 1080);
-            MinimumSize = new Size(800, 550);
+            MinimumSize = new Size(800, 525);
             Name = "ConnectForm";
             Text = "OnedataDrive";
             FormClosing += ConnectForm_Closing;
