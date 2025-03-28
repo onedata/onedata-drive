@@ -51,6 +51,7 @@
             advanced_button = new Button();
             rootFolderErase_button = new Button();
             advanced_panel = new Panel();
+            openLogFolder_button = new Button();
             controls_panel = new Panel();
             statusStrip = new StatusStrip();
             statusImageGrey = new ToolStripStatusLabel();
@@ -61,7 +62,6 @@
             statusMessage = new ToolStripStatusLabel();
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
-            openLogFolder_button = new Button();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             form_panel.SuspendLayout();
@@ -73,7 +73,7 @@
             // 
             // header_panel
             // 
-            header_panel.BackColor = SystemColors.ControlDarkDark;
+            header_panel.BackColor = Color.FromArgb(54, 54, 54);
             header_panel.Controls.Add(version_label);
             header_panel.Controls.Add(pictureBox1);
             header_panel.Dock = DockStyle.Top;
@@ -86,6 +86,7 @@
             // version_label
             // 
             version_label.AutoSize = true;
+            version_label.ForeColor = Color.White;
             version_label.Location = new Point(292, 89);
             version_label.Name = "version_label";
             version_label.Size = new Size(39, 19);
@@ -290,6 +291,18 @@
             advanced_panel.TabIndex = 21;
             advanced_panel.Visible = false;
             // 
+            // openLogFolder_button
+            // 
+            openLogFolder_button.BackColor = SystemColors.Window;
+            openLogFolder_button.Location = new Point(159, 146);
+            openLogFolder_button.Margin = new Padding(2, 3, 2, 3);
+            openLogFolder_button.Name = "openLogFolder_button";
+            openLogFolder_button.Size = new Size(194, 33);
+            openLogFolder_button.TabIndex = 20;
+            openLogFolder_button.Text = "Open folder with logs";
+            openLogFolder_button.UseVisualStyleBackColor = false;
+            openLogFolder_button.Click += openLogFolder_button_Click;
+            // 
             // controls_panel
             // 
             controls_panel.Controls.Add(connect_button);
@@ -359,18 +372,6 @@
             scrollPanel.Name = "scrollPanel";
             scrollPanel.Size = new Size(784, 489);
             scrollPanel.TabIndex = 24;
-            // 
-            // openLogFolder_button
-            // 
-            openLogFolder_button.BackColor = SystemColors.Window;
-            openLogFolder_button.Location = new Point(159, 146);
-            openLogFolder_button.Margin = new Padding(2, 3, 2, 3);
-            openLogFolder_button.Name = "openLogFolder_button";
-            openLogFolder_button.Size = new Size(194, 33);
-            openLogFolder_button.TabIndex = 20;
-            openLogFolder_button.Text = "Open folder with logs";
-            openLogFolder_button.UseVisualStyleBackColor = false;
-            openLogFolder_button.Click += openLogFolder_button_Click;
             // 
             // ConnectForm
             // 
