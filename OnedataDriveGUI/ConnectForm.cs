@@ -157,7 +157,7 @@ namespace OnedataDriveGUI
             {
                 case CloudSyncReturnCodes.SUCCESS:
                     statusMessage.Text = "Connected";
-                    cts.TryReset();
+                    cts = new();
                     refreshTask = Task.Run(() => RefreshMonitor(cts.Token), cts.Token);
                     break;
                 case CloudSyncReturnCodes.ERROR:
