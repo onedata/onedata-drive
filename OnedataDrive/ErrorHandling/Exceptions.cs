@@ -91,4 +91,15 @@
         }
     }
 
+    public class RefreshStartConditions : Exception
+    {
+        public RefreshStartConditions() : base() { }
+        public RefreshStartConditions(string message) : base(message) { }
+        public RefreshStartConditions(string message, Exception innerException) : base(message, innerException) { }
+
+        public override string ToString()
+        {
+            return "RefreshStartConditions: " + base.ToString();
+        }
+    }
 }

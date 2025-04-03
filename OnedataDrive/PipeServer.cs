@@ -1,4 +1,6 @@
-﻿using OnedataDrive.JSON_Object;
+﻿using NLog;
+using OnedataDrive.ErrorHandling;
+using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -15,7 +17,9 @@ namespace OnedataDrive
         public string pipeName { get; private set; } = "";
         private CancellationTokenSource cts = new();
         private Task? serverTask;
-        
+        public bool refreshPending = false;
+        public static Logger logger = LogManager.GetCurrentClassLogger();
+
         public void Start(string pipeName)
         {
             if (running)
@@ -140,8 +144,15 @@ namespace OnedataDrive
                 case Commands.REFRESH_FOLDER:
                     Debug.Print("Refresh folder");
                     received.payload.ForEach(x => Debug.Print($"Path: {x}"));
-                    RefreshFolder(received.payload[0]);
-                    response = new PipeCommand(Commands.OK).ToString();
+
+                    if(RefreshFolder(received.payload[0]))
+                    {
+                        response = new PipeCommand(Commands.OK).ToString();
+                    }
+                    else
+                    {
+                        response = new PipeCommand(Commands.FAIL).ToString();
+                    }
                     break;
                 default:
                     response = new PipeCommand(Commands.FAIL).ToString();
@@ -152,134 +163,161 @@ namespace OnedataDrive
             return response;
         }
 
-        private void RefreshFolder(string folderPath)
+        private bool RefreshFolder(string folderPath)
         {
-            Debug.Print("Is space path: " + PathUtils.IsSpacePath(folderPath));
-            Debug.Print("Is isDirectory: " + Directory.Exists(folderPath));
-            if (Directory.Exists(folderPath) && PathUtils.IsSpacePath(folderPath))
+            try
             {
-                Debug.Print("REFRESH START");
-                // get folder path id
-                CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(folderPath);
-                string dirId = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
-
-                // based on id get contents info from server
-                SpaceFolder sf = CloudSync.spaces[PathUtils.GetSpaceName(folderPath)];
-                Task<DirChildren> dirChildrenTask = RestClient.GetFilesAndSubdirs(dirId, sf.providerInfos);
-
-                // get local info on all files/folders
-                List<(CF_PLACEHOLDER_BASIC_INFO info, string path)> localInfos = new();
-                Task localDirChildrenTask = Task.Run(() =>
+                if (Directory.Exists(folderPath) && PathUtils.IsSpacePath(folderPath) && !refreshPending)
                 {
-                    foreach (string path in Directory.GetDirectories(folderPath))
-                    {
-                        localInfos.Add((CldApiUtils.GetBasicInfo(path), path));
-                    }
-                    foreach (string path in Directory.GetFiles(folderPath))
-                    {
-                        localInfos.Add((CldApiUtils.GetBasicInfo(path), path));
-                    }
-                });
-                
+                    logger.Info("REFRESH STARTED -> folder {0}", folderPath);
+                    refreshPending = true;
+                    // get folder path id
+                    CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(folderPath);
+                    string dirId = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
 
-                // get result from cloud and local
-                DirChildren dirChildren = dirChildrenTask.Result;
-                List<(Child child, bool visited)> cloudInfos = dirChildren.children.ConvertAll(x => (x, false));
-                localDirChildrenTask.Wait();
+                    // based on id get contents info from server
+                    SpaceFolder sf = CloudSync.spaces[PathUtils.GetSpaceName(folderPath)];
+                    Task<DirChildren> dirChildrenTask = RestClient.GetFilesAndSubdirs(dirId, sf.providerInfos);
 
-                NameConvertor nameConvertor = new NameConvertor();
-
-                // compare them
-                foreach ((CF_PLACEHOLDER_BASIC_INFO localInfo, string localPath) in localInfos)
-                {
-                    string localId = System.Text.Encoding.Unicode.GetString(localInfo.FileIdentity);
-                    int index = cloudInfos.FindIndex(item => item.child.file_id == localId);
-                    if (index < 0)
+                    // get local info on all files/folders
+                    List<(CF_PLACEHOLDER_BASIC_INFO info, string path)> localInfos = new();
+                    Task localDirChildrenTask = Task.Run(() =>
                     {
-                        // delete local file/dir
-                        Debug.Print("Placeholder delete needed: " + localPath);
-                        try
+                        foreach (string path in Directory.GetDirectories(folderPath))
                         {
-                            if (File.Exists(localPath))
-                            {
-                                File.Delete(localPath);
-                            }
-                            else
-                            {
-                                Directory.Delete(localPath, true);
-                            }
-                            Debug.Print("File delete OK");
+                            localInfos.Add((CldApiUtils.GetBasicInfo(path), path));
                         }
-                        catch (Exception e)
+                        foreach (string path in Directory.GetFiles(folderPath))
                         {
-                            Debug.Print("FAILED to remove file: " + e);
+                            localInfos.Add((CldApiUtils.GetBasicInfo(path), path));
                         }
-                    }
-                    else
+                    });
+
+
+                    // get result from cloud and local
+                    DirChildren dirChildren = dirChildrenTask.Result;
+                    List<(Child child, bool visited)> cloudInfos = dirChildren.children.ConvertAll(x => (x, false));
+                    localDirChildrenTask.Wait();
+
+                    NameConvertor nameConvertor = new NameConvertor();
+
+                    // compare them
+                    foreach ((CF_PLACEHOLDER_BASIC_INFO localInfo, string localPath) in localInfos)
                     {
-                        CloudSync.watcher.Pause();
-                        try
+                        string localId = System.Text.Encoding.Unicode.GetString(localInfo.FileIdentity);
+                        int index = cloudInfos.FindIndex(item => item.child.file_id == localId);
+                        if (index < 0)
                         {
-                            cloudInfos[index] = (cloudInfos[index].child, true);
-                            Child cloudInfo = cloudInfos[index].child;
-                            // compare size
-
-
-                            if (cloudInfo.type == "REG")
+                            // delete local file/dir
+                            Debug.Print("Placeholder delete needed: " + localPath);
+                            try
                             {
-                                FileInfo localFileInfo = new(localPath);
-                                if (cloudInfo.size != localFileInfo.Length)
+                                if (File.Exists(localPath))
                                 {
-                                    // update placeholder
-                                    Debug.Print("Placeholder update needed: " + localPath);
-                                    UpdatePlaceholder(localPath, cloudInfo);
+                                    File.Delete(localPath);
+                                }
+                                else
+                                {
+                                    Directory.Delete(localPath, true);
+                                }
+                                Debug.Print("File delete OK");
+                            }
+                            catch (Exception e)
+                            {
+                                Debug.Print("FAILED to remove file: " + e);
+                            }
+                        }
+                        else
+                        {
+                            CloudSync.watcher.Pause();
+                            try
+                            {
+                                cloudInfos[index] = (cloudInfos[index].child, true);
+                                Child cloudInfo = cloudInfos[index].child;
+                                // compare size
+
+
+                                if (cloudInfo.type == "REG")
+                                {
+                                    FileInfo localFileInfo = new(localPath);
+                                    if (cloudInfo.size != localFileInfo.Length)
+                                    {
+                                        // update placeholder
+                                        Debug.Print("Placeholder update needed: " + localPath);
+                                        UpdatePlaceholder(localPath, cloudInfo);
+                                    }
+                                }
+
+                                // compare name
+                                string cloudWindowsName = nameConvertor.MakeWindowsCorrect(cloudInfo.name, out bool idAttached, cloudInfo.file_id);
+                                string localName = PathUtils.GetLastInPath(localPath);
+                                if (localName != cloudWindowsName)
+                                {
+                                    RenamePlaceholder(localPath, cloudWindowsName, idAttached, cloudInfo.file_id);
                                 }
                             }
-
-                            // compare name
-                            string cloudWindowsName = nameConvertor.MakeWindowsCorrect(cloudInfo.name, out bool idAttached, cloudInfo.file_id);
-                            string localName = PathUtils.GetLastInPath(localPath);
-                            if (localName != cloudWindowsName)
+                            catch (Exception e)
                             {
-                                RenamePlaceholder(localPath, cloudWindowsName, idAttached, cloudInfo.file_id);
+                                Debug.Print("FAILED to update placeholder: " + e);
                             }
+                            CloudSync.watcher.Resume();
                         }
-                        catch (Exception e)
-                        {
-                            Debug.Print("FAILED to update placeholder: " + e);
-                        }
-                        CloudSync.watcher.Resume();
                     }
-                }
-                List<Child> newChildren = cloudInfos.Where(x => x.visited == false).Select(x => x.child).ToList();
-                PlaceholderCreateInfo createInfo = new PlaceholderCreateInfo();
-                
-                foreach (Child cloudInfo in newChildren)
-                {
-                    Debug.Print("NEW PLACEHOLDER: " + cloudInfo.name);
-                    string windowsCorrectName = nameConvertor.MakeWindowsCorrectDistinct(cloudInfo.name, cloudInfo.file_id, createInfo);
-                    PlaceholderData placeholderData = new(
-                        cloudInfo.file_id,
-                        windowsCorrectName,
-                        cloudInfo.size,
-                        cloudInfo.atime,
-                        cloudInfo.mtime,
-                        cloudInfo.ctime
-                        );
-                    if (cloudInfo.type == "REG")
-                    {
-                        createInfo.Add(Placeholders.createInfo(placeholderData));
-                    }
-                    else if (cloudInfo.type == "DIR")
-                    {
-                        createInfo.Add(Placeholders.createDirInfo(placeholderData));
-                    }
-                    
-                }
-                CloudSync.CreatePlaceholders(createInfo, folderPath);
-                Debug.Print("REFRESH FINISHED");
-            }
+                    List<Child> newChildren = cloudInfos.Where(x => x.visited == false).Select(x => x.child).ToList();
+                    PlaceholderCreateInfo createInfo = new PlaceholderCreateInfo();
 
+                    foreach (Child cloudInfo in newChildren)
+                    {
+                        Debug.Print("NEW PLACEHOLDER: " + cloudInfo.name);
+                        string windowsCorrectName = nameConvertor.MakeWindowsCorrectDistinct(cloudInfo.name, cloudInfo.file_id, createInfo);
+                        PlaceholderData placeholderData = new(
+                            cloudInfo.file_id,
+                            windowsCorrectName,
+                            cloudInfo.size,
+                            cloudInfo.atime,
+                            cloudInfo.mtime,
+                            cloudInfo.ctime
+                            );
+                        if (cloudInfo.type == "REG")
+                        {
+                            createInfo.Add(Placeholders.createInfo(placeholderData));
+                        }
+                        else if (cloudInfo.type == "DIR")
+                        {
+                            createInfo.Add(Placeholders.createDirInfo(placeholderData));
+                        }
+
+                    }
+                    CloudSync.CreatePlaceholders(createInfo, folderPath);
+
+                    logger.Info("REFRESH FINISHED");
+                    return true;
+                }
+                else
+                {
+                    throw new RefreshStartConditions("Starting conditions are not met");
+                }
+            }
+            catch (RefreshStartConditions e)
+            {
+                logger.Error(RefreshErrMsg(folderPath), e);
+                return false;
+            }
+            catch (Exception e)
+            {
+                logger.Error(RefreshErrMsg(folderPath), e);
+                refreshPending = false;
+                return false;
+            }
+        }
+
+        private string RefreshErrMsg(string path)
+        {
+            return string.Format("LOGGER FAIL -> \n\tPath: {0}\n\tIs SpaceFolder: {1}\n\tIs folder: {2}\n\tRefresh pending: {3}",
+                    path,
+                    PathUtils.IsSpacePath(path),
+                    Directory.Exists(path),
+                    refreshPending);
         }
 
         private void RenamePlaceholder(string localPath, string windowsCorrectName, bool idAttached, string id)
