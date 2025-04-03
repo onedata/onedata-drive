@@ -1,4 +1,5 @@
 ﻿using NLog;
+using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
@@ -266,16 +267,48 @@ namespace OnedataDrive
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info,"Fetch Data", "OK");
 
             }
+            catch (AggregateException e)
+            {
+                if (e.InnerException is not NoSuchCloudFile)
+                {
+                    throw;
+                }
+
+                td = new()
+                {
+                    CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_NOT_A_CLOUD_FILE),
+                    Buffer = unmanagedPointer,
+                    Offset = 0,
+                    Length = 4096,
+                    Flags = CF_OPERATION_TRANSFER_DATA_FLAGS.CF_OPERATION_TRANSFER_DATA_FLAG_NONE
+                };
+
+                op = CF_OPERATION_PARAMETERS.Create(td);
+
+                HRESULT hres = CfExecute(oi, ref op);
+
+                Exception ex = e;
+                if (hres != HRESULT.S_OK)
+                {
+                    ex = new Exception($"CfExecute Stop operation HRES: {hres}", e);
+                }
+
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Warn, "Fetch Data - No such file", "FAIL", ex);
+
+                Thread.Sleep(1000);
+                File.Delete(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath);
+            }
             catch (Exception e)
             {
                 // TODO: CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED) - seems to be wrong
                 // It does not terminate fetch request (copy window does not close)
+                // UPDATE: it seems that "Length" must contain n*4096, where n >= 1, otherwise CfExecute fails
                 td = new()
                 {
                     CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED),
                     Buffer = 0,
                     Offset = 0,
-                    Length = 0,
+                    Length = 4096,
                     Flags = CF_OPERATION_TRANSFER_DATA_FLAGS.CF_OPERATION_TRANSFER_DATA_FLAG_NONE
                 };
 
@@ -530,6 +563,7 @@ namespace OnedataDrive
                 if (hresSync == HRESULT.S_OK)
                 {
                     Debug.Print("Set InSync OK");
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "Rename Completion", "OK");
                 }
                 else
                 {
@@ -538,7 +572,7 @@ namespace OnedataDrive
                         $"CfOpenFileWithOplock HRES: {hresOpen}",
                         $"CfSetInSyncState HRES: {hresOpen}"
                     };
-                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "Rename Completion", "FAIL");
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "Rename Completion", "FAIL", moreInfo: moreInfo);
                 }
             }
         }

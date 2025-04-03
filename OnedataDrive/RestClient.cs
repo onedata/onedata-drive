@@ -57,20 +57,21 @@ namespace OnedataDrive
         {
             var response = await client.GetAsync(url);
 
+            if (!response.IsSuccessStatusCode)
+            {
+                string responseContent = await response.Content.ReadAsStringAsync();
+                if (responseContent.Contains("\"errno\":\"enoent\""))
+                {
+                    throw new NoSuchCloudFile(response);
+                }
+            }
+
             response.EnsureSuccessStatusCode();
 
             T? data = JsonSerializer.Deserialize<T>(response.Content.ReadAsStream());
             response.Dispose();
             return data ??
                 throw new JsonReturnedNullException("URL: " + url);
-        }
-
-        private static async Task<string> OnedataGetString(string url)
-        {
-            var response = await client.GetAsync(url);
-            response.EnsureSuccessStatusCode();
-
-            return await response.Content.ReadAsStringAsync();
         }
 
         private static async Task<byte[]> OnedataGetByteArr(string url)
@@ -141,6 +142,14 @@ namespace OnedataDrive
             response.EnsureSuccessStatusCode();
 
             return;
+        }
+
+        private static async Task<string> OnedataGetString(string url)
+        {
+            var response = await client.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadAsStringAsync();
         }
 
         /////////////////////////////////////////////////////////////////////////////
