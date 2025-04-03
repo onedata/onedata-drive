@@ -34,8 +34,8 @@ if not exist "%DLLFile%" (
     exit /b
 )
 
-:: regsvr32 /s "%DLLFile%"
-regsvr32 "%DLLFile%"
+regsvr32 /s "%DLLFile%"
+:: regsvr32 "%DLLFile%"
 :: taskkill /f /im explorer.exe
 :: start explorer.exe
 :: echo %DLLFile% registered and Explorer restarted.

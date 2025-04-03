@@ -176,7 +176,7 @@ namespace ContextMenu
                                 PipeCommand commandReceived = new(readerTask.Result ?? "");
                                 if (commandReceived.command == Commands.OK)
                                 {
-                                    Task.Run(() => MessageBox.Show("Refresh Started"));
+                                    //Task.Run(() => MessageBox.Show("Refresh Started"));
                                 }
                                 else
                                 {
@@ -191,7 +191,7 @@ namespace ContextMenu
                         }
                         if (!readerTask.IsCompleted)
                         {
-                            Task.Run(() => MessageBox.Show("No response. Closing client"));
+                            //Task.Run(() => MessageBox.Show("No response. Closing client"));
                             tokenSource.Cancel();
                         }
                     }
