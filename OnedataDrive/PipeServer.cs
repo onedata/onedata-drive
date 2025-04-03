@@ -169,7 +169,7 @@ namespace OnedataDrive
             {
                 if (Directory.Exists(folderPath) && PathUtils.IsSpacePath(folderPath) && !refreshPending)
                 {
-                    logger.Info("REFRESH STARTED -> folder {0}", folderPath);
+                    logger.Info("REFRESH STARTED: {0}", folderPath);
                     refreshPending = true;
                     // get folder path id
                     CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(folderPath);
@@ -266,6 +266,8 @@ namespace OnedataDrive
                     List<Child> newChildren = cloudInfos.Where(x => x.visited == false).Select(x => x.child).ToList();
                     PlaceholderCreateInfo createInfo = new PlaceholderCreateInfo();
 
+                    List<string> newDirNames = new();
+
                     foreach (Child cloudInfo in newChildren)
                     {
                         Debug.Print("NEW PLACEHOLDER: " + cloudInfo.name);
@@ -285,13 +287,22 @@ namespace OnedataDrive
                         else if (cloudInfo.type == "DIR")
                         {
                             createInfo.Add(Placeholders.createDirInfo(placeholderData));
+                            newDirNames.Add(placeholderData.Name);
                         }
 
                     }
                     CloudSync.CreatePlaceholders(createInfo, folderPath);
 
-                    logger.Info("REFRESH FINISHED");
-                    return true;
+                    refreshPending = false;
+                    logger.Info("REFRESH FINISHED: {0}", folderPath);
+
+                    bool refreshSucces = true;
+                    foreach (string newDirName in newDirNames)
+                    {
+                        refreshSucces = refreshSucces && RefreshFolder(Path.Join(folderPath, newDirName));
+                    }
+
+                    return refreshSucces;
                 }
                 else
                 {
