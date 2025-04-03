@@ -62,6 +62,7 @@
             statusMessage = new ToolStripStatusLabel();
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
+            refreshStatusMessage = new ToolStripStatusLabel();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             form_panel.SuspendLayout();
@@ -315,7 +316,7 @@
             // 
             // statusStrip
             // 
-            statusStrip.Items.AddRange(new ToolStripItem[] { statusImageGrey, statusImageBlue, statusImageRed, statusImageGreen, statusLabel, statusMessage });
+            statusStrip.Items.AddRange(new ToolStripItem[] { statusImageGrey, statusImageBlue, statusImageRed, statusImageGreen, statusLabel, statusMessage, refreshStatusMessage });
             statusStrip.Location = new Point(0, 464);
             statusStrip.Name = "statusStrip";
             statusStrip.Size = new Size(784, 22);
@@ -372,6 +373,11 @@
             scrollPanel.Name = "scrollPanel";
             scrollPanel.Size = new Size(784, 464);
             scrollPanel.TabIndex = 24;
+            // 
+            // refreshStatusMessage
+            // 
+            refreshStatusMessage.Name = "refreshStatusMessage";
+            refreshStatusMessage.Size = new Size(0, 17);
             // 
             // ConnectForm
             // 
@@ -441,5 +447,6 @@
         private ComboBox onezone_comboBox;
         private Label version_label;
         private Button openLogFolder_button;
+        private ToolStripStatusLabel refreshStatusMessage;
     }
 }

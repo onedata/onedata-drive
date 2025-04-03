@@ -17,7 +17,8 @@ namespace OnedataDrive
         public string pipeName { get; private set; } = "";
         private CancellationTokenSource cts = new();
         private Task? serverTask;
-        public bool refreshPending = false;
+        public static bool refreshPending { get; private set; } = false;
+        public static string refreshMsg { get; private set; } = "";
         public static Logger logger = LogManager.GetCurrentClassLogger();
 
         public void Start(string pipeName)
@@ -29,6 +30,7 @@ namespace OnedataDrive
             cts = new();
             this.pipeName = pipeName;
             this.serverTask = Task.Run(() => StartServer(cts.Token), cts.Token);
+            refreshMsg = "";
             this.running = true;
             Debug.Print("PIPE SERVER: running");
         }
@@ -44,6 +46,7 @@ namespace OnedataDrive
             {
                 this.serverTask.Wait();
             }
+            refreshMsg = "";
             this.running = false;
             Debug.Print("PIPE SERVER: stopped");
         }
@@ -145,13 +148,16 @@ namespace OnedataDrive
                     Debug.Print("Refresh folder");
                     received.payload.ForEach(x => Debug.Print($"Path: {x}"));
 
-                    if(RefreshFolder(received.payload[0]))
+                    refreshMsg = "Refresh Running";
+                    if (RefreshFolder(received.payload[0]))
                     {
                         response = new PipeCommand(Commands.OK).ToString();
+                        refreshMsg = "Refresh Finished";
                     }
                     else
                     {
                         response = new PipeCommand(Commands.FAIL).ToString();
+                        refreshMsg = "Refresh Failed";
                     }
                     break;
                 default:
