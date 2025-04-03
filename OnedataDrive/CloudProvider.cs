@@ -305,7 +305,7 @@ namespace OnedataDrive
                 // UPDATE: it seems that "Length" must contain n*4096, where n >= 1, otherwise CfExecute fails
                 td = new()
                 {
-                    CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED),
+                    CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_UNSUCCESSFUL),
                     Buffer = 0,
                     Offset = 0,
                     Length = 4096,
