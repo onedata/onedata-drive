@@ -5,7 +5,7 @@ Onedata Drive is a graphical interface application allowing Windows users to wor
 ## Requirements
 - Supported Windows version: **Windows 10 (version 1803)** and **Windows 11**
 - **.NET Desktop Runtime 8** must be installed
-- Before the installation of the new version, the old one has to be uninstalled (The installer will be improved later to make this step unnecessary)
+- Before the installation of the new version, **the old version has to be uninstalled**  (The installer will be improved later to make this step unnecessary)
 - You should not need to run as admin, as long you have access to the Root Folder
 
 ## Running the app
