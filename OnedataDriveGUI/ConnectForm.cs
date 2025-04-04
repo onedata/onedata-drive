@@ -115,10 +115,21 @@ namespace OnedataDriveGUI
             statusImageGreen.Visible = mask[Status.CONNECTED];
             statusImageRed.Visible = mask[Status.ERROR];
 
-            advanced_panel.Enabled = form_panel.Enabled = mask[Status.NOT_CONNECTED] || mask[Status.ERROR];
+            EnableDisableControl(advanced_panel, mask[Status.NOT_CONNECTED] || mask[Status.ERROR]);
+            EnableDisableControl(form_panel, mask[Status.NOT_CONNECTED] || mask[Status.ERROR]);
+            advanced_button.Enabled = true;
+            openLogFolder_button.Enabled = true;
 
             connect_button.Enabled = mask[Status.NOT_CONNECTED] || mask[Status.ERROR];
             disconect_button.Enabled = !connect_button.Enabled;
+        }
+
+        private void EnableDisableControl(Control controlPanel, bool enabled)
+        {
+            foreach (Control control in controlPanel.Controls)
+            {
+                control.Enabled = enabled;
+            }
         }
 
         /* ---------- EVENT FUNCTIONS ---------- */
