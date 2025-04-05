@@ -1,4 +1,5 @@
-﻿using OnedataDrive.ErrorHandling;
+﻿using NLog;
+using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
@@ -12,6 +13,8 @@ namespace OnedataDrive
     {
         private FileSystemWatcher watcher;
         private bool disposed = true;
+        public static Logger logger = LogManager.GetCurrentClassLogger();
+        private static LoggerFormater loggerClass = new(LogManager.GetCurrentClassLogger());
 
         public FileWatcher()
         {
@@ -45,25 +48,36 @@ namespace OnedataDrive
         public void OnError(object sender, ErrorEventArgs e)
         {
             // TODO: do something clever
-            Debug.Print("OnError: " + e.GetException().Message);
+            logger.Error("Logger failed", e.GetException());
         }
 
         public void OnCreated(object sender, FileSystemEventArgs e)
         {
-            Debug.Print("NEW FILE DETECTED: {0}", e.FullPath);
+            //logger.Info("NEW FILE DETECTED: {0}", e.FullPath);
+            //LoggerOneline(LogLevel.Info, "FILE CREATED", "START", e.FullPath, e.GetHashCode().ToString());
+            loggerClass.Oneline(LogLevel.Info, "FILE CREATED", "START", e.FullPath, e.GetHashCode().ToString());
+
             // sleep is needed
             Thread.Sleep(1000);
 
-            RegisterFile(e.FullPath);
-            Debug.Print("");
+            try
+            {
+                RegisterFile(e.FullPath);
+            }
+            catch (Exception ex)
+            {
+
+            }
+            
         }
 
         private void RegisterFile(string fullPath)
         {
             if (!File.Exists(fullPath) && !Directory.Exists(fullPath))
             {
-                Debug.Print("File does not exist: {0}", fullPath);
-                return;
+                //Debug.Print("File does not exist: {0}", fullPath);
+                throw new FileNotFoundException($"path: {fullPath}");
+                //return;
             }
 
             FileId id;
@@ -75,7 +89,8 @@ namespace OnedataDrive
             {
                 if (isDir)
                 {
-                    Debug.Print("File is DIR: {0}", fullPath);
+                    //Debug.Print("File is DIR: {0}", fullPath);
+                    
                     id = PushNewFolderToCloud(fullPath);
                 }
                 else
@@ -364,6 +379,17 @@ namespace OnedataDrive
         public void Resume()
         {
             watcher.EnableRaisingEvents = true;
+        }
+
+        private void Logger(LogLevel logLevel, string message, string filePath, string fnName = "UNKNOWN", string opID = "UNKNOWN")
+        {
+            string.Format("\n\tFilePath: {}");
+        }
+
+        private void LoggerOneline(LogLevel logLevel, string operation, string status, string filePath = "UNKNOWN", string opID = "UNKNOWN")
+        {
+            string msg = $"OP ID: {opID} | {operation} -> {status} | path: {filePath}";
+            logger.Log(logLevel, msg);
         }
     }
 }
