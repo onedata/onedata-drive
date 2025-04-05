@@ -30,10 +30,8 @@ namespace OnedataDrive
                                      | NotifyFilters.CreationTime
                                      | NotifyFilters.DirectoryName
                                      | NotifyFilters.FileName
-                                     //  | NotifyFilters.LastAccess
                                      | NotifyFilters.LastWrite;
-            //  | NotifyFilters.Security
-            //  | NotifyFilters.Size;
+
 
             watcher.Created += new FileSystemEventHandler(OnCreated);
             watcher.Changed += new FileSystemEventHandler(OnChanged);
@@ -48,13 +46,11 @@ namespace OnedataDrive
         public void OnError(object sender, ErrorEventArgs e)
         {
             // TODO: do something clever
-            logger.Error("Logger failed", e.GetException());
+            logger.Error("Filewatcher FAILED", e.GetException());
         }
 
         public void OnCreated(object sender, FileSystemEventArgs e)
         {
-            //logger.Info("NEW FILE DETECTED: {0}", e.FullPath);
-            //LoggerOneline(LogLevel.Info, "FILE CREATED", "START", e.FullPath, e.GetHashCode().ToString());
             loggerClass.Oneline(LogLevel.Info, "FILE CREATED", "START", e.FullPath, e.GetHashCode().ToString());
 
             // sleep is needed
@@ -63,10 +59,11 @@ namespace OnedataDrive
             try
             {
                 RegisterFile(e.FullPath);
+                loggerClass.Oneline(LogLevel.Info, "FILE CREATED", "FINISHED", e.FullPath, e.GetHashCode().ToString());
             }
             catch (Exception ex)
             {
-
+                loggerClass.Oneline(LogLevel.Error, "FILE CREATED", "FAILED", ex, e.FullPath, e.GetHashCode().ToString());
             }
             
         }
@@ -381,15 +378,5 @@ namespace OnedataDrive
             watcher.EnableRaisingEvents = true;
         }
 
-        private void Logger(LogLevel logLevel, string message, string filePath, string fnName = "UNKNOWN", string opID = "UNKNOWN")
-        {
-            string.Format("\n\tFilePath: {}");
-        }
-
-        private void LoggerOneline(LogLevel logLevel, string operation, string status, string filePath = "UNKNOWN", string opID = "UNKNOWN")
-        {
-            string msg = $"OP ID: {opID} | {operation} -> {status} | path: {filePath}";
-            logger.Log(logLevel, msg);
-        }
     }
 }

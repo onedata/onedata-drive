@@ -18,9 +18,12 @@ namespace OnedataDrive.Utils
 
         public void Oneline(LogLevel logLevel, string operation, string status, string filePath = "UNKNOWN", string opID = "UNKNOWN")
         {
-            string msg = $"OP ID: {opID} | {operation} -> {status} | path: {filePath}";
             logger.Log(logLevel, " OP ID: {opID} | {operation} -> {status} | path: {filePath}", opID, operation, status, filePath);
-            //logger.Debug("abcd {operation} | path: {filePath}", operation, filePath);
+        }
+
+        public void Oneline(LogLevel logLevel, string operation, string status, Exception e, string filePath = "UNKNOWN", string opID = "UNKNOWN")
+        {
+            logger.Log(logLevel, " OP ID: {opID} | {operation} -> {status} | path: {filePath}\n\t{exception}", opID, operation, status, filePath, e);
         }
     }
 }
