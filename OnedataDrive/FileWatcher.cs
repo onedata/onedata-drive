@@ -13,34 +13,38 @@ namespace OnedataDrive
     {
         private FileSystemWatcher watcher;
         private bool disposed = true;
-        public static Logger logger = LogManager.GetCurrentClassLogger();
-        private static LoggerFormater loggerClass = new(LogManager.GetCurrentClassLogger());
+        private Logger logger;
+        private LoggerFormater loggerFormater;
 
         public FileWatcher()
         {
-            watcher = new();
-            disposed = false;
+            this.watcher = new();
+            this.disposed = false;
+            this.logger = LogManager.GetCurrentClassLogger();
+            this.loggerFormater = new(logger);
         }
 
         public FileWatcher(string rootDir)
         {
-            watcher = new(rootDir);
+            this.watcher = new(rootDir);
+            this.logger = LogManager.GetCurrentClassLogger();
+            this.loggerFormater = new(logger);
 
-            watcher.NotifyFilter = NotifyFilters.Attributes
+            this.watcher.NotifyFilter = NotifyFilters.Attributes
                                      | NotifyFilters.CreationTime
                                      | NotifyFilters.DirectoryName
                                      | NotifyFilters.FileName
                                      | NotifyFilters.LastWrite;
 
 
-            watcher.Created += new FileSystemEventHandler(OnCreated);
-            watcher.Changed += new FileSystemEventHandler(OnChanged);
-            watcher.Error += new ErrorEventHandler(OnError);
+            this.watcher.Created += new FileSystemEventHandler(OnCreated);
+            this.watcher.Changed += new FileSystemEventHandler(OnChanged);
+            this.watcher.Error += new ErrorEventHandler(OnError);
 
-            watcher.IncludeSubdirectories = true;
+            this.watcher.IncludeSubdirectories = true;
+            this.watcher.EnableRaisingEvents = true;
 
-            watcher.EnableRaisingEvents = true;
-            disposed = false;
+            this.disposed = false;
         }
 
         public void OnError(object sender, ErrorEventArgs e)
@@ -51,30 +55,28 @@ namespace OnedataDrive
 
         public void OnCreated(object sender, FileSystemEventArgs e)
         {
-            loggerClass.Oneline(LogLevel.Info, "FILE CREATED", "START", e.FullPath, e.GetHashCode().ToString());
+            loggerFormater.Oneline(LogLevel.Info, "FILE CREATED", "START", e.FullPath, e.GetHashCode().ToString());
 
             // sleep is needed
             Thread.Sleep(1000);
 
             try
             {
-                RegisterFile(e.FullPath);
-                loggerClass.Oneline(LogLevel.Info, "FILE CREATED", "FINISHED", e.FullPath, e.GetHashCode().ToString());
+                RegisterFile(e.FullPath, e.GetHashCode().ToString());
+                loggerFormater.Oneline(LogLevel.Info, "FILE CREATED", "FINISHED", e.FullPath, e.GetHashCode().ToString());
             }
             catch (Exception ex)
             {
-                loggerClass.Oneline(LogLevel.Error, "FILE CREATED", "FAILED", ex, e.FullPath, e.GetHashCode().ToString());
+                loggerFormater.Oneline(LogLevel.Error, "FILE CREATED", "FAILED", ex, e.FullPath, e.GetHashCode().ToString());
             }
             
         }
 
-        private void RegisterFile(string fullPath)
+        private void RegisterFile(string fullPath, string opID = "")
         {
             if (!File.Exists(fullPath) && !Directory.Exists(fullPath))
             {
-                //Debug.Print("File does not exist: {0}", fullPath);
                 throw new FileNotFoundException($"path: {fullPath}");
-                //return;
             }
 
             FileId id;
@@ -82,36 +84,25 @@ namespace OnedataDrive
             FileAttributes attributes = File.GetAttributes(fullPath);
             bool isDir = (attributes & FileAttributes.Directory) == FileAttributes.Directory;
 
-            try
+            if (isDir)
             {
-                if (isDir)
-                {
-                    //Debug.Print("File is DIR: {0}", fullPath);
-                    
-                    id = PushNewFolderToCloud(fullPath);
-                }
-                else
-                {
-                    id = PushNewFileToCloud(fullPath);
-                }
+                loggerFormater.Oneline(LogLevel.Debug, "RegisterFile", "file is DIR", opID: opID);
+                id = PushNewFolderToCloud(fullPath);
             }
-            catch (Exception exception)
+            else
             {
-                Debug.Print(exception.ToString());
-                Debug.Print("FAILED to sync {0}", fullPath);
-                return;
+                loggerFormater.Oneline(LogLevel.Debug, "RegisterFile", "file is REG", opID: opID);
+                id = PushNewFileToCloud(fullPath);
             }
 
             try
             {
                 ConvertToPlaceholder(fullPath, id, isDir);
-                Debug.Print("File sync OK: {0}", fullPath);
             }
-            catch (Exception exception)
+            catch (Exception)
             {
-                Debug.Print(exception.ToString());
-                Debug.Print("FAIL {0} : File was uploaded to cloud, however local file isn't linked with cloud", fullPath);
-                return;
+                loggerFormater.Oneline(LogLevel.Error, "RegisterFile", "File was pushed to cloud - local file is NOT LINKED with cloud", opID: opID);
+                throw;
             }
         }
 
@@ -340,7 +331,7 @@ namespace OnedataDrive
             hresult = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out protectedHandle);
             if (hresult != HRESULT.S_OK)
             {
-                throw new Exception("CfOpenFileWithOplock: " + hresult.ToString());
+                throw new Exception("CfOpenFileWithOplock HRES: " + hresult);
             }
 
             nint fileIdentity = Marshal.StringToCoTaskMemUni(id.fileId);
@@ -350,13 +341,12 @@ namespace OnedataDrive
             {
                 hresult = CfConvertToPlaceholder(protectedHandle.DangerousGetHandle(), fileIdentity, fileIdentityLength, CF_CONVERT_FLAGS.CF_CONVERT_FLAG_MARK_IN_SYNC);
             }
+            CfCloseHandle(protectedHandle);
+            Marshal.FreeCoTaskMem(fileIdentity);
             if (hresult != HRESULT.S_OK)
             {
-                CfCloseHandle(protectedHandle);
-                Marshal.FreeCoTaskMem(fileIdentity);
-                throw new Exception("CfConvertToPlaceholder: " + hresult);
+                throw new Exception("CfConvertToPlaceholder HRES: " + hresult);
             }
-            CfCloseHandle(protectedHandle);
         }
 
         public void Dispose()
@@ -365,6 +355,7 @@ namespace OnedataDrive
             {
                 watcher.EnableRaisingEvents = false;
                 watcher.Dispose();
+                disposed = true;
             }
         }
 
