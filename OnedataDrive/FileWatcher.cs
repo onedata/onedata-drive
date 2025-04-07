@@ -87,18 +87,19 @@ namespace OnedataDrive
 
             if (isDir)
             {
-                loggerFormater.Oneline(LogLevel.Debug, "RegisterFile", "file is DIR", opID: opID);
                 id = PushNewFolderToCloud(fullPath);
+                loggerFormater.Oneline(LogLevel.Info, "RegisterFile", "Dir pushed to cloud", opID: opID);
             }
             else
             {
-                loggerFormater.Oneline(LogLevel.Debug, "RegisterFile", "file is REG", opID: opID);
                 id = PushNewFileToCloud(fullPath);
+                loggerFormater.Oneline(LogLevel.Info, "RegisterFile", "File pushed to cloud", opID: opID);
             }
 
             try
             {
                 ConvertToPlaceholder(fullPath, id, isDir);
+                loggerFormater.Oneline(LogLevel.Info, "RegisterFile", "Converted to placeholder", opID: opID);
             }
             catch (Exception)
             {
@@ -123,7 +124,7 @@ namespace OnedataDrive
                 FileAttributes attributes = File.GetAttributes(e.FullPath);
                 if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
                 {
-                    loggerFormater.Oneline(LogLevel.Warn, "FILE CHANGED", "FINISHED - File is DIR", filePath: e.FullPath, opID: opID);
+                    loggerFormater.Oneline(LogLevel.Info, "FILE CHANGED", "FINISHED - File is DIR", filePath: e.FullPath, opID: opID);
                     return;
                 }
 
@@ -150,9 +151,6 @@ namespace OnedataDrive
 
         private void Hydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
         {
-            //Debug.Print("PINNED -> Hydrate {0}", fullPath);
-            loggerFormater.Oneline(LogLevel.Debug, "Hydrate", "START", filePath: fullPath, opID: opID);
-
             HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out SafeHCFFILE protectedHandle);
             HRESULT hresHydrate = CfHydratePlaceholder(protectedHandle.DangerousGetHandle());
             CfCloseHandle(protectedHandle);
@@ -162,13 +160,11 @@ namespace OnedataDrive
                 throw new Exception("CfOpenFileWithOplock: " + hresOpen + ", CfHydratePlaceholder: " + hresHydrate);
             }
 
-            loggerFormater.Oneline(LogLevel.Debug, "Hydrate", "FINISHED", opID: opID);
+            loggerFormater.Oneline(LogLevel.Info, "Hydrate", "OK", opID: opID);
         }
 
         private void Dehydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
         {
-            loggerFormater.Oneline(LogLevel.Debug, "Dehydrate", "START", filePath: fullPath, opID: opID);
-
             HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out SafeHCFFILE protectedHandle);
             HRESULT hresDehydrate = CfDehydratePlaceholder(protectedHandle.DangerousGetHandle(), 0, info.OnDiskDataSize, CF_DEHYDRATE_FLAGS.CF_DEHYDRATE_FLAG_NONE);
             HRESULT hresPinState = CfSetPinState(protectedHandle.DangerousGetHandle(), CF_PIN_STATE.CF_PIN_STATE_UNSPECIFIED, CF_SET_PIN_FLAGS.CF_SET_PIN_FLAG_NONE);
@@ -179,7 +175,7 @@ namespace OnedataDrive
                 throw new Exception("CfOpenFileWithOplock: " + hresOpen + ", CfDehydratePlaceholder: " + hresDehydrate + ", CfSetPinState: " + hresPinState);
             }
 
-            loggerFormater.Oneline(LogLevel.Debug, "Dehydrate", "FINISHED", opID: opID);
+            loggerFormater.Oneline(LogLevel.Info, "Dehydrate", "OK", opID: opID);
         }
 
         private void UpdateFile(FileSystemEventArgs e, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
@@ -194,6 +190,7 @@ namespace OnedataDrive
             try
             {
                 PushToCloudUpdate(e.FullPath, info);
+                loggerFormater.Oneline(LogLevel.Info, "PushToCloudUpdate", "OK", opID: opID);
             }
             catch (AggregateException ae) when (ae.InnerException is NoSuchCloudFile)
             {
@@ -213,6 +210,7 @@ namespace OnedataDrive
                 }
                 // SetInSyncState and set metadata
                 UpdatePlaceholderMetadata(info, handle, e.FullPath);
+                loggerFormater.Oneline(LogLevel.Info, "UpdatePlaceholderMetadata", "OK", opID: opID);
             }
             catch (Exception)
             {
