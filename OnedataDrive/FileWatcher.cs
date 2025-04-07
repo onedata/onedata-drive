@@ -55,19 +55,20 @@ namespace OnedataDrive
 
         public void OnCreated(object sender, FileSystemEventArgs e)
         {
-            loggerFormater.Oneline(LogLevel.Info, "FILE CREATED", "START", e.FullPath, e.GetHashCode().ToString());
+            string opID = e.GetHashCode().ToString();
+            loggerFormater.Oneline(LogLevel.Info, "FILE CREATED", "START", filePath: e.FullPath, opID: opID);
 
             // sleep is needed
             Thread.Sleep(1000);
 
             try
             {
-                RegisterFile(e.FullPath, e.GetHashCode().ToString());
-                loggerFormater.Oneline(LogLevel.Info, "FILE CREATED", "FINISHED", e.FullPath, e.GetHashCode().ToString());
+                RegisterFile(e.FullPath, opID);
+                loggerFormater.Oneline(LogLevel.Info, "FILE CREATED", "FINISHED", filePath: e.FullPath, opID: opID);
             }
             catch (Exception ex)
             {
-                loggerFormater.Oneline(LogLevel.Error, "FILE CREATED", "FAILED", ex, e.FullPath, e.GetHashCode().ToString());
+                loggerFormater.Oneline(LogLevel.Error, "FILE CREATED", "FAILED", ex, filePath: e.FullPath, opID: opID);
             }
             
         }
@@ -108,96 +109,85 @@ namespace OnedataDrive
 
         public void OnChanged(object sender, FileSystemEventArgs e)
         {
-            Debug.Print("FILE UPDATED(OnChanged): {0}", e.FullPath);
-
-            if (!File.Exists(e.FullPath) && !Directory.Exists(e.FullPath))
-            {
-                Debug.Print("File does not exist: {0}", e.FullPath);
-                return;
-            }
-
-            FileAttributes attributes = File.GetAttributes(e.FullPath);
-            if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
-            {
-                Debug.Print("File is DIR(nothing happens): {0}", e.FullPath);
-                return;
-            }
-
+            string opID = e.GetHashCode().ToString();
             try
             {
+                loggerFormater.Oneline(LogLevel.Info, "FILE CHANGED", "START", filePath: e.FullPath, opID: opID);
+
+                if (!File.Exists(e.FullPath) && !Directory.Exists(e.FullPath))
+                {
+                    loggerFormater.Oneline(LogLevel.Warn, "FILE CHANGED", "FINISHED - File not found", filePath: e.FullPath, opID: opID);
+                    return;
+                }
+
+                FileAttributes attributes = File.GetAttributes(e.FullPath);
+                if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
+                {
+                    loggerFormater.Oneline(LogLevel.Warn, "FILE CHANGED", "FINISHED - File is DIR", filePath: e.FullPath, opID: opID);
+                    return;
+                }
+
                 CF_PLACEHOLDER_STANDARD_INFO info = CldApiUtils.GetStandardInfo(e.FullPath);
 
-                UpdateFile(e, info);
+                UpdateFile(e, info, opID);
 
                 if (info.PinState == CF_PIN_STATE.CF_PIN_STATE_UNPINNED)
                 {
-                    Dehydrate(e.FullPath, info);
+                    Dehydrate(e.FullPath, info, opID);
                 }
                 if (info.PinState == CF_PIN_STATE.CF_PIN_STATE_PINNED)
                 {
-                    Hydrate(e.FullPath, info);
+                    Hydrate(e.FullPath, info, opID);
                 }
             }
             catch (Exception exception)
             {
-                Debug.Print(exception.ToString());
-                Debug.Print("FileWatcher OnChanged FAIL");
+                loggerFormater.Oneline(LogLevel.Error, "FILE CHANGED", "FAILED", exception, filePath: e.FullPath, opID: opID);
             }
 
-            Debug.Print("");
+            loggerFormater.Oneline(LogLevel.Info, "FILE CHANGED", "FINISHED", filePath: e.FullPath, opID: opID);
         }
 
-        private void Hydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info)
+        private void Hydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
         {
-            try
-            {
-                Debug.Print("PINNED -> Hydrate {0}", fullPath);
-                HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out SafeHCFFILE protectedHandle);
-                HRESULT hresHydrate = CfHydratePlaceholder(protectedHandle.DangerousGetHandle());
-                CfCloseHandle(protectedHandle);
+            //Debug.Print("PINNED -> Hydrate {0}", fullPath);
+            loggerFormater.Oneline(LogLevel.Debug, "Hydrate", "START", filePath: fullPath, opID: opID);
 
-                if (hresOpen != HRESULT.S_OK || hresHydrate != HRESULT.S_OK)
-                {
-                    throw new Exception("Open: " + hresOpen + ", Hydrate: " + hresHydrate);
-                }
-            }
-            catch (Exception e)
+            HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out SafeHCFFILE protectedHandle);
+            HRESULT hresHydrate = CfHydratePlaceholder(protectedHandle.DangerousGetHandle());
+            CfCloseHandle(protectedHandle);
+
+            if (hresOpen != HRESULT.S_OK || hresHydrate != HRESULT.S_OK)
             {
-                Debug.Print(e.ToString());
-                Debug.Print("Hydrate FAIL");
+                throw new Exception("CfOpenFileWithOplock: " + hresOpen + ", CfHydratePlaceholder: " + hresHydrate);
             }
-            Debug.Print("Hydrate OK");
+
+            loggerFormater.Oneline(LogLevel.Debug, "Hydrate", "FINISHED", opID: opID);
         }
 
-        private void Dehydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info)
+        private void Dehydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
         {
-            try
-            {
-                Debug.Print("UNPINNED -> Dehydrate {0}", fullPath);
-                HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out SafeHCFFILE protectedHandle);
-                HRESULT hresDehydrate = CfDehydratePlaceholder(protectedHandle.DangerousGetHandle(), 0, info.OnDiskDataSize, CF_DEHYDRATE_FLAGS.CF_DEHYDRATE_FLAG_NONE);
-                HRESULT hresPinState = CfSetPinState(protectedHandle.DangerousGetHandle(), CF_PIN_STATE.CF_PIN_STATE_UNSPECIFIED, CF_SET_PIN_FLAGS.CF_SET_PIN_FLAG_NONE);
-                CfCloseHandle(protectedHandle);
+            loggerFormater.Oneline(LogLevel.Debug, "Dehydrate", "START", filePath: fullPath, opID: opID);
 
-                if (hresOpen != HRESULT.S_OK || hresDehydrate != HRESULT.S_OK || hresPinState != HRESULT.S_OK)
-                {
-                    throw new Exception("open: " + hresOpen + ", dehydrate: " + hresDehydrate + ", pin state: " + hresPinState);
-                }
-            }
-            catch (Exception e)
+            HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out SafeHCFFILE protectedHandle);
+            HRESULT hresDehydrate = CfDehydratePlaceholder(protectedHandle.DangerousGetHandle(), 0, info.OnDiskDataSize, CF_DEHYDRATE_FLAGS.CF_DEHYDRATE_FLAG_NONE);
+            HRESULT hresPinState = CfSetPinState(protectedHandle.DangerousGetHandle(), CF_PIN_STATE.CF_PIN_STATE_UNSPECIFIED, CF_SET_PIN_FLAGS.CF_SET_PIN_FLAG_NONE);
+            CfCloseHandle(protectedHandle);
+
+            if (hresOpen != HRESULT.S_OK || hresDehydrate != HRESULT.S_OK || hresPinState != HRESULT.S_OK)
             {
-                Debug.Print(e.ToString());
-                Debug.Print("Dehydrate FAIL");
+                throw new Exception("CfOpenFileWithOplock: " + hresOpen + ", CfDehydratePlaceholder: " + hresDehydrate + ", CfSetPinState: " + hresPinState);
             }
-            Debug.Print("Dehydrate OK");
+
+            loggerFormater.Oneline(LogLevel.Debug, "Dehydrate", "FINISHED", opID: opID);
         }
 
-        private void UpdateFile(FileSystemEventArgs e, CF_PLACEHOLDER_STANDARD_INFO info)
+        private void UpdateFile(FileSystemEventArgs e, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
         {
             // test if file/folder is in sync. If true -> finish
             if (info.InSyncState == CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC)
             {
-                Debug.Print("File is in sync (OnChanged END)");
+                loggerFormater.Oneline(LogLevel.Info, "UpdateFile", "File was already in sync", opID: opID);
                 return;
             }
 
@@ -205,42 +195,36 @@ namespace OnedataDrive
             {
                 PushToCloudUpdate(e.FullPath, info);
             }
-            catch (AggregateException ae)
+            catch (AggregateException ae) when (ae.InnerException is NoSuchCloudFile)
             {
-                if (ae.InnerException is NoSuchCloudFile)
-                {
-                    Debug.Print(ae.ToString());
-                    File.Delete(e.FullPath);
-                    Debug.Print("File was deleted, because it does not exist on cloud");
-                    return;
-                }
-                else
-                {
-                    throw;
-                }
-
-            }
-            catch (Exception exception)
-            {
-                Debug.Print(exception.ToString());
-                Debug.Print("FAILED to sync {0}", e.FullPath);
+                File.Delete(e.FullPath);
+                loggerFormater.Oneline(LogLevel.Info, "UpdateFile", "Coresponding cloud file does not exist. Local file was deleted", ae, opID: opID);
                 return;
+
             }
 
+            SafeHCFFILE? handle = null;
             try
             {
-                // TODO (done)
-                CfOpenFileWithOplock(e.FullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out SafeHCFFILE handle);
-                // SetInSyncState and set metadata ;
+                HRESULT openHres = CfOpenFileWithOplock(e.FullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out handle);
+                if (openHres != HRESULT.S_OK)
+                {
+                    throw new Exception("CfOpenFileWithOplock HRES: " + openHres);
+                }
+                // SetInSyncState and set metadata
                 UpdatePlaceholderMetadata(info, handle, e.FullPath);
-                CfCloseHandle(handle);
-                Debug.Print("File sync OK: {0}", e.FullPath);
             }
-            catch (Exception exception)
+            catch (Exception)
             {
-                Debug.Print(exception.ToString());
-                Debug.Print("FAIL {0} : File was uploaded to cloud, however local file isn't linked with cloud", e.FullPath);
-                return;
+                loggerFormater.Oneline(LogLevel.Error, "UpdateFile", "File was uploaded to cloud, however local file isn't linked with cloud", opID: opID);
+                throw;
+            }
+            finally
+            {
+                if (handle != null)
+                {
+                    CfCloseHandle(handle);
+                }
             }
         }
 
@@ -269,7 +253,7 @@ namespace OnedataDrive
                                 );
             if (hres != HRESULT.S_OK)
             {
-                throw new Exception("UpdatePlaceholderMetadata - CfUpdatePlaceholder: " + hres);
+                throw new Exception("CfUpdatePlaceholder HRES: " + hres);
             }
         }
 
