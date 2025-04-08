@@ -16,9 +16,10 @@ namespace OnedataDrive
 {
     public static class CloudProvider
     {
-        public static Logger logger = LogManager.GetCurrentClassLogger();
-        public static string ID = @"TestStorageProvider";
-        public static string ACCOUNT = @"TestAccount";
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static LoggerFormater loggerFormater = new(logger);
+        public const string ID = @"TestStorageProvider";
+        public const string ACCOUNT = @"TestAccount";
 
         public static void RegisterWithShell(string folderPath)
         {
@@ -187,7 +188,7 @@ namespace OnedataDrive
 
         public static void OnFetchData(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "Fetch Data", "START");
+            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH DATA", "START");
 
             CF_OPERATION_INFO oi = new()
             {
@@ -264,7 +265,7 @@ namespace OnedataDrive
                         throw new Exception($"Fetch data CfExecute FAIL - HRES: {hres}");
                     }
                 } while (read == CHUNK);
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info,"Fetch Data", "OK");
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info,"FETCH DATA", "OK");
 
             }
             catch (AggregateException e)
@@ -293,7 +294,7 @@ namespace OnedataDrive
                     ex = new Exception($"CfExecute Stop operation HRES: {hres}", e);
                 }
 
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Warn, "Fetch Data - No such file", "FAIL", ex);
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Warn, "FETCH DATA", "FAIL - No such file", ex);
 
                 Thread.Sleep(1000);
                 File.Delete(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath);
@@ -320,7 +321,7 @@ namespace OnedataDrive
                     e = new Exception($"CfExecute Stop operation HRES: {hres}", e);
                 }
 
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "Fetch Data", "FAIL", e);
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "FETCH DATA", "FAIL", e);
             }
             finally
             {
@@ -563,16 +564,16 @@ namespace OnedataDrive
                 if (hresSync == HRESULT.S_OK)
                 {
                     Debug.Print("Set InSync OK");
-                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "Rename Completion", "OK");
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME COMPLETION", "OK");
                 }
                 else
                 {
                     List<string> moreInfo = new List<string>()
                     {
-                        $"CfOpenFileWithOplock HRES: {hresOpen}",
-                        $"CfSetInSyncState HRES: {hresOpen}"
+                        $"CfOpenFileWithOplock HRES: {hresOpen.ToString()}".Replace("\n", ""),
+                        $"CfSetInSyncState HRES: {hresSync.ToString().Replace("\n", "")}"
                     };
-                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "Rename Completion", "FAIL", moreInfo: moreInfo);
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "RENAME COMPLETION", "FAIL", moreInfo: moreInfo);
                 }
             }
         }
@@ -580,12 +581,10 @@ namespace OnedataDrive
         public static void OnDeleteCompletion(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
             // TODO
-            Debug.Print("DELETE COMPLETITION");
-            PrintInfo(CallbackInfo, CallbackParameters);
+            //Debug.Print("DELETE COMPLETITION");
+            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Debug, "DELETE COMPLETION");
             // free memory (allocated during placeholder creation) - not needed
             // Marshal.FreeCoTaskMem(CallbackInfo.FileIdentity);
-
-            Debug.Print("");
             return;
         }
 
@@ -596,8 +595,9 @@ namespace OnedataDrive
 
         private static void PrintInfo(
             in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters, LogLevel logLevel,
-            string method = "unknown", string status = "", Exception? exception = null, List<string>? moreInfo = null)
+            string method = "unknown", string status = "", Exception? exception = null, List<string>? moreInfo = null, string opID = "")
         {
+            /*
             string msg = $"{method}\t {status}\n\tFile path: {CallbackInfo.NormalizedPath}";
 
             if (moreInfo is not null && moreInfo.Count > 0)
@@ -613,6 +613,28 @@ namespace OnedataDrive
                 msg += $"\n\t{exception}";
             }
             logger.Log(logLevel, msg);
+            */
+
+
+            string filePath = Path.Join(CallbackInfo.VolumeDosName, CallbackInfo.NormalizedPath);
+            if (exception is null && moreInfo is null)
+            {
+                loggerFormater.LogFileOP(logLevel, method, status, filePath: filePath, opID: opID);
+            }
+            else if (exception is not null && moreInfo is not null)
+            {
+                loggerFormater.LogFileOP(logLevel, method, status, exception, moreInfo, filePath: filePath, opID: opID);
+            }
+            else if (exception is not null && moreInfo is null)
+            {
+                loggerFormater.LogFileOP(logLevel, method, status, exception, filePath: filePath, opID: opID);
+            }
+            else if (exception is null && moreInfo is not null)
+            {
+                loggerFormater.LogFileOP(logLevel, method, status, moreInfo, filePath: filePath, opID: opID);
+            }
+
+
         }
     }
 }

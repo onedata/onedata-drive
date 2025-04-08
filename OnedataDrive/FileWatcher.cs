@@ -56,7 +56,7 @@ namespace OnedataDrive
         public void OnCreated(object sender, FileSystemEventArgs e)
         {
             string opID = e.GetHashCode().ToString();
-            loggerFormater.Oneline(LogLevel.Info, "FILE CREATED", "START", filePath: e.FullPath, opID: opID);
+            loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "START", filePath: e.FullPath, opID: opID);
 
             // sleep is needed
             Thread.Sleep(1000);
@@ -64,11 +64,11 @@ namespace OnedataDrive
             try
             {
                 RegisterFile(e.FullPath, opID);
-                loggerFormater.Oneline(LogLevel.Info, "FILE CREATED", "FINISHED", filePath: e.FullPath, opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "FINISHED", filePath: e.FullPath, opID: opID);
             }
             catch (Exception ex)
             {
-                loggerFormater.Oneline(LogLevel.Error, "FILE CREATED", "FAILED", ex, filePath: e.FullPath, opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "FILE CREATED", "FAILED", ex, filePath: e.FullPath, opID: opID);
             }
             
         }
@@ -88,22 +88,22 @@ namespace OnedataDrive
             if (isDir)
             {
                 id = PushNewFolderToCloud(fullPath);
-                loggerFormater.Oneline(LogLevel.Info, "RegisterFile", "Dir pushed to cloud", opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Info, "RegisterFile", "Dir pushed to cloud", opID: opID);
             }
             else
             {
                 id = PushNewFileToCloud(fullPath);
-                loggerFormater.Oneline(LogLevel.Info, "RegisterFile", "File pushed to cloud", opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Info, "RegisterFile", "File pushed to cloud", opID: opID);
             }
 
             try
             {
                 ConvertToPlaceholder(fullPath, id, isDir);
-                loggerFormater.Oneline(LogLevel.Info, "RegisterFile", "Converted to placeholder", opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Info, "RegisterFile", "Converted to placeholder", opID: opID);
             }
             catch (Exception)
             {
-                loggerFormater.Oneline(LogLevel.Error, "RegisterFile", "File was pushed to cloud - local file is NOT LINKED with cloud", opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "RegisterFile", "File was pushed to cloud - local file is NOT LINKED with cloud", opID: opID);
                 throw;
             }
         }
@@ -113,18 +113,18 @@ namespace OnedataDrive
             string opID = e.GetHashCode().ToString();
             try
             {
-                loggerFormater.Oneline(LogLevel.Info, "FILE CHANGED", "START", filePath: e.FullPath, opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "START", filePath: e.FullPath, opID: opID);
 
                 if (!File.Exists(e.FullPath) && !Directory.Exists(e.FullPath))
                 {
-                    loggerFormater.Oneline(LogLevel.Warn, "FILE CHANGED", "FINISHED - File not found", filePath: e.FullPath, opID: opID);
+                    loggerFormater.LogFileOP(LogLevel.Warn, "FILE CHANGED", "FINISHED - File not found", filePath: e.FullPath, opID: opID);
                     return;
                 }
 
                 FileAttributes attributes = File.GetAttributes(e.FullPath);
                 if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
                 {
-                    loggerFormater.Oneline(LogLevel.Info, "FILE CHANGED", "FINISHED - File is DIR", filePath: e.FullPath, opID: opID);
+                    loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED - File is DIR", filePath: e.FullPath, opID: opID);
                     return;
                 }
 
@@ -143,10 +143,10 @@ namespace OnedataDrive
             }
             catch (Exception exception)
             {
-                loggerFormater.Oneline(LogLevel.Error, "FILE CHANGED", "FAILED", exception, filePath: e.FullPath, opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "FILE CHANGED", "FAILED", exception, filePath: e.FullPath, opID: opID);
             }
 
-            loggerFormater.Oneline(LogLevel.Info, "FILE CHANGED", "FINISHED", filePath: e.FullPath, opID: opID);
+            loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED", filePath: e.FullPath, opID: opID);
         }
 
         private void Hydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
@@ -160,7 +160,7 @@ namespace OnedataDrive
                 throw new Exception("CfOpenFileWithOplock: " + hresOpen + ", CfHydratePlaceholder: " + hresHydrate);
             }
 
-            loggerFormater.Oneline(LogLevel.Info, "Hydrate", "OK", opID: opID);
+            loggerFormater.LogFileOP(LogLevel.Info, "Hydrate", "OK", opID: opID);
         }
 
         private void Dehydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
@@ -175,7 +175,7 @@ namespace OnedataDrive
                 throw new Exception("CfOpenFileWithOplock: " + hresOpen + ", CfDehydratePlaceholder: " + hresDehydrate + ", CfSetPinState: " + hresPinState);
             }
 
-            loggerFormater.Oneline(LogLevel.Info, "Dehydrate", "OK", opID: opID);
+            loggerFormater.LogFileOP(LogLevel.Info, "Dehydrate", "OK", opID: opID);
         }
 
         private void UpdateFile(FileSystemEventArgs e, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
@@ -183,19 +183,19 @@ namespace OnedataDrive
             // test if file/folder is in sync. If true -> finish
             if (info.InSyncState == CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC)
             {
-                loggerFormater.Oneline(LogLevel.Info, "UpdateFile", "File was already in sync", opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Info, "UpdateFile", "File was already in sync", opID: opID);
                 return;
             }
 
             try
             {
                 PushToCloudUpdate(e.FullPath, info);
-                loggerFormater.Oneline(LogLevel.Info, "PushToCloudUpdate", "OK", opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Info, "PushToCloudUpdate", "OK", opID: opID);
             }
             catch (AggregateException ae) when (ae.InnerException is NoSuchCloudFile)
             {
                 File.Delete(e.FullPath);
-                loggerFormater.Oneline(LogLevel.Info, "UpdateFile", "Coresponding cloud file does not exist. Local file was deleted", ae, opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Info, "UpdateFile", "Coresponding cloud file does not exist. Local file was deleted", ae, opID: opID);
                 return;
 
             }
@@ -210,11 +210,11 @@ namespace OnedataDrive
                 }
                 // SetInSyncState and set metadata
                 UpdatePlaceholderMetadata(info, handle, e.FullPath);
-                loggerFormater.Oneline(LogLevel.Info, "UpdatePlaceholderMetadata", "OK", opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Info, "UpdatePlaceholderMetadata", "OK", opID: opID);
             }
             catch (Exception)
             {
-                loggerFormater.Oneline(LogLevel.Error, "UpdateFile", "File was uploaded to cloud, however local file isn't linked with cloud", opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "UpdateFile", "File was uploaded to cloud, however local file isn't linked with cloud", opID: opID);
                 throw;
             }
             finally
