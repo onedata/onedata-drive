@@ -60,9 +60,9 @@
             statusImageGreen = new ToolStripStatusLabel();
             statusLabel = new ToolStripStatusLabel();
             statusMessage = new ToolStripStatusLabel();
+            refreshStatusMessage = new ToolStripStatusLabel();
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
-            refreshStatusMessage = new ToolStripStatusLabel();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             form_panel.SuspendLayout();
@@ -168,9 +168,9 @@
             rootFolderDelete_checkBox.Location = new Point(179, 64);
             rootFolderDelete_checkBox.Margin = new Padding(2, 3, 2, 3);
             rootFolderDelete_checkBox.Name = "rootFolderDelete_checkBox";
-            rootFolderDelete_checkBox.Size = new Size(186, 23);
+            rootFolderDelete_checkBox.Size = new Size(330, 23);
             rootFolderDelete_checkBox.TabIndex = 15;
-            rootFolderDelete_checkBox.Text = "delete existing root folder";
+            rootFolderDelete_checkBox.Text = "Delete an existing directory without confirmation";
             rootFolderDelete_checkBox.UseVisualStyleBackColor = true;
             // 
             // connect_button
@@ -361,6 +361,11 @@
             statusMessage.Name = "statusMessage";
             statusMessage.Size = new Size(0, 17);
             // 
+            // refreshStatusMessage
+            // 
+            refreshStatusMessage.Name = "refreshStatusMessage";
+            refreshStatusMessage.Size = new Size(0, 17);
+            // 
             // scrollPanel
             // 
             scrollPanel.AutoScroll = true;
@@ -373,11 +378,6 @@
             scrollPanel.Name = "scrollPanel";
             scrollPanel.Size = new Size(784, 464);
             scrollPanel.TabIndex = 24;
-            // 
-            // refreshStatusMessage
-            // 
-            refreshStatusMessage.Name = "refreshStatusMessage";
-            refreshStatusMessage.Size = new Size(0, 17);
             // 
             // ConnectForm
             // 
