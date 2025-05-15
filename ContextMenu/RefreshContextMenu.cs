@@ -52,21 +52,10 @@ namespace ContextMenu
             {
                 Text = "Refresh Current Folder"
             };
-            var refreshFolderDown = new ToolStripMenuItem
-            {
-                Text = "Refresh Current Folder and Subfolders"
-            };
-            var refreshSpace = new ToolStripMenuItem
-            {
-                Text = "Refresh Space"
-            };
-            refreshFolderDown.Click += RefreshFolderDown;
+            
             refreshFolder.Click += RefreshFolder;
-            refreshSpace.Click += RefreshSpace;
 
-            //mainItem.DropDownItems.Add(refreshFolderDown);
             mainItem.DropDownItems.Add(refreshFolder);
-            //mainItem.DropDownItems.Add(refreshSpace);
             menu.Items.Add(mainItem);
 
             return menu;
@@ -133,21 +122,9 @@ namespace ContextMenu
             return paths;
         }
 
-        private void RefreshFolderDown(object? sender, EventArgs e)
-        {
-            PipeCommand command = new(Commands.REFRESH_FOLDER_DOWN, GetCurrentFolderPath());
-            SendCommand(command);
-        }
-
         private void RefreshFolder(object? sender, EventArgs e)
         {
             PipeCommand command = new(Commands.REFRESH_FOLDER, GetCurrentFolderPath());
-            SendCommand(command);
-        }
-
-        private void RefreshSpace(object? sender, EventArgs e)
-        {
-            PipeCommand command = new(Commands.REFRESH_SPACE, GetCurrentFolderPath());
             SendCommand(command);
         }
 
@@ -176,7 +153,6 @@ namespace ContextMenu
                                 PipeCommand commandReceived = new(readerTask.Result ?? "");
                                 if (commandReceived.command == Commands.OK)
                                 {
-                                    //Task.Run(() => MessageBox.Show("Refresh Started"));
                                 }
                                 else
                                 {
@@ -191,7 +167,6 @@ namespace ContextMenu
                         }
                         if (!readerTask.IsCompleted)
                         {
-                            //Task.Run(() => MessageBox.Show("No response. Closing client"));
                             tokenSource.Cancel();
                         }
                     }

@@ -49,7 +49,6 @@ namespace OnedataDrive
 
         public void OnError(object sender, ErrorEventArgs e)
         {
-            // TODO: do something clever
             logger.Error("Filewatcher FAILED", e.GetException());
         }
 

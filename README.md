@@ -3,7 +3,7 @@
 Onedata Drive is a graphical interface application allowing Windows users to work with data stored in Onedata system. 
 
 ## Requirements
-- Supported Windows version: **Windows 10 (version 1803)** and **Windows 11**
+- Supported Windows version: **Windows 10 (version 1803 +)** and **Windows 11**
 - **.NET Desktop Runtime 8** must be installed
 - Before the installation of the new version, **the old version has to be uninstalled**  (The installer will be improved later to make this step unnecessary)
 - You should not need to run as admin, as long you have access to the Root Folder
@@ -16,6 +16,15 @@ Onedata Drive is a graphical interface application allowing Windows users to wor
 
 ### Filling the connect form
 All options can be set in the graphicall user interface. You can fill the connect form manually or you can load existing configuration file (`Advanced` -> `Load configuration from file`). 
+
+**Configuration JSON file example:**
+```
+{
+    "zone_host" : "datahub.egi.eu",
+    "provider_token" : "TOKEN",
+    "root_path" : "C:\\Users\\user\\Onedata\\"
+}
+```
 
 ### Configuration
  The configuration is stored in the file at `C:\Users\username\AppData\Local\OnedataDrive\UserSettings.config`. 
@@ -33,13 +42,7 @@ Selected configuration options:
 ## Logging
 Files with logs can be found at `C:\Users\username\AppData\Local\OnedataDrive\logs\`. 
 
-## Required packages (for develompent and compilation)
-``
-dotnet add package Vanara.PInvoke.CldApi
-``
-
-- install to use win32 api (cloudfilter)
 
 ## Notes
-- Not work in Windows Sandbox. In virtual machine (e.g. in Hyper-V) it works fine.
+- Does not work in Windows Sandbox. In virtual machine (e.g. in Hyper-V) it works fine.
 - The application is not signed, so Windows Defender SmartScreen might block it. You can run it anyway by clicking `More info` and `Run anyway`.

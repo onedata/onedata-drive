@@ -299,12 +299,6 @@ namespace OnedataDriveGUI
                 int halfThickness = thickness / 2;
                 using (Pen p = new Pen(SystemColors.Control, thickness))
                 {
-                    /*
-                    e.Graphics.DrawRectangle(p, new Rectangle(halfThickness,
-                                                              halfThickness,
-                                                              advanced_panel.ClientSize.Width - thickness,
-                                                              advanced_panel.ClientSize.Height - thickness));
-                    */
                     e.Graphics.DrawLine(p, new Point(halfThickness, 0), new Point(halfThickness, advanced_panel.ClientSize.Height));
                     e.Graphics.DrawLine(
                         p, 
