@@ -20,7 +20,7 @@ All options can be set in the graphicall user interface. You can fill the connec
 **Configuration JSON file example:**
 ```
 {
-    "zone_host" : "datahub.egi.eu",
+    "onezone" : "datahub.egi.eu",
     "provider_token" : "TOKEN",
     "root_path" : "C:\\Users\\user\\Onedata\\"
 }

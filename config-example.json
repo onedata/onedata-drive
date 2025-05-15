@@ -1,5 +1,5 @@
 {
-    "zone_host" : "datahub.egi.eu",
+    "onezone" : "datahub.egi.eu",
     "provider_token" : "TOKEN",
     "root_path" : "C:\\Users\\user\\Onedata\\"
 }
