@@ -13,6 +13,7 @@ Onedata Drive is a graphical interface application allowing Windows users to wor
 - every time you restart computer/app and connect again new session is created
 - connecting to big spaces (with many folders) might take a long time (up to several minutes)
 - **Oneprovider Token** must have REST/CDMI access
+- If you want refresh folder (show changes perfomed on cloud): `Right Click (On empty space) -> Show more options -> Onedata Drive -> Refresh Current Folder`
 
 ### Filling the connect form
 All options can be set in the graphicall user interface. You can fill the connect form manually or you can load existing configuration file (`Advanced` -> `Load configuration from file`). 
@@ -42,6 +43,9 @@ Selected configuration options:
 ## Logging
 Files with logs can be found at `C:\Users\username\AppData\Local\OnedataDrive\logs\`. 
 
+## In case of app failure
+- If the app crashes and you can not reconnect to the cloud restarting computer should fix the issue.
+- If the app is not running, but sync root (OneData) is still present you may try using `Advanced -> Remove SyncRoot`
 
 ## Notes
 - Does not work in Windows Sandbox. In virtual machine (e.g. in Hyper-V) it works fine.
