@@ -301,10 +301,32 @@ namespace OnedataDriveGUI
                 {
                     e.Graphics.DrawLine(p, new Point(halfThickness, 0), new Point(halfThickness, advanced_panel.ClientSize.Height));
                     e.Graphics.DrawLine(
-                        p, 
-                        new Point(advanced_panel.ClientSize.Width - halfThickness, 0), 
+                        p,
+                        new Point(advanced_panel.ClientSize.Width - halfThickness, 0),
                         new Point(advanced_panel.ClientSize.Width - halfThickness, advanced_panel.ClientSize.Height));
                 }
+            }
+        }
+
+        private void removeSyncRoot_button_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                logger.Info("Unregister SyncRoot START, CloudSync running: {0}", CloudSync.running);
+                if (!CloudSync.running)
+                {
+                    string message = "Use this only after crash or when you can not remove SyncRoot by using Disconnect. Do you want to proceed?";
+                    if (MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.Yes)
+                    {
+                        CloudProvider.UnregisterSafely();
+                        statusMessage.Text = "Unregister SyncRoot OK";
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                statusMessage.Text = "Unregister SyncRoot FAIL";
+                logger.Error("Unregister SyncRoot", exception);
             }
         }
     }

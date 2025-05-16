@@ -63,6 +63,7 @@
             refreshStatusMessage = new ToolStripStatusLabel();
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
+            removeSyncRoot_button = new Button();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             form_panel.SuspendLayout();
@@ -277,6 +278,7 @@
             // advanced_panel
             // 
             advanced_panel.BackColor = Color.FromArgb(225, 225, 225);
+            advanced_panel.Controls.Add(removeSyncRoot_button);
             advanced_panel.Controls.Add(openLogFolder_button);
             advanced_panel.Controls.Add(rootFolderErase_button);
             advanced_panel.Controls.Add(loadFromFile_button);
@@ -287,7 +289,7 @@
             advanced_panel.Dock = DockStyle.Top;
             advanced_panel.Location = new Point(0, 300);
             advanced_panel.Name = "advanced_panel";
-            advanced_panel.Size = new Size(767, 200);
+            advanced_panel.Size = new Size(767, 250);
             advanced_panel.TabIndex = 21;
             advanced_panel.Visible = false;
             advanced_panel.Paint += advanced_panel_paint;
@@ -309,7 +311,7 @@
             controls_panel.Controls.Add(connect_button);
             controls_panel.Controls.Add(disconect_button);
             controls_panel.Dock = DockStyle.Top;
-            controls_panel.Location = new Point(0, 500);
+            controls_panel.Location = new Point(0, 550);
             controls_panel.Name = "controls_panel";
             controls_panel.Size = new Size(767, 97);
             controls_panel.TabIndex = 22;
@@ -378,6 +380,18 @@
             scrollPanel.Name = "scrollPanel";
             scrollPanel.Size = new Size(784, 464);
             scrollPanel.TabIndex = 24;
+            // 
+            // removeSyncRoot_button
+            // 
+            removeSyncRoot_button.BackColor = SystemColors.Window;
+            removeSyncRoot_button.Location = new Point(177, 199);
+            removeSyncRoot_button.Margin = new Padding(2, 3, 2, 3);
+            removeSyncRoot_button.Name = "removeSyncRoot_button";
+            removeSyncRoot_button.Size = new Size(194, 33);
+            removeSyncRoot_button.TabIndex = 21;
+            removeSyncRoot_button.Text = "Remove SyncRoot";
+            removeSyncRoot_button.UseVisualStyleBackColor = false;
+            removeSyncRoot_button.Click += removeSyncRoot_button_Click;
             // 
             // ConnectForm
             // 
@@ -448,5 +462,6 @@
         private Label version_label;
         private Button openLogFolder_button;
         private ToolStripStatusLabel refreshStatusMessage;
+        private Button removeSyncRoot_button;
     }
 }
