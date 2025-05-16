@@ -27,6 +27,12 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_51998E4DB9CD44BAA941D8FB23D3542D"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_5BD52ADB823549C2B1899ACEB89051CE"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -207,6 +213,26 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_51998E4DB9CD44BAA941D8FB23D3542D"
+            {
+            "SourcePath" = "8:..\\README.md"
+            "TargetName" = "8:README.md"
+            "Tag" = "8:"
+            "Folder" = "8:_9DCA72EB57EE482A92DC04DD94E04FD7"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_5BD52ADB823549C2B1899ACEB89051CE"
             {
             "SourcePath" = "8:..\\OnedataDrive\\resources\\icon-dark.ico"
@@ -334,15 +360,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:OnedataDrive"
-        "ProductCode" = "8:{0EC6E2C7-86EA-4C2B-824F-162E21FF4844}"
-        "PackageCode" = "8:{65F284CD-C64E-4F1C-88E0-830C4AC5D59F}"
+        "ProductCode" = "8:{94077CB8-C3C2-4180-B07F-B835D19CE5E6}"
+        "PackageCode" = "8:{5EBDED2B-8A83-4414-A67E-F70CD9659C02}"
         "UpgradeCode" = "8:{1A0420F3-CF57-41DF-809C-3098B2E589F9}"
         "AspNetVersion" = "8:"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:FALSE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:0.3.4"
+        "ProductVersion" = "8:0.3.5"
         "Manufacturer" = "8:Masaryk University"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
