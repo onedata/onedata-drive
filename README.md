@@ -52,3 +52,17 @@ Files with logs can be found at `C:\Users\username\AppData\Local\OnedataDrive\lo
 ## Notes
 - Does not work in Windows Sandbox. In virtual machine (e.g. in Hyper-V) it works fine.
 - The application is not signed, so Windows Defender SmartScreen might block it. You can run it anyway by clicking `More info` and `Run anyway`.
+
+## Acknowledgment
+<p align="left">
+  <img src="https://webcentrum.muni.cz/media/3831863/seda_eosc.png" alt="EOSC CZ Logo" height="90">
+</p>
+
+---
+This project output was developed with financial contributions from the [EOSC CZ](https://www.eosc.cz/projekty/narodni-podpora-pro-eosc) initiative throught the project **National Repository Platform for Research Data** (CZ.02.01.01/00/23_014/0008787) funded by Programme Johannes Amos Comenius (P JAC) of the Ministry of Education, Youth and Sports of the Czech Republic (MEYS).
+
+---
+
+<p align="left">
+  <img src="https://webcentrum.muni.cz/media/3832168/seda_eu-msmt_eng.png" alt="EU and MŠMT Logos" height="90">
+</p>
