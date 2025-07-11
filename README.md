@@ -1,5 +1,7 @@
 # Onedata Drive
 
+**The application is currently under development. Available installation packages are alpha versions. It is not intended for use with production data!**
+
 Onedata Drive is a graphical interface application allowing Windows users to work with data stored in Onedata system. 
 
 ## Requirements
