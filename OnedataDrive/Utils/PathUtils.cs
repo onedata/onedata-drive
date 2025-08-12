@@ -6,6 +6,22 @@ namespace OnedataDrive.Utils
 {
     public static class PathUtils
     {
+        public static string GetFullPath(CF_CALLBACK_INFO CallbackInfo)
+        {
+            string volumeName = CallbackInfo.VolumeDosName;
+            string normalizedPath = CallbackInfo.NormalizedPath;
+            if (volumeName == string.Empty || normalizedPath == string.Empty)
+            {
+                return "";
+            }
+            string fullPath = Path.Combine(volumeName, normalizedPath);
+            if (fullPath.Last() != '\\')
+            {
+                fullPath += '\\';
+            }
+            return fullPath;
+        }
+
         public static string GetSpaceName(string fullPath)
         {
             string temp = fullPath.Replace(CloudSync.configuration.root_path, string.Empty);
@@ -28,6 +44,11 @@ namespace OnedataDrive.Utils
                 return CloudSync.spaces.Keys.Contains(temp.Split("\\")[0]);
             }
             return false;
+        }
+
+        public static bool IsRootPath(string fullPath)
+        {
+            return fullPath == CloudSync.configuration.root_path;
         }
 
         public static string GetLastInPath(string fullPath, char separator = '\\')

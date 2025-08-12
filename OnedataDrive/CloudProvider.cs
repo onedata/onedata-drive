@@ -152,6 +152,11 @@ namespace OnedataDrive
                 Type = CF_CALLBACK_TYPE.CF_CALLBACK_TYPE_FETCH_PLACEHOLDERS,
                 Callback = new CF_CALLBACK(OnFetchPlaceholders),
             },
+            new CF_CALLBACK_REGISTRATION
+            {
+                Type = CF_CALLBACK_TYPE.CF_CALLBACK_TYPE_CANCEL_FETCH_PLACEHOLDERS,
+                Callback = new CF_CALLBACK(OnCancelFetchPlaceholders),
+            },
             CF_CALLBACK_REGISTRATION.CF_CALLBACK_REGISTRATION_END
             };
             return registrationTable;
@@ -183,6 +188,27 @@ namespace OnedataDrive
         public static void OnFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
             Debug.Print("FETCH PLACEHOLDERS");
+            string folderPath = PathUtils.GetFullPath(CallbackInfo);
+            if (!Directory.Exists(folderPath))
+            {
+                return;
+            }
+            if (PathUtils.IsRootPath(folderPath))
+            {
+                // build spaces
+            }
+            else
+            {
+                // build placeholders
+            }
+            // finish OK
+            // add to monitoring list (later)
+            return;
+        }
+
+        public static void OnCancelFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
+        {
+            Debug.Print("CANCEL FETCH PLACEHOLDERS - not implemented");
             return;
         }
 
