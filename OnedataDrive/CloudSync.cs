@@ -66,9 +66,9 @@ namespace OnedataDrive
                 logger.Info("ConnectCallbacks -> OK");
 
                 TestTokenAndOnezone();
-                InitSpaceFolders();
+                //InitSpaceFolders();
 
-                InitSpaceFoldersChildren();
+                //InitSpaceFoldersChildren();
 
                 // start file watcher
                 watcher = new(configuration.root_path);

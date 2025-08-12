@@ -24,6 +24,16 @@ namespace OnedataDrive
             this.Ctime = Ctime;
             this.Name = Name;
         }
+
+        public PlaceholderData(FileAttribute fileAttribute)
+        {
+            this.Size = fileAttribute.size;
+            this.FileIdentity = fileAttribute.file_id;
+            this.Atime = fileAttribute.atime;
+            this.Mtime = fileAttribute.mtime;
+            this.Ctime = fileAttribute.ctime;
+            this.Name = fileAttribute.name;
+        }
     }
 
     class Placeholders
@@ -32,10 +42,6 @@ namespace OnedataDrive
 
         public static CF_PLACEHOLDER_CREATE_INFO createInfo(PlaceholderData data)
         {
-            DateTime ctime = DateTimeOffset.FromUnixTimeSeconds(data.Ctime).UtcDateTime;
-            DateTime mtime = DateTimeOffset.FromUnixTimeSeconds(data.Mtime).UtcDateTime;
-            DateTime atime = DateTimeOffset.FromUnixTimeSeconds(data.Atime).UtcDateTime;
-
             CF_PLACEHOLDER_CREATE_INFO info = new()
             {
                 FileIdentity = Marshal.StringToCoTaskMemUni(data.FileIdentity),
@@ -49,16 +55,12 @@ namespace OnedataDrive
 
         public static CF_PLACEHOLDER_CREATE_INFO createDirInfo(PlaceholderData data)
         {
-            DateTime ctime = DateTimeOffset.FromUnixTimeSeconds(data.Ctime).UtcDateTime;
-            DateTime mtime = DateTimeOffset.FromUnixTimeSeconds(data.Mtime).UtcDateTime;
-            DateTime atime = DateTimeOffset.FromUnixTimeSeconds(data.Atime).UtcDateTime;
-
             CF_PLACEHOLDER_CREATE_INFO info = new()
             {
                 FileIdentity = Marshal.StringToCoTaskMemUni(data.FileIdentity),
                 FileIdentityLength = (uint)(data.FileIdentity.Length * Marshal.SizeOf(data.FileIdentity[0])) * ENCODING_SIZE,
                 RelativeFileName = data.Name,
-                Flags = CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_MARK_IN_SYNC | CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_DISABLE_ON_DEMAND_POPULATION,
+                Flags = CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_MARK_IN_SYNC,
                 FsMetadata = CreateFSMetadata(data, directory: true)
             };
             return info;
@@ -66,38 +68,8 @@ namespace OnedataDrive
 
         public static CF_FS_METADATA CreateFSMetadata(FileAttribute fileAttribute, bool directory = false)
         {
-            DateTime ctime = DateTimeOffset.FromUnixTimeSeconds(fileAttribute.ctime).UtcDateTime;
-            DateTime mtime = DateTimeOffset.FromUnixTimeSeconds(fileAttribute.mtime).UtcDateTime;
-            DateTime atime = DateTimeOffset.FromUnixTimeSeconds(fileAttribute.atime).UtcDateTime;
-
-            return new CF_FS_METADATA
-            {
-                FileSize = directory ? 0 : fileAttribute.size,
-                BasicInfo = new Kernel32.FILE_BASIC_INFO
-                {
-                    CreationTime = new FILETIME
-                    {
-                        dwHighDateTime = (int)ctime.ToFileTime().HighPart(),
-                        dwLowDateTime = (int)ctime.ToFileTime().LowPart()
-                    },
-                    LastWriteTime = new FILETIME
-                    {
-                        dwHighDateTime = (int)mtime.ToFileTime().HighPart(),
-                        dwLowDateTime = (int)mtime.ToFileTime().LowPart()
-                    },
-                    LastAccessTime = new FILETIME
-                    {
-                        dwHighDateTime = (int)atime.ToFileTime().HighPart(),
-                        dwLowDateTime = (int)atime.ToFileTime().LowPart()
-                    },
-                    ChangeTime = new FILETIME
-                    {
-                        dwHighDateTime = (int)mtime.ToFileTime().HighPart(),
-                        dwLowDateTime = (int)mtime.ToFileTime().LowPart()
-                    },
-                    FileAttributes = directory ? FileFlagsAndAttributes.FILE_ATTRIBUTE_DIRECTORY : FileFlagsAndAttributes.FILE_ATTRIBUTE_NORMAL
-                }
-            };
+            PlaceholderData data = new PlaceholderData(fileAttribute);
+            return CreateFSMetadata(data, directory);
         }
 
         public static CF_FS_METADATA CreateFSMetadata(PlaceholderData data, bool directory = false)
