@@ -17,9 +17,7 @@ namespace OnedataDrive
         public static FileWatcher watcher = new();
         public static bool running { get; private set; } = false;
         public static Logger logger = LogManager.GetCurrentClassLogger();
-        public const string VERSION = "0.3.6";
-        public const string PIPE_SERVER_NAME = "onedatadrive{998B9E8D-1218-41B3-B360-15A776172DEB}";
-        public static PipeServer pipeServer = new();
+        public const string VERSION = "0.3.8";
         /// <summary>
         /// Method to start CloudSync
         /// </summary>
@@ -75,10 +73,6 @@ namespace OnedataDrive
                 // start file watcher
                 watcher = new(configuration.root_path);
                 logger.Info("Filewatcher Start -> OK");
-
-                pipeServer = new();
-                pipeServer.Start(PIPE_SERVER_NAME);
-
             }
             catch (OnezoneException e)
             {
@@ -122,7 +116,6 @@ namespace OnedataDrive
             logger.Info("FileWatcher stopped");
             running = false;
             logger.Info("CLOUD SYNC STOPPED");
-            pipeServer.Stop();
         }
 
         /// <summary>

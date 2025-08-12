@@ -15,8 +15,6 @@ namespace OnedataDriveGUI
         private string userProfilePath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         private string defaultRootPath { get => userProfilePath + "\\" + ROOT_DIR; }
         private CustomSettings userSettings = new();
-        CancellationTokenSource cts;
-        Task? refreshTask = null;
         public ConnectForm()
         {
             logger.Info("APP GUI LAUNCHED - version: " + CloudSync.VERSION);
@@ -25,21 +23,6 @@ namespace OnedataDriveGUI
             InitGuiValuesDefaults();
 
             LoadLastConfig();
-
-            cts = new();
-        }
-
-        private void RefreshMonitor(CancellationToken token)
-        {
-            while (!token.IsCancellationRequested)
-            {
-                Thread.Sleep(100);
-                if (PipeServer.refreshMsg != "")
-                {
-                    refreshStatusMessage.Text = " | " + PipeServer.refreshMsg;
-                }
-            }
-            refreshStatusMessage.Text = "";
         }
 
         private void InitGuiValuesDefaults()
@@ -168,8 +151,6 @@ namespace OnedataDriveGUI
             {
                 case CloudSyncReturnCodes.SUCCESS:
                     statusMessage.Text = "Connected";
-                    cts = new();
-                    refreshTask = Task.Run(() => RefreshMonitor(cts.Token), cts.Token);
                     break;
                 case CloudSyncReturnCodes.ERROR:
                     statusMessage.Text = "Failed to connect";
@@ -203,7 +184,6 @@ namespace OnedataDriveGUI
         {
             SetDisplayStatus(Status.DISCONNECTING);
             statusMessage.Text = "Disconnecting";
-            cts.Cancel();
             CloudSync.Stop();
             statusMessage.Text = "Disconected";
             SetDisplayStatus(Status.NOT_CONNECTED);
