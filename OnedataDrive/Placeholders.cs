@@ -4,6 +4,7 @@ using LARGE_INTEGER = System.Int64;
 using System.Runtime.InteropServices.ComTypes;
 using Vanara.PInvoke;
 using OnedataDrive.JSON_Object;
+using OnedataDrive.Utils;
 namespace OnedataDrive
 {
     class PlaceholderData
@@ -106,6 +107,18 @@ namespace OnedataDrive
                     FileAttributes = directory ? FileFlagsAndAttributes.FILE_ATTRIBUTE_DIRECTORY : FileFlagsAndAttributes.FILE_ATTRIBUTE_NORMAL
                 }
             };
+        }
+
+        public static void FetchPlaceholdersInfo(string folderPath)
+        {
+            // get folder id
+            string id = PathUtils.GetPlaceholderId(folderPath);
+            // get space record
+            SpaceFolder space = PathUtils.GetSpaceFolder(folderPath);
+            // get placeholder info
+            DirChildren children = RestClient.GetFilesAndSubdirs(id, space.providerInfos).Result;
+            // create array
+            
         }
     }
 }

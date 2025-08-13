@@ -66,7 +66,7 @@ namespace OnedataDrive
                 logger.Info("ConnectCallbacks -> OK");
 
                 TestTokenAndOnezone();
-                //InitSpaceFolders();
+                InitSpaceFolders();
 
                 //InitSpaceFoldersChildren();
 

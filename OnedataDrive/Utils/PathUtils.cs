@@ -94,5 +94,18 @@ namespace OnedataDrive.Utils
             }
             return path;
         }
+
+        public static string GetPlaceholderId(string placeholderPath)
+        {
+            CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(PathUtils.GetParentPath(placeholderPath));
+            string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
+            return id;
+        }
+
+        public static SpaceFolder GetSpaceFolder(string fullPath)
+        {
+            string spaceName = GetSpaceName(fullPath);
+            return CloudSync.spaces[spaceName];
+        }
     }
 }
