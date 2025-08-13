@@ -3,6 +3,7 @@ using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -187,6 +188,48 @@ namespace OnedataDrive
 
         public static void OnFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
+            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "START");
+
+            CF_OPERATION_INFO oi = new()
+            {
+                Type = CF_OPERATION_TYPE.CF_OPERATION_TYPE_TRANSFER_PLACEHOLDERS,
+                ConnectionKey = CallbackInfo.ConnectionKey,
+                TransferKey = CallbackInfo.TransferKey
+            };
+            CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp;
+
+            nint ptr = IntPtr.Zero;
+            PlaceholderData placeholderData = new(
+                "abcdefgh",
+                "random space name",
+                0,
+                0,
+                0,
+                0);
+            CF_PLACEHOLDER_CREATE_INFO ci = Placeholders.createDirInfo(placeholderData);
+            ptr = Marshal.AllocCoTaskMem(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)));
+            Marshal.StructureToPtr(ci, ptr, false);
+
+            tp = new()
+            {
+                CompletionStatus = NTStatus.STATUS_SUCCESS,
+                Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION,
+                PlaceholderTotalCount = 1,
+                EntriesProcessed = 0,
+                PlaceholderCount = 1,
+                PlaceholderArray = ptr
+            };
+            CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(tp);
+            HRESULT hres = CfExecute(oi, ref op);
+            Debug.Print($"FETCH PLACEHOLDERS HRES: {hres}");
+
+            Marshal.FreeCoTaskMem(ptr);
+
+        }
+
+        /*
+        public static void OnFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
+        {
             Debug.Print("FETCH PLACEHOLDERS");
             CF_OPERATION_INFO oi = new()
             {
@@ -298,12 +341,12 @@ namespace OnedataDrive
                     CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp = new()
                     {
                         Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION,
-                        CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_SUCCESS),
-                        PlaceholderTotalCount = infoArr.Length,
+                        CompletionStatus = NTStatus.STATUS_SUCCESS,
+                        PlaceholderTotalCount = 0,
                         EntriesProcessed = 0,
 
                         PlaceholderArray = placeholderArrayPointer,
-                        PlaceholderCount = (uint)infoArr.Length
+                        PlaceholderCount = 0
                     };
                     CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(tp);
 
@@ -328,7 +371,11 @@ namespace OnedataDrive
                 CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp = new()
                 {
                     Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR,
-                    CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_UNSUCCESSFUL)
+                    CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_SUCCESS),
+                    PlaceholderTotalCount = 0,
+                    EntriesProcessed = 0,
+                    PlaceholderArray = IntPtr.Zero,
+                    PlaceholderCount = 0
                 };
                 CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(tp);
                 HRESULT hres = CfExecute(oi, ref op);
@@ -346,6 +393,7 @@ namespace OnedataDrive
 
             }
         }
+        */
 
         public static void OnCancelFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {

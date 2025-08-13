@@ -14,7 +14,7 @@ namespace OnedataDrive.Utils
             {
                 return "";
             }
-            string fullPath = Path.Combine(volumeName, normalizedPath);
+            string fullPath = volumeName + normalizedPath;
             if (fullPath.Last() != '\\')
             {
                 fullPath += '\\';
