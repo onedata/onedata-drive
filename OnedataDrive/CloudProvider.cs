@@ -196,6 +196,7 @@ namespace OnedataDrive
                 ConnectionKey = CallbackInfo.ConnectionKey,
                 TransferKey = CallbackInfo.TransferKey
             };
+            oi.StructSize = (uint)Marshal.SizeOf(oi);
             CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp;
 
             nint ptr = IntPtr.Zero;
@@ -214,10 +215,10 @@ namespace OnedataDrive
             {
                 CompletionStatus = NTStatus.STATUS_SUCCESS,
                 Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION,
-                PlaceholderTotalCount = 1,
+                PlaceholderTotalCount = 0,
                 EntriesProcessed = 0,
-                PlaceholderCount = 1,
-                PlaceholderArray = ptr
+                PlaceholderCount = 0,
+                //PlaceholderArray = ptr
             };
             CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(tp);
             HRESULT hres = CfExecute(oi, ref op);
