@@ -238,7 +238,7 @@ namespace OnedataDrive
                                     fileInfo.atime,
                                     fileInfo.mtime,
                                     fileInfo.ctime);
-                                info.Add(Placeholders.createDirInfo(placeholderData));
+                                info.Add(Placeholders.CreateDirInfo(placeholderData));
 
                                 placeholderAdded = true;
 
@@ -324,7 +324,7 @@ namespace OnedataDrive
                     PlaceholderData data = new(child.file_id, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime);
                     if (child.type == "DIR")
                     {
-                        info.Add(Placeholders.createDirInfo(data));
+                        info.Add(Placeholders.CreateDirInfo(data));
                         SpaceFolder dir = new()
                         {
                             dirId = child.file_id,
@@ -334,7 +334,7 @@ namespace OnedataDrive
                     }
                     else if (child.type == "REG")
                     {
-                        info.Add(Placeholders.createInfo(data));
+                        info.Add(Placeholders.CreateRegInfo(data));
                     }
                 }
 
@@ -359,7 +359,7 @@ namespace OnedataDrive
             }
         }
 
-        private static string DistinctWindowsName(Child child, PlaceholderCreateInfo info)
+        public static string DistinctWindowsName(Child child, PlaceholderCreateInfo info)
         {
             NameConvertor nameConvertor = new NameConvertor();
             string windowsCorrectName;

@@ -15,8 +15,12 @@ namespace OnedataDrive
         public long Mtime;
         public long Ctime;
         public string Name;
+        public string Type;
 
-        public PlaceholderData(string FileIdentity, string Name, long Size, long Atime, long Mtime, long Ctime)
+        internal const string REGULAR_FILE = "REG";
+        internal const string DIRECTORY = "DIR";
+
+        public PlaceholderData(string FileIdentity, string Name, long Size, long Atime, long Mtime, long Ctime, string Type = REGULAR_FILE)
         {
             this.Size = Size;
             this.FileIdentity = FileIdentity;
@@ -24,6 +28,7 @@ namespace OnedataDrive
             this.Mtime = Mtime;
             this.Ctime = Ctime;
             this.Name = Name;
+            this.Type = Type;
         }
 
         public PlaceholderData(FileAttribute fileAttribute)
@@ -34,6 +39,7 @@ namespace OnedataDrive
             this.Mtime = fileAttribute.mtime;
             this.Ctime = fileAttribute.ctime;
             this.Name = fileAttribute.name;
+            this.Type = fileAttribute.type;
         }
     }
 
@@ -41,7 +47,7 @@ namespace OnedataDrive
     {
         public const int ENCODING_SIZE = 2;
 
-        public static CF_PLACEHOLDER_CREATE_INFO createInfo(PlaceholderData data)
+        public static CF_PLACEHOLDER_CREATE_INFO CreateRegInfo(PlaceholderData data)
         {
             CF_PLACEHOLDER_CREATE_INFO info = new()
             {
@@ -54,7 +60,7 @@ namespace OnedataDrive
             return info;
         }
 
-        public static CF_PLACEHOLDER_CREATE_INFO createDirInfo(PlaceholderData data)
+        public static CF_PLACEHOLDER_CREATE_INFO CreateDirInfo(PlaceholderData data)
         {
             CF_PLACEHOLDER_CREATE_INFO info = new()
             {
@@ -65,6 +71,24 @@ namespace OnedataDrive
                 FsMetadata = CreateFSMetadata(data, directory: true)
             };
             return info;
+        }
+
+        /// <summary>
+        /// Creates CF_PLACEHOLDER_CREATE_INFO structure and selects type (REG, DIR) based on type in PlaceholderData.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        public static CF_PLACEHOLDER_CREATE_INFO CreateInfo(PlaceholderData data)
+        {
+            if (data.Type == PlaceholderData.REGULAR_FILE)
+            {
+                return CreateRegInfo(data);
+            }
+            else if (data.Type == PlaceholderData.DIRECTORY)
+            {
+                return CreateDirInfo(data);
+            }
+            throw new ArgumentException("Unknown placeholder type: " + data.Type);
         }
 
         public static CF_FS_METADATA CreateFSMetadata(FileAttribute fileAttribute, bool directory = false)
@@ -109,16 +133,25 @@ namespace OnedataDrive
             };
         }
 
-        public static void FetchPlaceholdersInfo(string folderPath)
+        public static PlaceholderCreateInfo FetchPlaceholdersInfo(string folderPath)
         {
             // get folder id
             string id = PathUtils.GetPlaceholderId(folderPath);
             // get space record
             SpaceFolder space = PathUtils.GetSpaceFolder(folderPath);
             // get placeholder info
-            DirChildren children = RestClient.GetFilesAndSubdirs(id, space.providerInfos).Result;
+            var task = RestClient.GetFilesAndSubdirs(id, space.providerInfos);
+            task.Wait();
+            DirChildren children = task.Result;
             // create array
-            
+            PlaceholderCreateInfo placeholderCreateInfo = new();
+            foreach (Child child in children.children)
+            {
+                string windowsCorrectName = CloudSync.DistinctWindowsName(child, placeholderCreateInfo);
+                PlaceholderData data = new(child.file_id, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
+                placeholderCreateInfo.Add(CreateInfo(data));
+            }
+            return placeholderCreateInfo;
         }
     }
 }

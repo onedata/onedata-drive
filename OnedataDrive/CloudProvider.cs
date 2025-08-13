@@ -196,6 +196,7 @@ namespace OnedataDrive
             };
             oi.StructSize = (uint)Marshal.SizeOf(oi);
             nint placeholderArrayPointer = IntPtr.Zero;
+            PlaceholderCreateInfo placeholderCreateInfo = new();
             CF_PLACEHOLDER_CREATE_INFO[] infoArr = [];
 
             try
@@ -221,24 +222,25 @@ namespace OnedataDrive
                 else
                 {
                     // build placeholders
-                    PlaceholderData placeholderData = new(
-                        "abcdefgh",
-                        "random folder name",
-                        0,
-                        0,
-                        0,
-                        0);
-                    CF_PLACEHOLDER_CREATE_INFO ci = Placeholders.createDirInfo(placeholderData);
-                    placeholderArrayPointer = Marshal.AllocCoTaskMem(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)));
-                    Marshal.StructureToPtr(ci, placeholderArrayPointer, false);
+                    placeholderCreateInfo = Placeholders.FetchPlaceholdersInfo(folderPath);
+                    CF_PLACEHOLDER_CREATE_INFO[] placeholderArr = placeholderCreateInfo.GetArray();
+                    int placeholderArrLen = placeholderCreateInfo.Get().Count;
+
+                    // copy arr to unmanaged memory
+                    placeholderArrayPointer = Marshal.AllocCoTaskMem(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)) * placeholderArrLen);
+                    for (int i = 0; i < placeholderArrLen; i++)
+                    {
+                        Marshal.StructureToPtr(placeholderArr[i], placeholderArrayPointer + (i * Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO))), false);
+                    }
+
 
                     tp = new()
                     {
                         CompletionStatus = NTStatus.STATUS_SUCCESS,
                         Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION,
-                        PlaceholderTotalCount = 1,
+                        PlaceholderTotalCount = placeholderArrLen,
                         EntriesProcessed = 0,
-                        PlaceholderCount = 1,
+                        PlaceholderCount = (uint)placeholderArrLen,
                         PlaceholderArray = placeholderArrayPointer
                     };
                     
@@ -281,6 +283,7 @@ namespace OnedataDrive
                     Marshal.FreeCoTaskMem(placeholderArrayPointer);
                     placeholderArrayPointer = IntPtr.Zero;
                 }
+                placeholderCreateInfo.Dispose();
 
             }
         }
@@ -306,7 +309,7 @@ namespace OnedataDrive
                 0,
                 0,
                 0);
-            CF_PLACEHOLDER_CREATE_INFO ci = Placeholders.createDirInfo(placeholderData);
+            CF_PLACEHOLDER_CREATE_INFO ci = Placeholders.CreateDirInfo(placeholderData);
             ptr = Marshal.AllocCoTaskMem(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)));
             Marshal.StructureToPtr(ci, ptr, false);
 

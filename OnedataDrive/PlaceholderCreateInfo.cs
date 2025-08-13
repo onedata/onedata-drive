@@ -33,6 +33,7 @@ namespace OnedataDrive
                 Marshal.FreeCoTaskMem(i.FileIdentity);
                 i.FileIdentity = IntPtr.Zero;
             });
+            infos.Clear();
         }
     }
 }
