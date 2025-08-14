@@ -185,9 +185,11 @@ namespace OnedataDrive
         {
             CfDisconnectSyncRoot(connectionKey);
         }
+
         public static void OnFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            Debug.Print("FETCH PLACEHOLDERS");
+            string opID = CallbackInfo.GetHashCode().ToString();
+            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "START", opID: opID);
             CF_OPERATION_INFO oi = new()
             {
                 Type = CF_OPERATION_TYPE.CF_OPERATION_TYPE_TRANSFER_PLACEHOLDERS,
@@ -209,10 +211,11 @@ namespace OnedataDrive
                 }
                 else if (PathUtils.IsRootPath(folderPath))
                 {
-                    // build spaces
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "spaces", opID: opID);
                     tp = new()
                     {
-                        Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION,
+                        Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION
+                            | CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR,
                         CompletionStatus = NTStatus.STATUS_SUCCESS,
                         PlaceholderTotalCount = 0,
                         EntriesProcessed = 0,
@@ -221,7 +224,7 @@ namespace OnedataDrive
                 }
                 else
                 {
-                    // build placeholders
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "regular folder", opID: opID);
                     placeholderCreateInfo = Placeholders.FetchPlaceholdersInfo(folderPath);
                     int placeholderArrLen = 0;
                     if (placeholderCreateInfo.Count() > 0)
@@ -240,7 +243,8 @@ namespace OnedataDrive
                     tp = new()
                     {
                         CompletionStatus = NTStatus.STATUS_SUCCESS,
-                        Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION,
+                        Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION
+                            | CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR,
                         PlaceholderTotalCount = placeholderArrLen,
                         EntriesProcessed = 0,
                         PlaceholderCount = (uint)placeholderArrLen,
@@ -254,18 +258,23 @@ namespace OnedataDrive
                 {
                     throw new Exception($"Fetch placeholders CfExecute FAIL - HRES: {hres}");
                 }
-                Debug.Print($"FETCH PLACEHOLDERS OK");
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "OK", opID: opID);
                 // finish OK
                 // add to monitoring list (later)
                 return;
             }
             catch (Exception e)
             {
-                Debug.Print("FETCH PLACEHOLDERS - exception: {0}", e);
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL", exception: e, opID: opID);
+                NTStatus status = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_UNSUCCESSFUL);
+                if (e.InnerException is NoSuchCloudFile)
+                {
+                    status = new NTStatus((uint)CloudFilterEnum.STATUS_NOT_A_CLOUD_FILE);
+                }
                 CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp = new()
                 {
                     Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR,
-                    CompletionStatus = NTStatus.STATUS_SUCCESS,
+                    CompletionStatus = status,
                     PlaceholderTotalCount = 0,
                     EntriesProcessed = 0,
                     PlaceholderArray = IntPtr.Zero,
@@ -275,7 +284,8 @@ namespace OnedataDrive
                 HRESULT hres = CfExecute(oi, ref op);
                 if (hres != HRESULT.S_OK)
                 {
-                    Debug.Print("FETCH PLACEHOLDERS - CfExecute FAIL - HRES: {0}, catch block failed", hres);
+                    string errorMessage = $"Last resort Fetch placeholders CfExecute FAIL - HRES: {hres}";
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL", moreInfo: [errorMessage], opID: opID);
                 }
             }
             finally
@@ -286,50 +296,8 @@ namespace OnedataDrive
                     placeholderArrayPointer = IntPtr.Zero;
                 }
                 placeholderCreateInfo.Dispose();
-
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "FINISHED", opID: opID);
             }
-        }
-
-        public static void OnFetchPlaceholders2(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
-        {
-            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "START");
-
-            CF_OPERATION_INFO oi = new()
-            {
-                Type = CF_OPERATION_TYPE.CF_OPERATION_TYPE_TRANSFER_PLACEHOLDERS,
-                ConnectionKey = CallbackInfo.ConnectionKey,
-                TransferKey = CallbackInfo.TransferKey
-            };
-            oi.StructSize = (uint)Marshal.SizeOf(oi);
-            CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp;
-
-            nint ptr = IntPtr.Zero;
-            PlaceholderData placeholderData = new(
-                "abcdefgh",
-                "random space name",
-                0,
-                0,
-                0,
-                0);
-            CF_PLACEHOLDER_CREATE_INFO ci = Placeholders.CreateDirInfo(placeholderData);
-            ptr = Marshal.AllocCoTaskMem(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)));
-            Marshal.StructureToPtr(ci, ptr, false);
-
-            tp = new()
-            {
-                CompletionStatus = NTStatus.STATUS_SUCCESS,
-                Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION,
-                PlaceholderTotalCount = 0,
-                EntriesProcessed = 0,
-                PlaceholderCount = 0,
-                //PlaceholderArray = ptr
-            };
-            CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(tp);
-            HRESULT hres = CfExecute(oi, ref op);
-            Debug.Print($"FETCH PLACEHOLDERS HRES: {hres}");
-
-            Marshal.FreeCoTaskMem(ptr);
-
         }
 
         public static void OnCancelFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
@@ -448,7 +416,7 @@ namespace OnedataDrive
 
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Warn, "FETCH DATA", "FAIL - No such file", ex);
 
-                Thread.Sleep(1000);
+                //Thread.Sleep(1000);
                 File.Delete(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath);
             }
             catch (Exception e)
