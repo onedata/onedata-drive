@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using OnedataDrive.JSON_Object;
+using System.Diagnostics;
 using System.Text;
 
 namespace OnedataDrive.Utils
@@ -138,6 +139,14 @@ namespace OnedataDrive.Utils
             {
                 return "@";
             }
+        }
+
+        public static string DistinctWindowsName(Child child, PlaceholderCreateInfo info)
+        {
+            NameConvertor nameConvertor = new NameConvertor();
+            string windowsCorrectName;
+            windowsCorrectName = nameConvertor.MakeWindowsCorrectDistinct(child.name, child.file_id, info);
+            return windowsCorrectName;
         }
     }
 }

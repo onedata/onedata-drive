@@ -26,6 +26,11 @@ namespace OnedataDrive
             return infos.ToArray();
         }
 
+        public int Count()
+        {
+            return infos.Count;
+        }
+
         public void Dispose()
         {
             infos.ForEach(i =>

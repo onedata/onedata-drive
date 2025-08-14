@@ -68,8 +68,6 @@ namespace OnedataDrive
                 TestTokenAndOnezone();
                 InitSpaceFolders();
 
-                //InitSpaceFoldersChildren();
-
                 // start file watcher
                 watcher = new(configuration.root_path);
                 logger.Info("Filewatcher Start -> OK");
@@ -289,26 +287,6 @@ namespace OnedataDrive
             logger.Debug("Placeholders created in dirPath:{0} -> {1} / {2}", path, entriesProcessed, infoArr.Length);
         }
 
-        public static void InitSpaceFoldersChildren()
-        {
-            logger.Info("CREATING PLACEHOLDERS WITHIN SPACES");
-            foreach (SpaceFolder spaceFolder in spaces.Values)
-            {
-                var task5 = RestClient.GetFilesAndSubdirs(spaceFolder.dirId, spaceFolder.providerInfos);
-                task5.Wait();
-                DirChildren children = task5.Result;
-
-                ChildrenPlaceholders(children, spaceFolder.name, spaceFolder);
-            }
-            logger.Info("CREATING PLACEHOLDERS WITHIN SPACES - FINISHED");
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="dirChildren"></param>
-        /// <param name="rootDir">path starting from space</param>
-        /// <param name="spaceFolder"></param>
         public static void ChildrenPlaceholders(DirChildren dirChildren, string rootDir, SpaceFolder spaceFolder)
         {
             NameConvertor nameConvertor = new NameConvertor();
@@ -319,7 +297,7 @@ namespace OnedataDrive
             {
                 foreach (Child child in dirChildren.children)
                 {
-                    string windowsCorrectName = DistinctWindowsName(child, info);
+                    string windowsCorrectName = NameConvertor.DistinctWindowsName(child, info);
 
                     PlaceholderData data = new(child.file_id, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime);
                     if (child.type == "DIR")
@@ -357,32 +335,6 @@ namespace OnedataDrive
                     logger.Error($"Space children - folder: {dirPath.name}, {e}");
                 }
             }
-        }
-
-        public static string DistinctWindowsName(Child child, PlaceholderCreateInfo info)
-        {
-            NameConvertor nameConvertor = new NameConvertor();
-            string windowsCorrectName;
-            windowsCorrectName = nameConvertor.MakeWindowsCorrectDistinct(child.name, child.file_id, info);
-            return windowsCorrectName;
-        }
-
-        public static Config LoadConfig(string configPath = "")
-        {
-            if (configPath == "")
-            {
-                configPath = Directory.GetCurrentDirectory() + @"\" + "config.json";
-            }
-
-            logger.Info("Reading configuration from: {0}", configPath);
-
-            Config config = new();
-            config.Init(configPath);
-            if (!config.IsComplete())
-            {
-                throw new ConfigurationException("Failed to load configuration from: {0}" + configPath + ". Fields must not be empty.");
-            }
-            return config;
         }
 
         public static void InitSyncRootDir(bool deleteExisting = false)

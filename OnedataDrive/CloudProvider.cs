@@ -223,16 +223,19 @@ namespace OnedataDrive
                 {
                     // build placeholders
                     placeholderCreateInfo = Placeholders.FetchPlaceholdersInfo(folderPath);
-                    CF_PLACEHOLDER_CREATE_INFO[] placeholderArr = placeholderCreateInfo.GetArray();
-                    int placeholderArrLen = placeholderCreateInfo.Get().Count;
-
-                    // copy arr to unmanaged memory
-                    placeholderArrayPointer = Marshal.AllocCoTaskMem(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)) * placeholderArrLen);
-                    for (int i = 0; i < placeholderArrLen; i++)
+                    int placeholderArrLen = 0;
+                    if (placeholderCreateInfo.Count() > 0)
                     {
-                        Marshal.StructureToPtr(placeholderArr[i], placeholderArrayPointer + (i * Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO))), false);
-                    }
+                        CF_PLACEHOLDER_CREATE_INFO[] placeholderArr = placeholderCreateInfo.GetArray();
+                        placeholderArrLen = placeholderCreateInfo.Get().Count;
 
+                        // copy arr to unmanaged memory
+                        placeholderArrayPointer = Marshal.AllocCoTaskMem(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)) * placeholderArrLen);
+                        for (int i = 0; i < placeholderArrLen; i++)
+                        {
+                            Marshal.StructureToPtr(placeholderArr[i], placeholderArrayPointer + (i * Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO))), false);
+                        }
+                    }
 
                     tp = new()
                     {

@@ -97,7 +97,7 @@ namespace OnedataDrive.Utils
 
         public static string GetPlaceholderId(string placeholderPath)
         {
-            CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(PathUtils.GetParentPath(placeholderPath));
+            CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(placeholderPath);
             string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
             return id;
         }

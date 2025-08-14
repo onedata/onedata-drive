@@ -147,7 +147,7 @@ namespace OnedataDrive
             PlaceholderCreateInfo placeholderCreateInfo = new();
             foreach (Child child in children.children)
             {
-                string windowsCorrectName = CloudSync.DistinctWindowsName(child, placeholderCreateInfo);
+                string windowsCorrectName = NameConvertor.DistinctWindowsName(child, placeholderCreateInfo);
                 PlaceholderData data = new(child.file_id, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
                 placeholderCreateInfo.Add(CreateInfo(data));
             }
