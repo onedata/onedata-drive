@@ -1,5 +1,6 @@
 ﻿using OnedataDrive.JSON_Object;
 using System.Diagnostics;
+using Windows.UI.Composition.Interactions;
 using static Vanara.PInvoke.CldApi;
 
 namespace OnedataDrive.Utils
@@ -12,7 +13,8 @@ namespace OnedataDrive.Utils
             string normalizedPath = CallbackInfo.NormalizedPath;
             if (volumeName == string.Empty || normalizedPath == string.Empty)
             {
-                return "";
+                throw new ArgumentException($"Empty parameter -> volumeName: {volumeName == string.Empty}," +
+                    $"   normalizedPath: {normalizedPath == string.Empty}");
             }
             string fullPath = volumeName + normalizedPath;
             if (fullPath.Last() != '\\')
@@ -48,6 +50,10 @@ namespace OnedataDrive.Utils
 
         public static bool IsRootPath(string fullPath)
         {
+            if (fullPath == string.Empty || fullPath.Last() != '\\')
+            {
+                fullPath += '\\';
+            }
             return fullPath == CloudSync.configuration.root_path;
         }
 
