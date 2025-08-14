@@ -438,9 +438,7 @@
         private CheckBox rootFolderDelete_checkBox;
         private Button connect_button;
         private Button disconect_button;
-        private Label status_label;
         private Button loadFromFile_button;
-        private FolderBrowserDialog config_folderBrowserDialog;
         private OpenFileDialog config_openFileDialog;
         private Panel form_panel;
         private Panel advanced_panel;

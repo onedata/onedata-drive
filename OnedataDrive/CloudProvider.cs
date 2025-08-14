@@ -264,8 +264,7 @@ namespace OnedataDrive
                 Debug.Print("FETCH PLACEHOLDERS - exception: {0}", e);
                 CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp = new()
                 {
-                    Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR 
-                        | CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION,
+                    Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR,
                     CompletionStatus = NTStatus.STATUS_SUCCESS,
                     PlaceholderTotalCount = 0,
                     EntriesProcessed = 0,
