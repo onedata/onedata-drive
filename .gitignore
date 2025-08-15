@@ -2,7 +2,9 @@ bin/
 obj/
 syncRoot/
 .vs/
-local-config*
 Debug/
 Release/
 AppPackages/
+
+local-config*
+*.pfx
