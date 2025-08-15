@@ -3,6 +3,7 @@ using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
@@ -55,6 +56,11 @@ namespace OnedataDrive
         public void OnCreated(object sender, FileSystemEventArgs e)
         {
             string opID = e.GetHashCode().ToString();
+            if (!PathUtils.IsSpacePath(e.FullPath))
+            {
+                loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "IGNORED - spaces directory", filePath: e.FullPath, opID: opID);
+                return;
+            }
             loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "START", filePath: e.FullPath, opID: opID);
 
             // sleep is needed
@@ -110,6 +116,11 @@ namespace OnedataDrive
         public void OnChanged(object sender, FileSystemEventArgs e)
         {
             string opID = e.GetHashCode().ToString();
+            if (!PathUtils.IsSpacePath(e.FullPath))
+            {
+                loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "IGNORED - spaces directory", filePath: e.FullPath, opID: opID);
+                return;
+            }
             try
             {
                 loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "START", filePath: e.FullPath, opID: opID);
