@@ -287,56 +287,6 @@ namespace OnedataDrive
             logger.Debug("Placeholders created in dirPath:{0} -> {1} / {2}", path, entriesProcessed, infoArr.Length);
         }
 
-        public static void ChildrenPlaceholders(DirChildren dirChildren, string rootDir, SpaceFolder spaceFolder)
-        {
-            NameConvertor nameConvertor = new NameConvertor();
-            // childDirs - name parameter conains full path from space 
-            List<SpaceFolder> childDirs = new();
-
-            using (PlaceholderCreateInfo info = new())
-            {
-                foreach (Child child in dirChildren.children)
-                {
-                    string windowsCorrectName = NameConvertor.DistinctWindowsName(child, info);
-
-                    PlaceholderData data = new(child.file_id, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime);
-                    if (child.type == "DIR")
-                    {
-                        info.Add(Placeholders.CreateDirInfo(data));
-                        SpaceFolder dir = new()
-                        {
-                            dirId = child.file_id,
-                            name = rootDir + @"\" + windowsCorrectName
-                        };
-                        childDirs.Add(dir);
-                    }
-                    else if (child.type == "REG")
-                    {
-                        info.Add(Placeholders.CreateRegInfo(data));
-                    }
-                }
-
-                string path = configuration.root_path + rootDir + @"\";
-                CreatePlaceholders(info, path);
-            }
-
-            foreach (SpaceFolder dirPath in childDirs)
-            {
-                try
-                {
-                    var task = RestClient.GetFilesAndSubdirs(dirPath.dirId, spaceFolder.providerInfos);
-                    task.Wait();
-                    DirChildren subChildren = task.Result;
-
-                    ChildrenPlaceholders(subChildren, dirPath.name, spaceFolder);
-                }
-                catch (Exception e)
-                {
-                    logger.Error($"Space children - folder: {dirPath.name}, {e}");
-                }
-            }
-        }
-
         public static void InitSyncRootDir(bool deleteExisting = false)
         {
             if (deleteExisting && Directory.Exists(configuration.root_path))
