@@ -123,6 +123,17 @@ namespace OnedataDrive
              throw new JsonReturnedNullException();
         }
 
+        private static async Task<Stream> OnedataPostStream(string url, HttpContent? content)
+        {
+            HttpRequestMessage RequestMsg = new(HttpMethod.Post, url)
+            {
+                Content = content
+            };
+            var response = await client.SendAsync(RequestMsg);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStreamAsync();
+        }
+
         private static async Task OnedataPut(string url, HttpContent content)
         {
             HttpRequestMessage RequestMsg = new(HttpMethod.Put, url)
@@ -224,7 +235,7 @@ namespace OnedataDrive
                 }
                 catch (HttpRequestException e)
                 {
-                    Console.WriteLine(e.Message);
+                    Debug.Print(e.Message);
                 }
             }
             throw new Exception("Failed to get response");
@@ -247,7 +258,7 @@ namespace OnedataDrive
                 }
                 catch (HttpRequestException e)
                 {
-                    Console.WriteLine(e.Message);
+                    Debug.Print(e.Message);
                 }
             }
             throw new Exception("Failed to get response");
@@ -264,7 +275,7 @@ namespace OnedataDrive
                 }
                 catch (HttpRequestException e)
                 {
-                    Console.WriteLine(e.Message);
+                    Debug.Print(e.Message);
                 }
             }
             throw new Exception("Failed to get response");
@@ -282,7 +293,7 @@ namespace OnedataDrive
                 }
                 catch (HttpRequestException e)
                 {
-                    Console.WriteLine(e.Message);
+                    Debug.Print(e.Message);
                 }
             }
             throw new Exception("Failed to get response");
@@ -313,7 +324,7 @@ namespace OnedataDrive
                 }
                 catch (HttpRequestException e)
                 {
-                    Console.WriteLine(e.Message);
+                    Debug.Print(e.Message);
                 }
             }
             throw new Exception("Failed to post file");
@@ -362,7 +373,7 @@ namespace OnedataDrive
                 }
                 catch (HttpRequestException e)
                 {
-                    Console.WriteLine(e.Message);
+                    Debug.Print(e.Message);
                 }
             }
             throw new Exception("Failed to put file");
@@ -394,7 +405,7 @@ namespace OnedataDrive
                 }
                 catch (HttpRequestException e)
                 {
-                    Console.WriteLine(e.Message);
+                    Debug.Print(e.Message);
                 }
             }
             throw new Exception("Failed to put file");
@@ -443,7 +454,38 @@ namespace OnedataDrive
                 }
                 catch (HttpRequestException e)
                 {
-                    Console.WriteLine(e.Message);
+                    Debug.Print(e.Message);
+                }
+            }
+            throw new Exception("Failed to get FileInfo");
+        }
+
+        public static async Task<Stream> GetFileEventStream(List<string> dirIDs, List<ProviderInfo> providerInfos, string spaceId)
+        {
+            foreach (ProviderInfo info in providerInfos)
+            {
+                try
+                {
+                    string url = "https://"
+                        + info.providerDomain
+                        + "/api/v3/oneprovider/spaces/"
+                        + spaceId
+                        + "/events/files";
+
+                    string json = JsonSerializer.Serialize(
+                        new {
+                            observedDirectories = dirIDs,
+                            observedAttributes = new[] { "index", "type" }
+                        }
+                        );
+                        
+                    StringContent content = new StringContent(json);
+
+                    return await OnedataPostStream(url, content);
+                }
+                catch (HttpRequestException e)
+                {
+                    Debug.Print(e.Message);
                 }
             }
             throw new Exception("Failed to get FileInfo");
