@@ -129,7 +129,17 @@ namespace OnedataDrive
             {
                 Content = content
             };
+            //var response = await client.PostAsync(url, content);
             var response = await client.SendAsync(RequestMsg);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                var task = response.Content.ReadAsStringAsync();
+                task.Wait();
+                string responseText = task.Result;
+                Debug.Print(responseText);
+            }
+
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsStreamAsync();
         }
@@ -462,6 +472,7 @@ namespace OnedataDrive
 
         public static async Task<Stream> GetFileEventStream(List<string> dirIDs, List<ProviderInfo> providerInfos, string spaceId)
         {
+            List<Exception> exceptionList = new();
             foreach (ProviderInfo info in providerInfos)
             {
                 try
@@ -478,7 +489,7 @@ namespace OnedataDrive
                             observedAttributes = new[] { "index", "type" }
                         }
                         );
-                        
+
                     StringContent content = new StringContent(json);
 
                     return await OnedataPostStream(url, content);
@@ -486,9 +497,10 @@ namespace OnedataDrive
                 catch (HttpRequestException e)
                 {
                     Debug.Print(e.Message);
+                    exceptionList.Add(e);
                 }
             }
-            throw new Exception("Failed to get FileInfo");
+            throw new AggregateException("Failed to Get File Event Stream.", exceptionList);
         }
     }
 }

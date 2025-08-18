@@ -15,6 +15,11 @@ namespace OnedataDriveGUI
         private string userProfilePath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         private string defaultRootPath { get => userProfilePath + "\\" + ROOT_DIR; }
         private CustomSettings userSettings = new();
+
+
+        private CancellationToken ct = new CancellationToken();
+        private CancellationTokenSource cts = new CancellationTokenSource();
+
         public ConnectForm()
         {
             logger.Info("APP GUI LAUNCHED - version: " + CloudSync.VERSION);
@@ -308,6 +313,17 @@ namespace OnedataDriveGUI
                 statusMessage.Text = "Unregister SyncRoot FAIL";
                 logger.Error("Unregister SyncRoot", exception);
             }
+        }
+
+        private void testStart_btn_Click(object sender, EventArgs e)
+        {
+            ct = cts.Token;
+            Task.Run(() => AutoRefresh.TestMethod(ct), ct);
+        }
+
+        private void testStop_btn_Click(object sender, EventArgs e)
+        {
+            cts.Cancel();
         }
     }
 }
