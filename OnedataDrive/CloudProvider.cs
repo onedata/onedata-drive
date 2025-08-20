@@ -208,6 +208,7 @@ namespace OnedataDrive
             {
                 CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp;
                 string folderPath = PathUtils.GetFullPath(CallbackInfo);
+                bool addToMonitored = false;
                 if (!Directory.Exists(folderPath))
                 {
                     throw new Exception($"Directory does not exist: {folderPath}");
@@ -253,7 +254,8 @@ namespace OnedataDrive
                         PlaceholderCount = (uint)placeholderArrLen,
                         PlaceholderArray = placeholderArrayPointer
                     };
-                    
+                    addToMonitored = true;
+
                 }
                 CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(tp);
                 HRESULT hres = CfExecute(oi, ref op);
@@ -262,6 +264,10 @@ namespace OnedataDrive
                     throw new Exception($"Fetch placeholders CfExecute FAIL - HRES: {hres}");
                 }
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "OK", opID: opID);
+                if (addToMonitored) 
+                {
+                    AutoRefresh.AddToMonitored(PathUtils.GetPlaceholderId(folderPath));
+                }
                 // finish OK
                 // add to monitoring list (later)
                 return;

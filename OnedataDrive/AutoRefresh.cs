@@ -48,13 +48,25 @@ namespace OnedataDrive
     {
         private static List<string> monitored = new();
         public static IReadOnlyCollection<string> Monitored => monitored.AsReadOnly();
+        public static void AddToMonitored(string fileId)
+        {
+            if (!monitored.Contains(fileId))
+            {
+                monitored.Add(fileId);
+                Debug.Print($"Added {fileId} to monitored list.");
+            }
+            else
+            {
+                Debug.Print($"{fileId} is already in the monitored list.");
+            }
+        }
 
         public static void TestMethod(CancellationToken token)
         {
-            List<string> dirId = ["0000000000525D3D67756964233162376462346636383039646435613264626333626334373239653434336666636862616465236235303662623335653933336539656531366361633830366336616436346431636836386366"];
+            //List<string> dirId = ["0000000000525D3D67756964233162376462346636383039646435613264626333626334373239653434336666636862616465236235303662623335653933336539656531366361633830366336616436346431636836386366"];
             string spaceId = "b506bb35e933e9ee16cac806c6ad64d1ch68cf";
             SpaceFolder sf = CloudSync.spaces["testAG_e-INFRA"];
-            var task = RestClient.GetFileEventStream(dirId, sf.providerInfos, spaceId);
+            var task = RestClient.GetFileEventStream(monitored, sf.providerInfos, spaceId);
             task.Wait();
             using (Stream stream = task.Result)
             {

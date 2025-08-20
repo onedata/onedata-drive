@@ -486,7 +486,7 @@ namespace OnedataDrive
                     string json = JsonSerializer.Serialize(
                         new {
                             observedDirectories = dirIDs,
-                            observedAttributes = new[] { "index", "type" }
+                            observedAttributes = new[] { "type", "parentFileId", "mtime", "size" }
                         }
                         );
 
