@@ -2,6 +2,7 @@
 using OnedataDrive.JSON_Object;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Web;
 
@@ -130,7 +131,7 @@ namespace OnedataDrive
                 Content = content
             };
             //var response = await client.PostAsync(url, content);
-            var response = await client.SendAsync(RequestMsg);
+            var response = await client.SendAsync(RequestMsg, HttpCompletionOption.ResponseHeadersRead);
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
@@ -490,7 +491,7 @@ namespace OnedataDrive
                         }
                         );
 
-                    StringContent content = new StringContent(json);
+                    StringContent content = new StringContent(json, mediaType: new MediaTypeHeaderValue("application/json"));
 
                     return await OnedataPostStream(url, content);
                 }

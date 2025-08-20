@@ -62,20 +62,35 @@ namespace OnedataDrive
                 {
                     while (!reader.EndOfStream)
                     {
-                        string line = reader.ReadLine();
-                        if (line == null) continue;
-                        // Process the line
-                        Debug.Print("\nFileEvent: " + line);
-                        Debug.Print("\n\n");
+                        Task<string?> readTask = reader.ReadLineAsync(token).AsTask();
+                        int time = 0;
+                        while (!readTask.IsCompleted)
+                        {
+                            Debug.Print($"Waiting for read: {time}s");
+                            Thread.Sleep(1000);
+                            time++;
+                        }
+                        try
+                        {
+                            string line = readTask.Result ?? "NOTHING WAS READ";
+                            Debug.Print($"READ LINE: {line}");
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            Debug.Print("Read operation was cancelled.");
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.Print($"Error reading line: {e.Message}");
+                        }
+                        
                         if (token.IsCancellationRequested)
                         {
                             Debug.Print("Cancellation requested, stopping processing.");
                             break;
                         }
-                        // Here you can parse the line as needed, e.g., deserialize JSON
-                        // var fileEvent = JsonSerializer.Deserialize<FileEvent>(line);
-                        // Do something with fileEvent
                     }
+                    Debug.Print("Finished reading stream.");
                 }
             }
         }
