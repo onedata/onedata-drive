@@ -315,10 +315,15 @@ namespace OnedataDriveGUI
             }
         }
 
-        private Task testTask;
+        private Task? testTask = null;
 
         private void testStart_btn_Click(object sender, EventArgs e)
         {
+            if (testTask != null && !testTask.IsCompleted)
+            {
+                Debug.Print("Previous task did not finish, can not start new task");
+            }
+            cts = new();
             ct = cts.Token;
             testTask = Task.Run(() => AutoRefresh.TestMethod(ct), ct);
         }
@@ -326,16 +331,8 @@ namespace OnedataDriveGUI
         private void testStop_btn_Click(object sender, EventArgs e)
         {
             cts.Cancel();
-            Thread.Sleep(2000);
-            if (testTask.IsCompleted)
-            {
-                bool reset = cts.TryReset();
-                Debug.Print("Task stopped, token reset {0}", reset);
-            }
-            else
-            {
-                Debug.Print("Failed to stop task (after 2s), token not reseted");
-            }
+            Thread.Sleep(1500);
+            Debug.Print("Test task cancelled");
         }
     }
 }

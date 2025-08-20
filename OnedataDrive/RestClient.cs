@@ -130,7 +130,6 @@ namespace OnedataDrive
             {
                 Content = content
             };
-            //var response = await client.PostAsync(url, content);
             var response = await client.SendAsync(RequestMsg, HttpCompletionOption.ResponseHeadersRead);
 
             if (response.StatusCode != HttpStatusCode.OK)
@@ -138,7 +137,7 @@ namespace OnedataDrive
                 var task = response.Content.ReadAsStringAsync();
                 task.Wait();
                 string responseText = task.Result;
-                Debug.Print(responseText);
+                Debug.Print("OnedataPostStream FAIL: " + responseText);
             }
 
             response.EnsureSuccessStatusCode();
