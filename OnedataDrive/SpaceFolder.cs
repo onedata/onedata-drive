@@ -5,17 +5,14 @@
         public string name;
         public string dirId;
         public string spaceId;
-        //public string providerDomain;
-        //public string providerId;
         public List<ProviderInfo> providerInfos;
+        public AutoRefresh? autoRefresh;
 
         public SpaceFolder()
         {
             this.name = "";
             this.dirId = "";
             this.spaceId = "";
-            //this.providerDomain = "";
-            //this.providerId = "";
             this.providerInfos = new();
         }
 
@@ -25,6 +22,7 @@
             this.dirId = dirId;
             this.spaceId = spaceId;
             this.providerInfos = [providerInfo];
+            this.autoRefresh = new AutoRefresh(this);
         }
     }
 

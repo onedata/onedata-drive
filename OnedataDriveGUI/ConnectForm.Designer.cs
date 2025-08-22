@@ -46,8 +46,6 @@
             loadFromFile_button = new Button();
             config_openFileDialog = new OpenFileDialog();
             form_panel = new Panel();
-            testStop_btn = new Button();
-            testStart_btn = new Button();
             onezone_comboBox = new ComboBox();
             oneproviderTokenKeep_checkBox = new CheckBox();
             advanced_button = new Button();
@@ -231,26 +229,6 @@
             form_panel.Size = new Size(767, 181);
             form_panel.TabIndex = 20;
             // 
-            // testStop_btn
-            // 
-            testStop_btn.Location = new Point(242, 34);
-            testStop_btn.Name = "testStop_btn";
-            testStop_btn.Size = new Size(75, 39);
-            testStop_btn.TabIndex = 19;
-            testStop_btn.Text = "Stop";
-            testStop_btn.UseVisualStyleBackColor = true;
-            testStop_btn.Click += testStop_btn_Click;
-            // 
-            // testStart_btn
-            // 
-            testStart_btn.Location = new Point(143, 34);
-            testStart_btn.Name = "testStart_btn";
-            testStart_btn.Size = new Size(75, 39);
-            testStart_btn.TabIndex = 18;
-            testStart_btn.Text = "Start";
-            testStart_btn.UseVisualStyleBackColor = true;
-            testStart_btn.Click += testStart_btn_Click;
-            // 
             // onezone_comboBox
             // 
             onezone_comboBox.FormattingEnabled = true;
@@ -342,9 +320,7 @@
             // 
             // controls_panel
             // 
-            controls_panel.Controls.Add(testStop_btn);
             controls_panel.Controls.Add(connect_button);
-            controls_panel.Controls.Add(testStart_btn);
             controls_panel.Controls.Add(disconect_button);
             controls_panel.Dock = DockStyle.Top;
             controls_panel.Location = new Point(0, 550);
@@ -485,7 +461,5 @@
         private Button openLogFolder_button;
         private ToolStripStatusLabel refreshStatusMessage;
         private Button removeSyncRoot_button;
-        private Button testStop_btn;
-        private Button testStart_btn;
     }
 }

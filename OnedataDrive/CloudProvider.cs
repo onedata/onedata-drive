@@ -266,10 +266,17 @@ namespace OnedataDrive
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "OK", opID: opID);
                 if (addToMonitored) 
                 {
-                    AutoRefresh.AddToMonitored(PathUtils.GetPlaceholderId(folderPath));
+                    string spaceName = PathUtils.GetSpaceName(folderPath);
+                    if (CloudSync.spaces.TryGetValue(spaceName, out SpaceFolder? spaceFolder))
+                    {
+                        spaceFolder.autoRefresh.AddToMonitored(PathUtils.GetPlaceholderId(folderPath));
+                        Debug.Print("Added to monitored: {0} - {1}", spaceName, folderPath);
+                    }
+                    else
+                    {
+                        Debug.Print("Failed to find SPACE");
+                    }  
                 }
-                // finish OK
-                // add to monitoring list (later)
                 return;
             }
             catch (Exception e)

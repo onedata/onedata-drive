@@ -483,10 +483,11 @@ namespace OnedataDrive
                         + spaceId
                         + "/events/files";
 
+                    List<string> observedAttr = new() { "mtime" };
                     string json = JsonSerializer.Serialize(
                         new {
                             observedDirectories = dirIDs,
-                            observedAttributes = new[] { "type", "parentFileId", "mtime", "size" }
+                            observedAttributes = observedAttr
                         }
                         );
 

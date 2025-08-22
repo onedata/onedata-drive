@@ -12,12 +12,12 @@ namespace OnedataDrive
     public static class CloudSync
     {
         public static Config configuration = new();
-        // spaces: KEY is space name
-        public static Dictionary<string, SpaceFolder> spaces = new();
+        public static Dictionary<string, SpaceFolder> spaces = new(); // spaces: KEY is space name
         public static FileWatcher watcher = new();
         public static bool running { get; private set; } = false;
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public const string VERSION = "0.4.0";
+
         /// <summary>
         /// Method to start CloudSync
         /// </summary>
@@ -112,6 +112,10 @@ namespace OnedataDrive
             logger.Info("Rest client stopped");
             watcher.Dispose();
             logger.Info("FileWatcher stopped");
+            foreach (var space in spaces.Values)
+            {
+                space.autoRefresh?.StopMonitoring();
+            }
             running = false;
             logger.Info("CLOUD SYNC STOPPED");
         }

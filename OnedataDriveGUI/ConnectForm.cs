@@ -16,10 +16,6 @@ namespace OnedataDriveGUI
         private string defaultRootPath { get => userProfilePath + "\\" + ROOT_DIR; }
         private CustomSettings userSettings = new();
 
-
-        private CancellationToken ct = new CancellationToken();
-        private CancellationTokenSource cts = new CancellationTokenSource();
-
         public ConnectForm()
         {
             logger.Info("APP GUI LAUNCHED - version: " + CloudSync.VERSION);
@@ -313,26 +309,6 @@ namespace OnedataDriveGUI
                 statusMessage.Text = "Unregister SyncRoot FAIL";
                 logger.Error("Unregister SyncRoot", exception);
             }
-        }
-
-        private Task? testTask = null;
-
-        private void testStart_btn_Click(object sender, EventArgs e)
-        {
-            if (testTask != null && !testTask.IsCompleted)
-            {
-                Debug.Print("Previous task did not finish, can not start new task");
-            }
-            cts = new();
-            ct = cts.Token;
-            testTask = Task.Run(() => AutoRefresh.TestMethod(ct), ct);
-        }
-
-        private void testStop_btn_Click(object sender, EventArgs e)
-        {
-            cts.Cancel();
-            Thread.Sleep(1500);
-            Debug.Print("Test task cancelled");
         }
     }
 }
