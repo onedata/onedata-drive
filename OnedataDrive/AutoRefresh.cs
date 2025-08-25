@@ -38,6 +38,17 @@ namespace OnedataDrive
         {
             Event e = new Event(fileEvent);
 
+            e.type = DetermineEventType(fileEvent, autoRefresh, out string localFileName);
+
+            // determine type
+            // add if relevant/not duplicate/...
+            events.Add(e);
+            Debug.Print("EVENT ADDED, type {0}", e.type.ToString());
+        }
+
+        private EventType DetermineEventType(FileEvent fileEvent, AutoRefresh autoRefresh, out string localFileName)
+        {
+            localFileName = string.Empty;
             List<ProviderInfo> providerInfos = autoRefresh.spaceFolder.providerInfos;
             FileAttribute fileAttribute;
             try
@@ -49,60 +60,42 @@ namespace OnedataDrive
                 AggregateException? ae = ex as AggregateException;
                 if (ae is not null && ae.InnerExceptions.ToList().Any(e => e is NoSuchCloudFile))
                 {
-                    e.type = EventType.FileDeleted;
-                    events.Add(e);
-                    Debug.Print("EVENT ADDED, type {0}", e.type.ToString());
-                    return;
+                    return EventType.Deleted;
                 }
                 Debug.Print("Error in event handling: {0}", ex);
                 throw;
             }
-            
+
 
             string parentFolder = autoRefresh.monitoredPath[autoRefresh.monitoredId.IndexOf(fileEvent.parentFileId)];
-            string filePath = System.IO.Path.Combine(parentFolder, fileAttribute.name);
-
+            Debug.Print($"Parent Folder: {parentFolder}, file name: {fileAttribute.name}");
+            string localId = string.Empty;
             try
             {
-                string localId = PathUtils.GetPlaceholderId(filePath);
-                if (localId == fileAttribute.file_id)
-                {
-                    Debug.Print("File found");
-                    e.type = EventType.Updated;
-                }
-                else
-                {
-                    // get all file ids
-                    foreach (string fileName in Directory.EnumerateFiles(parentFolder))
-                    {
-                        if (PathUtils.GetPlaceholderId(fileName) == fileEvent.fileId)
-                        {
-                            Debug.Print("File found by enumeration");
-                            e.type = EventType.Updated;
-                            break;
-                        }
-                    }
-                    if (e.type == EventType.Unknown)
-                    {
-                        e.type = EventType.FileCreated;
-                    }
-                }
+                string filePath = System.IO.Path.Combine(parentFolder, fileAttribute.name);
+                localId = PathUtils.GetPlaceholderId(filePath);
             }
-            catch (FileNotFoundException)
+            catch (FileNotFoundException) { }
+            if (localId != string.Empty && localId == fileAttribute.file_id)
             {
-                Debug.Print("File not found");
-                e.type = EventType.FileCreated;
+                Debug.Print("File found");
+                localFileName = fileAttribute.name;
+                return EventType.Updated;
             }
-            catch (Exception ex)
+            else
             {
-                Debug.Print("Error in event handling: {0}", ex);
+                // get all file ids
+                foreach (string filePath in Directory.EnumerateFiles(parentFolder))
+                {
+                    if (PathUtils.GetPlaceholderId(filePath) == fileEvent.fileId)
+                    {
+                        Debug.Print("File found by enumeration");
+                        localFileName = PathUtils.GetLastInPath(filePath);
+                        return EventType.Renamed;
+                    }
+                }
+                return EventType.Created;
             }
-
-
-            // determine type
-            // add if relevant/not duplicate/...
-            events.Add(e);
-            Debug.Print("EVENT ADDED, type {0}", e.type.ToString());
         }
     }
 
@@ -110,16 +103,9 @@ namespace OnedataDrive
     {
         Unknown,
         Updated,
-        FileCreated,
-        FileDeleted,
-        FileModified,
-        FileMoved,
-        FileRenamed,
-        DirectoryCreated,
-        DirectoryDeleted,
-        DirectoryModified,
-        DirectoryMoved,
-        DirectoryRenamed
+        Created,
+        Deleted,
+        Renamed
     }
 
     public class AutoRefresh
