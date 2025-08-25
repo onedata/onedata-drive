@@ -8,14 +8,19 @@ static class CldApiUtils
 {
     // size of memory block needed for CF_PLACEHOLDER_INFO (basic 388, standard 420)
     private const int BLOB_LENGTH = 500;
+    public const int FILE_NOT_FOUND = -2147024894;
 
     public static CF_PLACEHOLDER_BASIC_INFO GetBasicInfo(string fullPath)
     {
         SafeHCFFILE handle;
         HRESULT hres = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE, out handle);
-        if (hres != HRESULT.S_OK)
+        if (hres == FILE_NOT_FOUND)
         {
-            throw new Exception($"CfOpenFileWithOplock PATH: {fullPath} \n" + hres);
+            throw new FileNotFoundException($"File not found: {fullPath}");
+        }
+        else if (hres != HRESULT.S_OK)
+        {
+            throw new Exception($"CfOpenFileWithOplock PATH: {fullPath} \n {hres} int value: {((int)hres)}");
         }
         nint pointer = Marshal.AllocCoTaskMem(BLOB_LENGTH);
         // can not use generic variant, because it prohibits the app from terminating normally (hangs on return)
@@ -37,9 +42,13 @@ static class CldApiUtils
     {
         SafeHCFFILE handle;
         HRESULT hres = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE, out handle);
-        if (hres != HRESULT.S_OK)
+        if (hres == FILE_NOT_FOUND)
         {
-            throw new Exception($"CfOpenFileWithOplock PATH: {fullPath} \n" + hres);
+            throw new FileNotFoundException($"File not found: {fullPath}");
+        }
+        else if (hres != HRESULT.S_OK)
+        {
+            throw new Exception($"CfOpenFileWithOplock PATH: {fullPath} \n {hres} int value: {((int)hres)}");
         }
         nint pointer = Marshal.AllocCoTaskMem(BLOB_LENGTH);
         // can not use generic variant, because it prohibits the app from terminating normally (hangs on return)
