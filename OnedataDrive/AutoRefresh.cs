@@ -36,14 +36,24 @@ namespace OnedataDrive
 
         public void AddEvent(FileEvent fileEvent, AutoRefresh autoRefresh)
         {
-            Event e = new Event(fileEvent);
+            Event newEvent = new Event(fileEvent);
 
-            e.type = DetermineEventType(fileEvent, autoRefresh, out string localFileName);
+            newEvent.type = DetermineEventType(fileEvent, autoRefresh, out string localFileName);
 
             // determine type
             // add if relevant/not duplicate/...
-            events.Add(e);
-            Debug.Print("EVENT ADDED, type {0}", e.type.ToString());
+            if (!events.Any(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId && ev.type > newEvent.type))
+            {
+                events.RemoveAll(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId);
+                events.Add(newEvent);
+                events.Add(newEvent);
+                Debug.Print("EVENT ADDED, type {0}", newEvent.type.ToString());
+            }
+            else
+            {
+                Debug.Print($"EVENT NOT ADDED, type {newEvent.type.ToString()} \n Event ignored, " +
+                    $"because there already is event with higher priority (making new event redundant)");
+            }
         }
 
         private EventType DetermineEventType(FileEvent fileEvent, AutoRefresh autoRefresh, out string localFileName)
@@ -101,11 +111,11 @@ namespace OnedataDrive
 
     internal enum EventType
     {
-        Unknown,
-        Updated,
-        Created,
-        Deleted,
-        Renamed
+        Unknown = 0,
+        Updated = 1,
+        Renamed = 2,
+        Created = 3,
+        Deleted = 4
     }
 
     public class AutoRefresh
