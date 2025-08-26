@@ -70,7 +70,6 @@ namespace OnedataDrive
             {
                 events.RemoveAll(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId);
                 events.Add(newEvent);
-                events.Add(newEvent);
                 Debug.Print("EVENT ADDED, type {0}", newEvent.type.ToString());
             }
             else
@@ -80,9 +79,26 @@ namespace OnedataDrive
             }
         }
 
-        public void AddEvent(Event ev)
+        public void ReAddEvent(Event newEvent)
         {
-            // todo
+            if (events.Any(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId 
+                && newEvent.type == EventType.Renamed && ev.type == EventType.Updated))
+            {
+                Debug.Print($"EVENT NOT READDED, type {newEvent.type.ToString()} \n Event ignored, " +
+                    $"because Rename event is not relevant anymore)");
+            }
+            else if (!events.Any(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId 
+                && ev.type > newEvent.type))
+            {
+                events.RemoveAll(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId);
+                events.Add(newEvent);
+                Debug.Print("EVENT ADDED, type {0}", newEvent.type.ToString());
+            }
+            else 
+            {
+                Debug.Print($"EVENT NOT READDED, type {newEvent.type.ToString()} \n Event ignored, " +
+                    $"because there already is event with higher priority (making new event redundant)");
+            }
         }
 
         private Event DetermineEventType(FileEvent fileEvent, AutoRefresh autoRefresh)
@@ -169,33 +185,33 @@ namespace OnedataDrive
                 }
                 if (events.Count > 0)
                 {
-                    Event ev = events[0];
+                    Event precessedEvent = events[0];
                     events.RemoveAt(0);
-                    Debug.Print("Processing event of type: {0}", ev.type.ToString());
+                    Debug.Print("Processing event of type: {0}", precessedEvent.type.ToString());
                     bool eventCompleted = false;
                     // Process the event based on its type
 
-                    switch (ev.type)
+                    switch (precessedEvent.type)
                     {
                         case EventType.Updated:
                             // ok
-                            Debug.Print($"File Updated: {ev.fileEvent.fileId}");
+                            Debug.Print($"File Updated: {precessedEvent.fileEvent.fileId}");
                             break;
                         case EventType.Renamed:
                             // ok
-                            Debug.Print($"File Renamed: {ev.fileEvent.fileId}");
+                            Debug.Print($"File Renamed: {precessedEvent.fileEvent.fileId}");
                             break;
                         case EventType.Created:
                             // ok
-                            Debug.Print($"File Created: {ev.fileEvent.fileId}");
+                            Debug.Print($"File Created: {precessedEvent.fileEvent.fileId}");
                             break;
                         case EventType.Deleted:
-                            if (ev.fileName is null)
+                            if (precessedEvent.fileName is null)
                             {
                                 eventCompleted = true;
                                 Debug.Print("Event Delete: file can not be found. Event completed.");
                             }
-                            Debug.Print($"File Deleted: {ev.fileEvent.fileId}");
+                            Debug.Print($"File Deleted: {precessedEvent.fileEvent.fileId}");
                             break;
                         default:
                             Debug.Print("Unknown event type");
@@ -203,8 +219,8 @@ namespace OnedataDrive
                     }
                     if (!eventCompleted)
                     {
-                        ev.Penalize(5);
-                        events.Add(ev);
+                        precessedEvent.Penalize(5);
+                        events.Add(precessedEvent);
                     }
                 }
                 else
