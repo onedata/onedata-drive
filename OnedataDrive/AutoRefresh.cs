@@ -55,16 +55,18 @@ namespace OnedataDrive
     {
         public List<Event> events;
         private CancellationToken cancellationToken;
+        private AutoRefresh autoRefresh;
 
-        public EventManager(CancellationToken cancellationToken)
+        public EventManager(CancellationToken cancellationToken, AutoRefresh autoRefresh)
         {
             this.cancellationToken = cancellationToken;
+            this.autoRefresh = autoRefresh;
             events = new List<Event>();
         }
 
-        public void AddEvent(FileEvent fileEvent, AutoRefresh autoRefresh)
+        public void AddEvent(FileEvent fileEvent)
         {
-            Event newEvent = DetermineEventType(fileEvent, autoRefresh);
+            Event newEvent = DetermineEventType(fileEvent);
 
             if (!events.Any(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId && ev.type > newEvent.type))
             {
@@ -101,10 +103,10 @@ namespace OnedataDrive
             }
         }
 
-        private Event DetermineEventType(FileEvent fileEvent, AutoRefresh autoRefresh)
+        private Event DetermineEventType(FileEvent fileEvent)
         {
             string? localFileName = null;
-            string parentFolder = autoRefresh.monitoredPath[autoRefresh.monitoredId.IndexOf(fileEvent.parentFileId)];
+            string parentFolder = GetParentFolder(fileEvent);
             List<ProviderInfo> providerInfos = autoRefresh.spaceFolder.providerInfos;
             FileAttribute fileAttribute;
             try
@@ -185,33 +187,34 @@ namespace OnedataDrive
                 }
                 if (events.Count > 0)
                 {
-                    Event precessedEvent = events[0];
+                    Event processedEvent = events[0];
                     events.RemoveAt(0);
-                    Debug.Print("Processing event of type: {0}", precessedEvent.type.ToString());
+                    string parentFolder = GetParentFolder(processedEvent.fileEvent);
+                    Debug.Print("Processing event of type: {0}", processedEvent.type.ToString());
                     bool eventCompleted = false;
                     // Process the event based on its type
-
-                    switch (precessedEvent.type)
+                    string filePath = Path.Combine(parentFolder, processedEvent.fileName ?? string.Empty);
+                    switch (processedEvent.type)
                     {
                         case EventType.Updated:
                             // ok
-                            Debug.Print($"File Updated: {precessedEvent.fileEvent.fileId}");
+                            Debug.Print($"File Updated: {processedEvent.fileEvent.fileId}");
                             break;
                         case EventType.Renamed:
                             // ok
-                            Debug.Print($"File Renamed: {precessedEvent.fileEvent.fileId}");
+                            Debug.Print($"File Renamed: {processedEvent.fileEvent.fileId}");
                             break;
                         case EventType.Created:
                             // ok
-                            Debug.Print($"File Created: {precessedEvent.fileEvent.fileId}");
+                            Debug.Print($"File Created: {processedEvent.fileEvent.fileId}");
                             break;
                         case EventType.Deleted:
-                            if (precessedEvent.fileName is null)
+                            if (processedEvent.fileName is null)
                             {
                                 eventCompleted = true;
                                 Debug.Print("Event Delete: file can not be found. Event completed.");
                             }
-                            Debug.Print($"File Deleted: {precessedEvent.fileEvent.fileId}");
+                            Debug.Print($"File Deleted: {processedEvent.fileEvent.fileId}");
                             break;
                         default:
                             Debug.Print("Unknown event type");
@@ -219,8 +222,8 @@ namespace OnedataDrive
                     }
                     if (!eventCompleted)
                     {
-                        precessedEvent.Penalize(5);
-                        events.Add(precessedEvent);
+                        processedEvent.Penalize(5);
+                        events.Add(processedEvent);
                     }
                 }
                 else
@@ -228,6 +231,11 @@ namespace OnedataDrive
                     Thread.Sleep(1000);
                 }
             }
+        }
+
+        private string GetParentFolder(FileEvent fileEvent)
+        {
+            return autoRefresh.monitoredPath[autoRefresh.monitoredId.IndexOf(fileEvent.parentFileId)];
         }
     }
 
@@ -256,7 +264,7 @@ namespace OnedataDrive
             this.monitoredPath = new();
             this.spaceFolder = spaceFolder;
             this.cts = new();
-            this.eventManager = new EventManager(cts.Token);
+            this.eventManager = new EventManager(cts.Token, this);
             this.monitoringTask = Task.Run(() => MonitorFileEvents(cts.Token, out _));
         }
 
@@ -344,7 +352,7 @@ namespace OnedataDrive
                             string line = readTask.Result ?? "NOTHING WAS READ";
                             Debug.Print($"READ LINE: {line}");
                             FileEvent fe = JsonSerializer.Deserialize<FileEvent>(line) ?? throw new Exception("Json Deserialize FAIL");
-                            Task.Run(() => eventManager.AddEvent(fe, this));
+                            Task.Run(() => eventManager.AddEvent(fe));
                             string json = JsonSerializer.Serialize(fe);
                             Debug.Print("JSON: {0}", json);
                         }
