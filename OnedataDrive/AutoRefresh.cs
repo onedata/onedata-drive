@@ -1,15 +1,10 @@
 ﻿using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
+
 using System.Text.Json;
-using System.Threading.Tasks;
-using Vanara.PInvoke;
-using Windows.ApplicationModel.Contacts;
+
 
 namespace OnedataDrive
 {
@@ -17,31 +12,60 @@ namespace OnedataDrive
     {
         internal EventType type;
         internal FileEvent fileEvent;
+        internal string? fileName;
+        internal FileAttribute? fileAttribute;
+        internal int penalty;
         // timestamp
-        public Event(FileEvent fileEvent, EventType eventType = EventType.Unknown)
+        private Event(FileEvent fileEvent, EventType eventType)
         {
             type = eventType;
             this.fileEvent = fileEvent;
+            this.penalty = 0;
+
+            this.fileName = null;
+            this.fileAttribute = null;
+        }
+
+        public Event(FileEvent fileEvent, string fileName, EventType eventType = EventType.Unknown)
+            : this(fileEvent, eventType)
+        {
+            this.fileName = fileName;
+        }
+
+        public Event(FileEvent fileEvent, string fileName, FileAttribute fileAttribute, EventType eventType = EventType.Unknown) 
+            : this(fileEvent, eventType)
+        {
+            this.fileName = fileName;
+            this.fileAttribute = fileAttribute;
+        }
+
+        public Event(FileEvent fileEvent, FileAttribute fileAttribute, EventType eventType = EventType.Unknown)
+            : this(fileEvent, eventType)
+        {
+            this.fileAttribute = fileAttribute;
+        }
+
+        public void Penalize(int penalty)
+        {
+            this.penalty += penalty;
         }
     }
 
     internal class EventManager
     {
         public List<Event> events;
+        private CancellationToken cancellationToken;
 
-        public EventManager()
+        public EventManager(CancellationToken cancellationToken)
         {
+            this.cancellationToken = cancellationToken;
             events = new List<Event>();
         }
 
         public void AddEvent(FileEvent fileEvent, AutoRefresh autoRefresh)
         {
-            Event newEvent = new Event(fileEvent);
+            Event newEvent = DetermineEventType(fileEvent, autoRefresh);
 
-            newEvent.type = DetermineEventType(fileEvent, autoRefresh, out string localFileName);
-
-            // determine type
-            // add if relevant/not duplicate/...
             if (!events.Any(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId && ev.type > newEvent.type))
             {
                 events.RemoveAll(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId);
@@ -56,9 +80,15 @@ namespace OnedataDrive
             }
         }
 
-        private EventType DetermineEventType(FileEvent fileEvent, AutoRefresh autoRefresh, out string localFileName)
+        public void AddEvent(Event ev)
         {
-            localFileName = string.Empty;
+            // todo
+        }
+
+        private Event DetermineEventType(FileEvent fileEvent, AutoRefresh autoRefresh)
+        {
+            string? localFileName = null;
+            string parentFolder = autoRefresh.monitoredPath[autoRefresh.monitoredId.IndexOf(fileEvent.parentFileId)];
             List<ProviderInfo> providerInfos = autoRefresh.spaceFolder.providerInfos;
             FileAttribute fileAttribute;
             try
@@ -70,19 +100,19 @@ namespace OnedataDrive
                 AggregateException? ae = ex as AggregateException;
                 if (ae is not null && ae.InnerExceptions.ToList().Any(e => e is NoSuchCloudFile))
                 {
-                    return EventType.Deleted;
+                    Debug.Print($"EventId: {fileEvent.eventId}");
+                    localFileName = GetFileNameFromId(fileEvent.fileId, parentFolder);
+                    return new Event(fileEvent, localFileName ?? string.Empty, EventType.Deleted);
                 }
                 Debug.Print("Error in event handling: {0}", ex);
                 throw;
             }
 
-
-            string parentFolder = autoRefresh.monitoredPath[autoRefresh.monitoredId.IndexOf(fileEvent.parentFileId)];
-            Debug.Print($"Parent Folder: {parentFolder}, file name: {fileAttribute.name}");
+            Debug.Print($"Parent Folder: {parentFolder}, file name: {fileAttribute.name}, eventId: {fileEvent.eventId}");
             string localId = string.Empty;
             try
             {
-                string filePath = System.IO.Path.Combine(parentFolder, fileAttribute.name);
+                string filePath = Path.Combine(parentFolder, fileAttribute.name);
                 localId = PathUtils.GetPlaceholderId(filePath);
             }
             catch (FileNotFoundException) { }
@@ -90,21 +120,97 @@ namespace OnedataDrive
             {
                 Debug.Print("File found");
                 localFileName = fileAttribute.name;
-                return EventType.Updated;
+                return new Event(fileEvent, localFileName, fileAttribute, EventType.Updated);
             }
             else
             {
                 // get all file ids
-                foreach (string filePath in Directory.EnumerateFiles(parentFolder))
+                localFileName = GetFileNameFromId(fileEvent.fileId, parentFolder);
+                if (localFileName is not null)
                 {
-                    if (PathUtils.GetPlaceholderId(filePath) == fileEvent.fileId)
+                    Debug.Print("File found by enumeration");
+                    return new Event(fileEvent, localFileName, fileAttribute, EventType.Renamed);
+                }
+
+                return new Event(fileEvent, fileAttribute, EventType.Created);
+            }
+        }
+
+        /// <summary>
+        /// Retrieves the file name corresponding to the specified file ID within the given directory.
+        /// </summary>
+        /// <remarks>This method searches the specified directory for a file whose placeholder ID matches
+        /// the provided <paramref name="fileId"/>. If a match is found, the file name is returned. If no match is
+        /// found, the method returns <see langword="null"/>.</remarks>
+        /// <param name="fileId">The unique identifier of the file to locate.</param>
+        /// <param name="parentDirPath">The path of the directory to search for the file.</param>
+        /// <returns>The name of the file if a file with the specified ID is found; otherwise, <see langword="null"/>.</returns>
+        private string? GetFileNameFromId(string fileId, string parentDirPath)
+        {
+            foreach (string filePath in Directory.EnumerateFiles(parentDirPath))
+            {
+                if (PathUtils.GetPlaceholderId(filePath) == fileId)
+                {
+                    Debug.Print("File found by enumeration");
+                    return PathUtils.GetLastInPath(filePath);
+                }
+            }
+            return null;
+        }
+
+        private void ProcessEvents(CancellationToken cancellationToken)
+        {
+            while (true)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    Debug.Print("Cancellation requested, stopping event processing.");
+                    break;
+                }
+                if (events.Count > 0)
+                {
+                    Event ev = events[0];
+                    events.RemoveAt(0);
+                    Debug.Print("Processing event of type: {0}", ev.type.ToString());
+                    bool eventCompleted = false;
+                    // Process the event based on its type
+
+                    switch (ev.type)
                     {
-                        Debug.Print("File found by enumeration");
-                        localFileName = PathUtils.GetLastInPath(filePath);
-                        return EventType.Renamed;
+                        case EventType.Updated:
+                            // ok
+                            Debug.Print($"File Updated: {ev.fileEvent.fileId}");
+                            break;
+                        case EventType.Renamed:
+                            // ok
+                            Debug.Print($"File Renamed: {ev.fileEvent.fileId}");
+                            break;
+                        case EventType.Created:
+                            // ok
+                            Debug.Print($"File Created: {ev.fileEvent.fileId}");
+                            break;
+                        case EventType.Deleted:
+                            if (ev.fileName is null)
+                            {
+                                eventCompleted = true;
+                                Debug.Print("Event Delete: file can not be found. Event completed.");
+                            }
+                            Debug.Print($"File Deleted: {ev.fileEvent.fileId}");
+                            break;
+                        default:
+                            Debug.Print("Unknown event type");
+                            break;
+                    }
+                    if (!eventCompleted)
+                    {
+                        ev.Penalize(5);
+                        events.Add(ev);
                     }
                 }
-                return EventType.Created;
+                else
+                {
+                    Thread.Sleep(1000);
+                }
             }
         }
     }
@@ -134,7 +240,7 @@ namespace OnedataDrive
             this.monitoredPath = new();
             this.spaceFolder = spaceFolder;
             this.cts = new();
-            this.eventManager = new EventManager();
+            this.eventManager = new EventManager(cts.Token);
             this.monitoringTask = Task.Run(() => MonitorFileEvents(cts.Token, out _));
         }
 
