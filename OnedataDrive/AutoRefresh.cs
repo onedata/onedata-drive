@@ -1,9 +1,14 @@
-﻿using OnedataDrive.ErrorHandling;
+﻿using NLog;
+using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
-
+using System.Security.Cryptography;
 using System.Text.Json;
+using Vanara.Collections;
+using Vanara.PInvoke;
+using Microsoft.VisualBasic.FileIO;
+using static Vanara.PInvoke.CldApi;
 
 
 namespace OnedataDrive
@@ -105,8 +110,14 @@ namespace OnedataDrive
 
         private Event DetermineEventType(FileEvent fileEvent)
         {
-            string? localFileName = null;
             string parentFolder = GetParentFolder(fileEvent);
+
+            string? localFileName = null;
+            localFileName = GetFileNameFromId(fileEvent.fileId, parentFolder, out string type);
+            fileEvent.data.type = type;
+
+
+            // test delete type
             List<ProviderInfo> providerInfos = autoRefresh.spaceFolder.providerInfos;
             FileAttribute fileAttribute;
             try
@@ -118,14 +129,14 @@ namespace OnedataDrive
                 AggregateException? ae = ex as AggregateException;
                 if (ae is not null && ae.InnerExceptions.ToList().Any(e => e is NoSuchCloudFile))
                 {
-                    Debug.Print($"EventId: {fileEvent.eventId}");
-                    localFileName = GetFileNameFromId(fileEvent.fileId, parentFolder);
+                    Debug.Print($"EventId: {fileEvent.eventId}, localFileName: {localFileName ?? ""}");
                     return new Event(fileEvent, localFileName ?? string.Empty, EventType.Deleted);
                 }
                 Debug.Print("Error in event handling: {0}", ex);
                 throw;
             }
 
+            // test update/rename/create type
             Debug.Print($"Parent Folder: {parentFolder}, file name: {fileAttribute.name}, eventId: {fileEvent.eventId}");
             string localId = string.Empty;
             try
@@ -143,13 +154,11 @@ namespace OnedataDrive
             else
             {
                 // get all file ids
-                localFileName = GetFileNameFromId(fileEvent.fileId, parentFolder);
                 if (localFileName is not null)
                 {
                     Debug.Print("File found by enumeration");
                     return new Event(fileEvent, localFileName, fileAttribute, EventType.Renamed);
                 }
-
                 return new Event(fileEvent, fileAttribute, EventType.Created);
             }
         }
@@ -163,16 +172,24 @@ namespace OnedataDrive
         /// <param name="fileId">The unique identifier of the file to locate.</param>
         /// <param name="parentDirPath">The path of the directory to search for the file.</param>
         /// <returns>The name of the file if a file with the specified ID is found; otherwise, <see langword="null"/>.</returns>
-        private string? GetFileNameFromId(string fileId, string parentDirPath)
+        private string? GetFileNameFromId(string fileId, string parentDirPath, out string type)
         {
-            foreach (string filePath in Directory.EnumerateFiles(parentDirPath))
+            foreach (string filePath in Directory.EnumerateFileSystemEntries(parentDirPath))
             {
                 if (PathUtils.GetPlaceholderId(filePath) == fileId)
                 {
-                    Debug.Print("File found by enumeration");
+                    if (Directory.Exists(filePath))
+                    {
+                        type = PlaceholderData.DIRECTORY;
+                    }
+                    else
+                    {
+                        type = PlaceholderData.REGULAR_FILE;
+                    }
                     return PathUtils.GetLastInPath(filePath);
                 }
             }
+            type = string.Empty;
             return null;
         }
 
@@ -194,18 +211,32 @@ namespace OnedataDrive
                     bool eventCompleted = false;
                     // Process the event based on its type
                     string filePath = Path.Combine(parentFolder, processedEvent.fileName ?? string.Empty);
+                    bool directory = processedEvent.fileEvent.data.type == PlaceholderData.DIRECTORY;
                     switch (processedEvent.type)
                     {
                         case EventType.Updated:
-                            // ok
+                            CF_FS_METADATA metadata = Placeholders.CreateFSMetadata(processedEvent.fileAttribute, directory);
+                            UpdatePlaceholderMetadata(metadata, filePath);
                             Debug.Print($"File Updated: {processedEvent.fileEvent.fileId}");
+                            eventCompleted = true;
                             break;
                         case EventType.Renamed:
-                            // ok
+                            metadata = Placeholders.CreateFSMetadata(processedEvent.fileAttribute, directory);
+                            UpdatePlaceholderMetadata(metadata, filePath);
+                            if (directory)
+                            {
+                                FileSystem.RenameDirectory(filePath, processedEvent.fileAttribute!.name);
+                            }
+                            else
+                            {
+                                FileSystem.RenameFile(filePath, processedEvent.fileAttribute!.name);
+                            }
                             Debug.Print($"File Renamed: {processedEvent.fileEvent.fileId}");
+                            eventCompleted = true;
                             break;
                         case EventType.Created:
-                            // ok
+                            metadata = Placeholders.CreateFSMetadata(processedEvent.fileAttribute);
+                            // create placeholder
                             Debug.Print($"File Created: {processedEvent.fileEvent.fileId}");
                             break;
                         case EventType.Deleted:
@@ -213,7 +244,9 @@ namespace OnedataDrive
                             {
                                 eventCompleted = true;
                                 Debug.Print("Event Delete: file can not be found. Event completed.");
+                                break;
                             }
+                            
                             Debug.Print($"File Deleted: {processedEvent.fileEvent.fileId}");
                             break;
                         default:
@@ -229,6 +262,45 @@ namespace OnedataDrive
                 else
                 {
                     Thread.Sleep(1000);
+                }
+            }
+        }
+
+        private void UpdatePlaceholderMetadata(CF_FS_METADATA metadata, string placeholderPath)
+        {
+            SafeHCFFILE? handle = null;
+            try
+            {
+                HRESULT openHres = CfOpenFileWithOplock(placeholderPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out handle);
+                if (openHres != HRESULT.S_OK)
+                {
+                    throw new Exception($"CfOpenFileWithOplock HRES number: {((int)openHres)}" +
+                        $"\n HRES text: {openHres}");
+                }
+                long updateUsn = 0;
+                HRESULT hres = CfUpdatePlaceholder(FileHandle: handle.DangerousGetHandle(),
+                                    FsMetadata: metadata,
+                                    FileIdentity: 0,
+                                    FileIdentityLength: 0,
+                                    DehydrateRangeCount: 0,
+                                    UpdateFlags: CF_UPDATE_FLAGS.CF_UPDATE_FLAG_MARK_IN_SYNC,
+                                    UpdateUsn: ref updateUsn
+                                    );
+                if (hres != HRESULT.S_OK)
+                {
+                    throw new Exception($"CfUpdatePlaceholder HRES number: {((int)hres)}" +
+                        $"\n HRES text: {hres}");
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                if (handle != null)
+                {
+                    CfCloseHandle(handle);
                 }
             }
         }
