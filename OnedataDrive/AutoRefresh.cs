@@ -1,13 +1,14 @@
-﻿using NLog;
+﻿using Microsoft.VisualBasic.FileIO;
+using NLog;
 using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Vanara.Collections;
 using Vanara.PInvoke;
-using Microsoft.VisualBasic.FileIO;
 using static Vanara.PInvoke.CldApi;
 
 
@@ -61,12 +62,14 @@ namespace OnedataDrive
         public List<Event> events;
         private CancellationToken cancellationToken;
         private AutoRefresh autoRefresh;
+        private Task processingTask;
 
         public EventManager(CancellationToken cancellationToken, AutoRefresh autoRefresh)
         {
             this.cancellationToken = cancellationToken;
             this.autoRefresh = autoRefresh;
             events = new List<Event>();
+            this.processingTask = Task.Run(() => ProcessEvents(cancellationToken));
         }
 
         public void AddEvent(FileEvent fileEvent)
@@ -202,6 +205,7 @@ namespace OnedataDrive
                     Debug.Print("Cancellation requested, stopping event processing.");
                     break;
                 }
+                Debug.Print("Processing Task alive.");
                 if (events.Count > 0)
                 {
                     Event processedEvent = events[0];
@@ -235,9 +239,24 @@ namespace OnedataDrive
                             eventCompleted = true;
                             break;
                         case EventType.Created:
-                            metadata = Placeholders.CreateFSMetadata(processedEvent.fileAttribute);
-                            // create placeholder
-                            Debug.Print($"File Created: {processedEvent.fileEvent.fileId}");
+                            using (PlaceholderCreateInfo createInfo = new())
+                            {
+                                PlaceholderData placeholderData = new(
+                                    processedEvent.fileAttribute.file_id,
+                                    processedEvent.fileAttribute.name,
+                                    processedEvent.fileAttribute.size,
+                                    processedEvent.fileAttribute.atime,
+                                    processedEvent.fileAttribute.mtime,
+                                    processedEvent.fileAttribute.ctime);
+                                createInfo.Add(Placeholders.CreateInfo(placeholderData));
+                                CF_PLACEHOLDER_CREATE_INFO[] infoArr = createInfo.GetArray();
+                                HRESULT hres = CfCreatePlaceholders(parentFolder, infoArr, (uint)infoArr.Length, CF_CREATE_FLAGS.CF_CREATE_FLAG_NONE, out uint entriesProcessed);
+                                if (hres == HRESULT.S_OK || entriesProcessed == infoArr.Length)
+                                {
+                                    eventCompleted = true;
+                                    Debug.Print($"File Created: {processedEvent.fileEvent.fileId}");
+                                }
+                            }
                             break;
                         case EventType.Deleted:
                             if (processedEvent.fileName is null)
@@ -246,8 +265,18 @@ namespace OnedataDrive
                                 Debug.Print("Event Delete: file can not be found. Event completed.");
                                 break;
                             }
-                            
-                            Debug.Print($"File Deleted: {processedEvent.fileEvent.fileId}");
+                            if (directory)
+                            {
+                                Directory.Delete(filePath, true);
+                                Debug.Print($"Directory Deleted: {processedEvent.fileEvent.fileId}" );
+                                eventCompleted = true;
+                            }
+                            else
+                            {
+                                File.Delete(filePath);
+                                Debug.Print($"File Deleted: {processedEvent.fileEvent.fileId}");
+                                eventCompleted = true;
+                            }
                             break;
                         default:
                             Debug.Print("Unknown event type");
@@ -255,13 +284,14 @@ namespace OnedataDrive
                     }
                     if (!eventCompleted)
                     {
+                        Debug.Print($"Event {processedEvent.fileEvent.eventId} not completed, re-adding to the queue with penalty");
                         processedEvent.Penalize(5);
                         events.Add(processedEvent);
                     }
                 }
                 else
                 {
-                    Thread.Sleep(1000);
+                    Thread.Sleep(2000);
                 }
             }
         }
@@ -414,12 +444,15 @@ namespace OnedataDrive
                         {
                             Task<string?> readTask = reader.ReadLineAsync(cancelToken).AsTask();
                             connected = true;
-                            double time = 0;
+                            long time = 0;
                             while (!readTask.IsCompleted)
                             {
-                                Debug.Print($"Waiting for read: {time}s");
-                                Thread.Sleep(500);
-                                time += 0.5;
+                                if (time % 5 == 0)
+                                {
+                                    Debug.Print($"Waiting for read: {time}s");
+                                }
+                                Thread.Sleep(1000);
+                                time += 1;
                             }
                             string line = readTask.Result ?? "NOTHING WAS READ";
                             Debug.Print($"READ LINE: {line}");
