@@ -3,10 +3,12 @@ using NLog;
 using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Vanara;
 using Vanara.Collections;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
@@ -60,17 +62,44 @@ namespace OnedataDrive
     internal class EventManager
     {
         public List<Event> events;
-        private CancellationToken cancellationToken;
+        private CancellationTokenSource processingTokenSource;
         private AutoRefresh autoRefresh;
         private Task processingTask;
 
-        public EventManager(CancellationToken cancellationToken, AutoRefresh autoRefresh)
+        public EventManager(AutoRefresh autoRefresh)
         {
-            this.cancellationToken = cancellationToken;
+            this.processingTokenSource = new();
             this.autoRefresh = autoRefresh;
-            events = new List<Event>();
-            this.processingTask = Task.Run(() => ProcessEvents(cancellationToken, autoRefresh.spaceFolder.name));
+            this.events = new List<Event>();
+            this.processingTask = Task.Run(() => ProcessEvents(processingTokenSource.Token, autoRefresh.spaceFolder.name));
             Debug.Print($"Event Manager created: {autoRefresh.spaceFolder.name}");
+        }
+
+        public bool StopProcessing()
+        {
+            processingTokenSource.Cancel();
+            try
+            {
+                Debug.Print("Waiting for event processing task to finish");
+                processingTask.Wait();
+                return true;
+            }
+            catch (AggregateException ae)
+            {
+                foreach (var e in ae.InnerExceptions)
+                {
+                    if (e is TaskCanceledException)
+                    {
+                        Debug.Print("Event processing task was cancelled.");
+                    }
+                    else
+                    {
+                        Debug.Print("Event processing task encountered an error: {0}", e);
+                        return false;
+                    }
+                }
+                return true;
+            }
         }
 
         public void AddEvent(FileEvent fileEvent)
@@ -356,7 +385,7 @@ namespace OnedataDrive
         internal SpaceFolder spaceFolder;
         internal List<string> monitoredId;
         internal List<string> monitoredPath;
-        private CancellationTokenSource cts;
+        private CancellationTokenSource monitorTokenSource;
         private EventManager eventManager;
         private Task monitoringTask;
         public IReadOnlyList<string> MonitoredId => monitoredId.AsReadOnly();
@@ -366,15 +395,16 @@ namespace OnedataDrive
             this.monitoredId = new();
             this.monitoredPath = new();
             this.spaceFolder = spaceFolder;
-            this.cts = new();
-            this.eventManager = new EventManager(cts.Token, this);
-            this.monitoringTask = Task.Run(() => MonitorFileEvents(cts.Token, out _));
+            this.monitorTokenSource = new();
+            this.eventManager = new EventManager(this);
+            this.monitoringTask = Task.Run(() => MonitorFileEvents(monitorTokenSource.Token, out _));
             Debug.Print($"Autorefresh created: {spaceFolder.name}");
         }
 
         public void StopMonitoring()
         {
-            cts.Cancel();
+            monitorTokenSource.Cancel();
+            eventManager.StopProcessing();
             try
             {
                 Debug.Print("Waiting for task to finish");
@@ -412,8 +442,8 @@ namespace OnedataDrive
                     Debug.Print("Waiting for connection to be established...");
                     Thread.Sleep(500);
                 }
-                cts.Cancel();
-                cts = newCts;
+                monitorTokenSource.Cancel();
+                monitorTokenSource = newCts;
                 monitoringTask = newMonitoringTask;
                 Debug.Print("TASK HANDOVER");
             }
