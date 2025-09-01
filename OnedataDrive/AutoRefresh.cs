@@ -247,6 +247,7 @@ namespace OnedataDrive
 
         private void ProcessEvents(CancellationToken cancellationToken, string spaceName)
         {
+            string opID = IdGenerator.GenerateId8();
             while (true)
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -258,8 +259,6 @@ namespace OnedataDrive
                 Debug.Print("Processing Task alive: {0}", spaceName);
                 if (events.Count > 0)
                 {
-                    string opID = IdGenerator.GenerateId8();
-
                     try
                     {
                         Event processedEvent = events[0];
@@ -421,6 +420,7 @@ namespace OnedataDrive
         {
             List<string> moreInfo = EventMoreInfo(fileEvent.fileEvent);
             moreInfo.Add($"FileName: {fileEvent.fileName}");
+            moreInfo.Add($"EventCategory: {fileEvent.type}");
             return moreInfo;
         }
     }
@@ -523,14 +523,15 @@ namespace OnedataDrive
 
         private void MonitorFileEvents(CancellationToken cancelToken, out bool connected)
         {
+            string opID = IdGenerator.GenerateId8();
             connected = false;
             if (monitoredId.Count <= 0)
             {
-                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Empty", filePath: spaceFolder.name);
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Empty", filePath: spaceFolder.name, opID: opID);
                 return;
             }
 
-            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Started", filePath: spaceFolder.name);
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Started", filePath: spaceFolder.name, opID: opID);
 
             string spaceId = spaceFolder.spaceId;
             List<ProviderInfo> providerInfos = spaceFolder.providerInfos;
@@ -567,23 +568,23 @@ namespace OnedataDrive
                         catch (Exception e) when (e is OperationCanceledException || e is ObjectDisposedException)
                         {
                             List<string> errString = new() { lineRead };
-                            logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "Monitor Canceled", e, errString, filePath: spaceFolder.name);
+                            logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "Monitor Canceled", e, errString, filePath: spaceFolder.name, opID: opID);
                             break;
                         }
                         catch (Exception e)
                         {
                             List<string> errString = new() { lineRead };
-                            logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitor Fail", e, errString, filePath: spaceFolder.name);
+                            logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitor Fail", e, errString, filePath: spaceFolder.name, opID: opID);
                         }
                         if (cancelToken.IsCancellationRequested)
                         {
-                            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Cancel Requested", filePath: spaceFolder.name);
+                            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Cancel Requested", filePath: spaceFolder.name, opID: opID);
                             break;
                         }
                     }
                 }
             }
-            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Stopped", filePath: spaceFolder.name);
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Stopped", filePath: spaceFolder.name, opID: opID);
         }
     }
 }
