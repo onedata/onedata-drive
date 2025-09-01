@@ -12,6 +12,7 @@ using Vanara;
 using Vanara.Collections;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
+using static Vanara.PInvoke.CldApi.CF_CALLBACK_PARAMETERS;
 
 
 namespace OnedataDrive
@@ -72,16 +73,17 @@ namespace OnedataDrive
             this.autoRefresh = autoRefresh;
             this.events = new List<Event>();
             this.processingTask = Task.Run(() => ProcessEvents(processingTokenSource.Token, autoRefresh.spaceFolder.name));
-            Debug.Print($"Event Manager created: {autoRefresh.spaceFolder.name}");
+            AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "CREATED", filePath: autoRefresh.spaceFolder.name);
         }
 
         public bool StopProcessing()
         {
+            AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Stop processing", filePath: autoRefresh.spaceFolder.name);
             processingTokenSource.Cancel();
             try
             {
-                Debug.Print("Waiting for event processing task to finish");
                 processingTask.Wait();
+                AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "STOP OK", filePath: autoRefresh.spaceFolder.name);
                 return true;
             }
             catch (AggregateException ae)
@@ -90,11 +92,11 @@ namespace OnedataDrive
                 {
                     if (e is TaskCanceledException)
                     {
-                        Debug.Print("Event processing task was cancelled.");
+                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Warn, "EVENT MANAGER", "stopped/canceled OK", e, filePath: autoRefresh.spaceFolder.name);
                     }
                     else
                     {
-                        Debug.Print("Event processing task encountered an error: {0}", e);
+                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "STOP FAIL", e, filePath: autoRefresh.spaceFolder.name);
                         return false;
                     }
                 }
@@ -105,39 +107,51 @@ namespace OnedataDrive
         public void AddEvent(FileEvent fileEvent)
         {
             Event newEvent = DetermineEventType(fileEvent);
+            List<string> moreInfo = new() { $"EventId: {fileEvent.eventId}", $"EventType: {fileEvent.eventType}",
+                $"FileId: {fileEvent.fileId}" };
 
             if (!events.Any(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId && ev.type > newEvent.type))
             {
                 events.RemoveAll(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId);
                 events.Add(newEvent);
-                Debug.Print("EVENT ADDED, type {0}", newEvent.type.ToString());
+                AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "event added", 
+                    moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name);
             }
             else
             {
-                Debug.Print($"EVENT NOT ADDED, type {newEvent.type.ToString()} \n Event ignored, " +
-                    $"because there already is event with higher priority (making new event redundant)");
+                AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", 
+                    "event not added - event with higher priority exists", 
+                    moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name);
             }
         }
 
         public void ReAddEvent(Event newEvent)
         {
+            List<string> moreInfo = new() { 
+                $"EventId: {newEvent.fileEvent.eventId}", 
+                $"EventType: {newEvent.fileEvent.eventType}",
+                $"FileId: {newEvent.fileEvent.fileId}" };
             if (events.Any(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId 
                 && newEvent.type == EventType.Renamed && ev.type == EventType.Updated))
             {
-                Debug.Print($"EVENT NOT READDED, type {newEvent.type.ToString()} \n Event ignored, " +
-                    $"because Rename event is not relevant anymore)");
+                AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, 
+                    "EVENT MANAGER", "event not readded - not relevant anymore", 
+                    moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name);
             }
             else if (!events.Any(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId 
                 && ev.type > newEvent.type))
             {
                 events.RemoveAll(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId);
                 events.Add(newEvent);
-                Debug.Print("EVENT ADDED, type {0}", newEvent.type.ToString());
+
+                AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "event readded",
+                    moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name);
             }
             else 
             {
-                Debug.Print($"EVENT NOT READDED, type {newEvent.type.ToString()} \n Event ignored, " +
-                    $"because there already is event with higher priority (making new event redundant)");
+                AutoRefresh.logFormatter.LogFileOP(LogLevel.Error,
+                    "EVENT MANAGER", "event not readded - event with higher priority already exists",
+                    moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name);
             }
         }
 
@@ -271,13 +285,7 @@ namespace OnedataDrive
                         case EventType.Created:
                             using (PlaceholderCreateInfo createInfo = new())
                             {
-                                PlaceholderData placeholderData = new(
-                                    processedEvent.fileAttribute.file_id,
-                                    processedEvent.fileAttribute.name,
-                                    processedEvent.fileAttribute.size,
-                                    processedEvent.fileAttribute.atime,
-                                    processedEvent.fileAttribute.mtime,
-                                    processedEvent.fileAttribute.ctime);
+                                PlaceholderData placeholderData = new(processedEvent.fileAttribute);
                                 createInfo.Add(Placeholders.CreateInfo(placeholderData));
                                 CF_PLACEHOLDER_CREATE_INFO[] infoArr = createInfo.GetArray();
                                 HRESULT hres = CfCreatePlaceholders(parentFolder, infoArr, (uint)infoArr.Length, CF_CREATE_FLAGS.CF_CREATE_FLAG_NONE, out uint entriesProcessed);
@@ -382,14 +390,15 @@ namespace OnedataDrive
 
     public class AutoRefresh
     {
+        internal static Logger logger = LogManager.GetCurrentClassLogger();
+        internal static LoggerFormater logFormatter = new(logger);
+
         internal SpaceFolder spaceFolder;
         internal List<string> monitoredId;
         internal List<string> monitoredPath;
         private CancellationTokenSource monitorTokenSource;
         private EventManager eventManager;
         private Task monitoringTask;
-        public IReadOnlyList<string> MonitoredId => monitoredId.AsReadOnly();
-        public IReadOnlyList<string> MonitoredPath => monitoredPath.AsReadOnly();
         public AutoRefresh(SpaceFolder spaceFolder)
         {
             this.monitoredId = new();
@@ -398,16 +407,16 @@ namespace OnedataDrive
             this.monitorTokenSource = new();
             this.eventManager = new EventManager(this);
             this.monitoringTask = Task.Run(() => MonitorFileEvents(monitorTokenSource.Token, out _));
-            Debug.Print($"Autorefresh created: {spaceFolder.name}");
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "CREATED", filePath: spaceFolder.name);
         }
 
         public void StopMonitoring()
         {
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Stop monitoring", filePath: spaceFolder.name);
             monitorTokenSource.Cancel();
             eventManager.StopProcessing();
             try
             {
-                Debug.Print("Waiting for task to finish");
                 monitoringTask.Wait();
             }
             catch (AggregateException ae)
@@ -416,39 +425,52 @@ namespace OnedataDrive
                 {
                     if (e is TaskCanceledException)
                     {
-                        Debug.Print("Monitoring task was cancelled.");
+                        logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "stopped/canceled OK", e, filePath: spaceFolder.name);
                     }
                     else
                     {
-                        Debug.Print("Monitoring task encountered an error: {0}", e);
+                        logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "STOP FAIL", e, filePath: spaceFolder.name);
+                        return;
                     }
                 }
             }
-            Debug.Print("Monitoring task has been stopped.");
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "STOP OK", filePath: spaceFolder.name);
         }
 
         public void AddToMonitored(string fileId, string path)
         {
+            string id = IdGenerator.GenerateId8();
+            const int sleepMS = 500;
+            const int timeout = 20 * sleepMS;
+            int clock = 0;
+            List<string> moreInfo = new() { $"FileId: {fileId}", $"Path: {path}" };
             if (!monitoredId.Contains(fileId))
             {
                 monitoredId.Add(fileId);
                 monitoredPath.Add(path);
-                Debug.Print($"Added {fileId} to monitored list. Path: {path}");
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Added to monitor", moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
                 CancellationTokenSource newCts = new();
                 bool connected = false;
                 Task newMonitoringTask = Task.Run(() => MonitorFileEvents(newCts.Token, out connected));
                 while (!connected)
                 {
                     Debug.Print("Waiting for connection to be established...");
-                    Thread.Sleep(500);
+                    Thread.Sleep(sleepMS);
+                    clock += sleepMS;
+                    if (clock >= timeout)
+                    {
+                        logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Task handover not responding", moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
+                        clock = 0;
+                    }
                 }
                 monitorTokenSource.Cancel();
                 monitorTokenSource = newCts;
                 monitoringTask = newMonitoringTask;
-                Debug.Print("TASK HANDOVER");
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitoring task handover", moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
             }
             else
             {
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Add to monitor - already contains", moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
                 Debug.Print($"{fileId} is already in the monitored list.");
             }
         }
@@ -459,13 +481,17 @@ namespace OnedataDrive
             if (monitoredId.Count <= 0)
             {
                 Debug.Print("No files to monitor. Exiting monitoring task.");
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Empty", filePath: spaceFolder.name);
                 return;
             }
+
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Started", filePath: spaceFolder.name);
 
             string spaceId = spaceFolder.spaceId;
             List<ProviderInfo> providerInfos = spaceFolder.providerInfos;
             Task<Stream> task = RestClient.GetFileEventStream(monitoredId, providerInfos, spaceId);
             task.Wait();
+            string lineRead = "";
             using (Stream stream = task.Result)
             {
                 using (StreamReader reader = new StreamReader(stream))
@@ -479,40 +505,40 @@ namespace OnedataDrive
                             long time = 0;
                             while (!readTask.IsCompleted)
                             {
-                                if (time % 5 == 0)
+                                if (time % 10 == 0)
                                 {
                                     Debug.Print($"Waiting for read: {time}s");
                                 }
                                 Thread.Sleep(1000);
                                 time += 1;
                             }
-                            string line = readTask.Result ?? "NOTHING WAS READ";
-                            Debug.Print($"READ LINE: {line}");
-                            FileEvent fe = JsonSerializer.Deserialize<FileEvent>(line) ?? throw new Exception("Json Deserialize FAIL");
+                            lineRead = readTask.Result ?? "NOTHING WAS READ";
+                            Debug.Print($"READ LINE: {lineRead}");
+                            FileEvent fe = JsonSerializer.Deserialize<FileEvent>(lineRead) ?? throw new Exception("Json Deserialize FAIL");
                             Task.Run(() => eventManager.AddEvent(fe));
                             string json = JsonSerializer.Serialize(fe);
                             Debug.Print("JSON: {0}", json);
                         }
                         catch (Exception e) when (e is OperationCanceledException || e is ObjectDisposedException)
                         {
-                            Debug.Print("Read operation was cancelled: {0}", e);
+                            List<string> errString = new() { lineRead };
+                            logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "Monitor Canceled", e, errString, filePath: spaceFolder.name);
                             break;
                         }
                         catch (Exception e)
                         {
-                            Debug.Print("Error reading line: {0}", e.Message);
-                            break;
+                            List<string> errString = new() { lineRead };
+                            logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitor Fail", e, errString, filePath: spaceFolder.name);
                         }
                         if (cancelToken.IsCancellationRequested)
                         {
-                            Debug.Print("Cancellation requested, stopping processing.");
+                            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Cancel Requested", filePath: spaceFolder.name);
                             break;
                         }
                     }
-                    Debug.Print("Finished reading stream.");
                 }
             }
-            
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Stopped", filePath: spaceFolder.name);
         }
     }
 }

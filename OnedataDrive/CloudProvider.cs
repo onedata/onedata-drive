@@ -22,7 +22,6 @@ namespace OnedataDrive
         private static LoggerFormater loggerFormater = new(logger);
         public const string ID = @"TestStorageProvider";
         public const string ACCOUNT = @"TestAccount";
-        public static Random random = new Random();
 
         public static void RegisterWithShell(string folderPath)
         {
@@ -190,7 +189,7 @@ namespace OnedataDrive
 
         public static void OnFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            string opID = random.NextInt64(10_000_000, 100_000_000).ToString();
+            string opID = IdGenerator.GenerateId8();
 
             PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "START", opID: opID);
             CF_OPERATION_INFO oi = new()
