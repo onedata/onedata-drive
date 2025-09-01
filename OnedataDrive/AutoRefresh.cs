@@ -69,7 +69,8 @@ namespace OnedataDrive
             this.cancellationToken = cancellationToken;
             this.autoRefresh = autoRefresh;
             events = new List<Event>();
-            this.processingTask = Task.Run(() => ProcessEvents(cancellationToken));
+            this.processingTask = Task.Run(() => ProcessEvents(cancellationToken, autoRefresh.spaceFolder.name));
+            Debug.Print($"Event Manager created: {autoRefresh.spaceFolder.name}");
         }
 
         public void AddEvent(FileEvent fileEvent)
@@ -196,7 +197,7 @@ namespace OnedataDrive
             return null;
         }
 
-        private void ProcessEvents(CancellationToken cancellationToken)
+        private void ProcessEvents(CancellationToken cancellationToken, string spaceName)
         {
             while (true)
             {
@@ -205,7 +206,7 @@ namespace OnedataDrive
                     Debug.Print("Cancellation requested, stopping event processing.");
                     break;
                 }
-                Debug.Print("Processing Task alive.");
+                Debug.Print("Processing Task alive: {0}", spaceName);
                 if (events.Count > 0)
                 {
                     Event processedEvent = events[0];
@@ -368,6 +369,7 @@ namespace OnedataDrive
             this.cts = new();
             this.eventManager = new EventManager(cts.Token, this);
             this.monitoringTask = Task.Run(() => MonitorFileEvents(cts.Token, out _));
+            Debug.Print($"Autorefresh created: {spaceFolder.name}");
         }
 
         public void StopMonitoring()
