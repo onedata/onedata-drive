@@ -74,17 +74,20 @@ namespace OnedataDrive
             this.autoRefresh = autoRefresh;
             this.events = new List<Event>();
             this.processingTask = Task.Run(() => ProcessEvents(processingTokenSource.Token, autoRefresh.spaceFolder.name));
-            AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "CREATED", filePath: autoRefresh.spaceFolder.name);
+            AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "CREATED", 
+                filePath: autoRefresh.spaceFolder.name);
         }
 
         public bool StopProcessing()
         {
-            AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Stop processing", filePath: autoRefresh.spaceFolder.name);
+            AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Stop processing", 
+                filePath: autoRefresh.spaceFolder.name);
             processingTokenSource.Cancel();
             try
             {
                 processingTask.Wait();
-                AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "STOP OK", filePath: autoRefresh.spaceFolder.name);
+                AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "STOP OK", 
+                    filePath: autoRefresh.spaceFolder.name);
                 return true;
             }
             catch (AggregateException ae)
@@ -93,11 +96,13 @@ namespace OnedataDrive
                 {
                     if (e is TaskCanceledException)
                     {
-                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Warn, "EVENT MANAGER", "stopped/canceled OK", e, filePath: autoRefresh.spaceFolder.name);
+                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Warn, "EVENT MANAGER", "stopped/canceled OK", 
+                            e, filePath: autoRefresh.spaceFolder.name);
                     }
                     else
                     {
-                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "STOP FAIL", e, filePath: autoRefresh.spaceFolder.name);
+                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "STOP FAIL", 
+                            e, filePath: autoRefresh.spaceFolder.name);
                         return false;
                     }
                 }
@@ -278,7 +283,8 @@ namespace OnedataDrive
                         switch (processedEvent.type)
                         {
                             case EventType.Updated:
-                                CF_FS_METADATA metadata = Placeholders.CreateFSMetadata(processedEvent.fileAttribute, directory);
+                                CF_FS_METADATA metadata = Placeholders.CreateFSMetadata(
+                                    processedEvent.fileAttribute, directory);
                                 UpdatePlaceholderMetadata(metadata, filePath);
                                 Debug.Print($"File Updated: {processedEvent.fileEvent.fileId}");
                                 eventCompleted = true;
@@ -303,7 +309,8 @@ namespace OnedataDrive
                                     PlaceholderData placeholderData = new(processedEvent.fileAttribute);
                                     createInfo.Add(Placeholders.CreateInfo(placeholderData));
                                     CF_PLACEHOLDER_CREATE_INFO[] infoArr = createInfo.GetArray();
-                                    HRESULT hres = CfCreatePlaceholders(parentFolder, infoArr, (uint)infoArr.Length, CF_CREATE_FLAGS.CF_CREATE_FLAG_NONE, out uint entriesProcessed);
+                                    HRESULT hres = CfCreatePlaceholders(parentFolder, infoArr, (uint)infoArr.Length, 
+                                        CF_CREATE_FLAGS.CF_CREATE_FLAG_NONE, out uint entriesProcessed);
                                     if (hres == HRESULT.S_OK || entriesProcessed == infoArr.Length)
                                     {
                                         eventCompleted = true;
@@ -369,7 +376,9 @@ namespace OnedataDrive
             SafeHCFFILE? handle = null;
             try
             {
-                HRESULT openHres = CfOpenFileWithOplock(placeholderPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out handle);
+                HRESULT openHres = CfOpenFileWithOplock(placeholderPath, 
+                    CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, 
+                    out handle);
                 if (openHres != HRESULT.S_OK)
                 {
                     throw new Exception($"CfOpenFileWithOplock HRES number: {((int)openHres)}" +
@@ -482,11 +491,13 @@ namespace OnedataDrive
                 {
                     if (e is TaskCanceledException)
                     {
-                        logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "stopped/canceled OK", e, filePath: spaceFolder.name);
+                        logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "stopped/canceled OK", 
+                            e, filePath: spaceFolder.name);
                     }
                     else
                     {
-                        logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "STOP FAIL", e, filePath: spaceFolder.name);
+                        logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "STOP FAIL", 
+                            e, filePath: spaceFolder.name);
                         return;
                     }
                 }
@@ -502,32 +513,36 @@ namespace OnedataDrive
             {
                 monitoredId.Add(fileId);
                 monitoredPath.Add(path);
-                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Added to monitor", moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Added to monitor", 
+                    moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
                 Interlocked.Increment(ref restartNeeded);
             }
             else
             {
-                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Add to monitor - already contains", moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Add to monitor - already contains", 
+                    moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
             }
         }
 
         private void RestartChecker()
         {
-            if (restartNeeded > 0)
+            while (!masterTokenSource.Token.IsCancellationRequested)
             {
-                RestartMonitoring();
+                if (restartNeeded > 0)
+                {
+                    RestartMonitoring();
+                }
+                masterTokenSource.Token.WaitHandle.WaitOne(4000);
             }
-            masterTokenSource.Token.WaitHandle.WaitOne(4000);
-            if (masterTokenSource.Token.IsCancellationRequested)
-            {
-                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Restart checker - stop", filePath: spaceFolder.name);
-                return;
-            }
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Restart checker - stop", 
+                filePath: spaceFolder.name);
         }
 
         private void RestartMonitoring()
         {
-            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitoring task handover - START", moreInfo: monitoredPath, filePath: spaceFolder.name);
+            string opID = IdGenerator.GenerateId8();
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitoring task handover - START", 
+                moreInfo: monitoredPath, filePath: spaceFolder.name, opID: opID);
             CancellationToken masterToken = masterTokenSource.Token;
             const int sleepMS = 500;
             const int timeout = 30 * sleepMS;
@@ -543,27 +558,31 @@ namespace OnedataDrive
                 if (masterToken.IsCancellationRequested)
                 {
                     newCts.Cancel();
-                    logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitoring task handover - cancelled", moreInfo: monitoredPath, filePath: spaceFolder.name);
+                    logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitoring task handover - cancelled", 
+                        moreInfo: monitoredPath, filePath: spaceFolder.name, opID: opID);
                     return;
                 }
                 if (newMonitoringTask.IsFaulted)
                 {
                     newCts.Cancel();
-                    logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitoring task handover - new task faulted", moreInfo: monitoredPath, filePath: spaceFolder.name);
+                    logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitoring task handover - new task faulted", 
+                        moreInfo: monitoredPath, filePath: spaceFolder.name, opID: opID);
                     return;
                 }
             }
             if (!connected)
             {
                 newCts.Cancel();
-                logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitoring task handover - timeout", moreInfo: monitoredPath, filePath: spaceFolder.name);
+                logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitoring task handover - timeout", 
+                    moreInfo: monitoredPath, filePath: spaceFolder.name, opID: opID);
                 return;
             }
             monitorTokenSource.Cancel();
             monitorTokenSource = newCts;
             monitoringTask = newMonitoringTask;
             Interlocked.Decrement(ref restartNeeded);
-            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitoring task handover - OK", filePath: spaceFolder.name);
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitoring task handover - OK", 
+                filePath: spaceFolder.name, opID: opID);
         }
 
         private void MonitorFileEvents(CancellationToken cancelToken, out bool connected)
@@ -572,11 +591,13 @@ namespace OnedataDrive
             connected = false;
             if (monitoredId.Count <= 0)
             {
-                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Empty", filePath: spaceFolder.name, opID: opID);
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Empty", 
+                    filePath: spaceFolder.name, opID: opID);
                 return;
             }
 
-            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Started", filePath: spaceFolder.name, opID: opID);
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Started", 
+                filePath: spaceFolder.name, opID: opID);
 
             string spaceId = spaceFolder.spaceId;
             List<ProviderInfo> providerInfos = spaceFolder.providerInfos;
@@ -591,18 +612,21 @@ namespace OnedataDrive
                 }
                 catch (Exception e)
                 {
-                    logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitor Error", e, filePath: spaceFolder.name, opID: opID);
+                    logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitor Error",
+                        e, filePath: spaceFolder.name, opID: opID);
                     cancelToken.WaitHandle.WaitOne(10000);
                 }
             }
             
-            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Stopped", filePath: spaceFolder.name, opID: opID);
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Stopped", 
+                filePath: spaceFolder.name, opID: opID);
         }
 
         private void ReadMonitorStream(CancellationToken cancelToken, ref bool connected, Task<Stream> connectionTask)
         {
             string opID = IdGenerator.GenerateId8();
-            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Started", filePath: spaceFolder.name, opID: opID);
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Started", 
+                filePath: spaceFolder.name, opID: opID);
             string lineRead = "";
             using (Stream stream = connectionTask.Result)
             {
@@ -627,7 +651,8 @@ namespace OnedataDrive
                             }
                             if (cancelToken.IsCancellationRequested)
                             {
-                                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Cancel Requested", filePath: spaceFolder.name, opID: opID);
+                                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Cancel Requested", 
+                                    filePath: spaceFolder.name, opID: opID);
                                 break;
                             }
                             lineRead = readTask.Result ?? "NOTHING WAS READ";
@@ -642,14 +667,17 @@ namespace OnedataDrive
                             List<string> errString = new() { "Read line: " + lineRead };
                             if (connectionTask.IsCompleted && !cancelToken.IsCancellationRequested)
                             {
-                                logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Read monitor stream - Aborted", e, errString, filePath: spaceFolder.name, opID: opID);
+                                logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Read monitor stream - Aborted", 
+                                    e, errString, filePath: spaceFolder.name, opID: opID);
                                 return;
                             }
-                            logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Read monitor stream - Error", e, errString, filePath: spaceFolder.name, opID: opID);
+                            logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Read monitor stream - Error", 
+                                e, errString, filePath: spaceFolder.name, opID: opID);
                         }
                         if (cancelToken.IsCancellationRequested)
                         {
-                            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Cancel Requested", filePath: spaceFolder.name, opID: opID);
+                            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Cancel Requested", 
+                                filePath: spaceFolder.name, opID: opID);
                             break;
                         }
                     }
