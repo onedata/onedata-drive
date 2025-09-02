@@ -535,10 +535,31 @@ namespace OnedataDrive
 
             string spaceId = spaceFolder.spaceId;
             List<ProviderInfo> providerInfos = spaceFolder.providerInfos;
-            Task<Stream> task = RestClient.GetFileEventStream(monitoredId, providerInfos, spaceId);
-            task.Wait();
+
+            while (!cancelToken.IsCancellationRequested)
+            {
+                try
+                {
+                    Task<Stream> connectionTask = RestClient.GetFileEventStream(monitoredId, providerInfos, spaceId);
+                    connectionTask.Wait();
+                    ReadMonitorStream(cancelToken, ref connected, connectionTask);
+                }
+                catch (Exception e)
+                {
+                    logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitor Error", e, filePath: spaceFolder.name, opID: opID);
+                    cancelToken.WaitHandle.WaitOne(10000);
+                }
+            }
+            
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Stopped", filePath: spaceFolder.name, opID: opID);
+        }
+
+        private void ReadMonitorStream(CancellationToken cancelToken, ref bool connected, Task<Stream> connectionTask)
+        {
+            string opID = IdGenerator.GenerateId8();
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Started", filePath: spaceFolder.name, opID: opID);
             string lineRead = "";
-            using (Stream stream = task.Result)
+            using (Stream stream = connectionTask.Result)
             {
                 using (StreamReader reader = new StreamReader(stream))
                 {
@@ -555,8 +576,13 @@ namespace OnedataDrive
                                 {
                                     Debug.Print($"Waiting for read: {time}s");
                                 }
-                                Thread.Sleep(1000);
+                                 cancelToken.WaitHandle.WaitOne(1000);
                                 time += 1;
+                            }
+                            if (cancelToken.IsCancellationRequested)
+                            {
+                                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Cancel Requested", filePath: spaceFolder.name, opID: opID);
+                                break;
                             }
                             lineRead = readTask.Result ?? "NOTHING WAS READ";
                             Debug.Print($"READ LINE: {lineRead}");
@@ -565,26 +591,26 @@ namespace OnedataDrive
                             string json = JsonSerializer.Serialize(fe);
                             Debug.Print("JSON: {0}", json);
                         }
-                        catch (Exception e) when (e is OperationCanceledException || e is ObjectDisposedException)
-                        {
-                            List<string> errString = new() { lineRead };
-                            logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "Monitor Canceled", e, errString, filePath: spaceFolder.name, opID: opID);
-                            break;
-                        }
                         catch (Exception e)
                         {
-                            List<string> errString = new() { lineRead };
-                            logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitor Fail", e, errString, filePath: spaceFolder.name, opID: opID);
+                            List<string> errString = new() { "Read line: " + lineRead };
+                            if (connectionTask.IsCompleted && !cancelToken.IsCancellationRequested)
+                            {
+                                logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Read monitor stream - Aborted", e, errString, filePath: spaceFolder.name, opID: opID);
+                                return;
+                            }
+                            logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Read monitor stream - Error", e, errString, filePath: spaceFolder.name, opID: opID);
                         }
                         if (cancelToken.IsCancellationRequested)
                         {
-                            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Cancel Requested", filePath: spaceFolder.name, opID: opID);
+                            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Cancel Requested", filePath: spaceFolder.name, opID: opID);
                             break;
                         }
                     }
                 }
             }
-            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Stopped", filePath: spaceFolder.name, opID: opID);
         }
+
+
     }
 }
