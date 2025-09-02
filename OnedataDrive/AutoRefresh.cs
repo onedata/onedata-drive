@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Threading;
 using Vanara;
 using Vanara.Collections;
 using Vanara.PInvoke;
@@ -442,28 +443,38 @@ namespace OnedataDrive
         internal SpaceFolder spaceFolder;
         internal List<string> monitoredId;
         internal List<string> monitoredPath;
+        private CancellationTokenSource masterTokenSource;
         private CancellationTokenSource monitorTokenSource;
         private EventManager eventManager;
+        private uint restartNeeded;
         private Task monitoringTask;
+        private Task restartCheckerTask;
         public AutoRefresh(SpaceFolder spaceFolder)
         {
+            this.masterTokenSource = new();
+            this.monitorTokenSource = CancellationTokenSource.CreateLinkedTokenSource(masterTokenSource.Token);
+
+            this.spaceFolder = spaceFolder;
             this.monitoredId = new();
             this.monitoredPath = new();
-            this.spaceFolder = spaceFolder;
-            this.monitorTokenSource = new();
+            this.restartNeeded = 0;
             this.eventManager = new EventManager(this);
+
             this.monitoringTask = Task.Run(() => MonitorFileEvents(monitorTokenSource.Token, out _));
+            this.restartCheckerTask = Task.Run(() => RestartChecker());
+            
             logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "CREATED", filePath: spaceFolder.name);
         }
 
         public void StopMonitoring()
         {
             logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Stop monitoring", filePath: spaceFolder.name);
-            monitorTokenSource.Cancel();
+            masterTokenSource.Cancel();
             eventManager.StopProcessing();
             try
             {
                 monitoringTask.Wait();
+                restartCheckerTask.Wait();
             }
             catch (AggregateException ae)
             {
@@ -486,39 +497,73 @@ namespace OnedataDrive
         public void AddToMonitored(string fileId, string path)
         {
             string id = IdGenerator.GenerateId8();
-            const int sleepMS = 500;
-            const int timeout = 20 * sleepMS;
-            int clock = 0;
             List<string> moreInfo = new() { $"FileId: {fileId}", $"Path: {path}" };
             if (!monitoredId.Contains(fileId))
             {
                 monitoredId.Add(fileId);
                 monitoredPath.Add(path);
                 logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Added to monitor", moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
-                CancellationTokenSource newCts = new();
-                bool connected = false;
-                Task newMonitoringTask = Task.Run(() => MonitorFileEvents(newCts.Token, out connected));
-                while (!connected)
-                {
-                    Debug.Print("Waiting for connection to be established...");
-                    Thread.Sleep(sleepMS);
-                    clock += sleepMS;
-                    if (clock >= timeout)
-                    {
-                        logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Task handover not responding", moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
-                        clock = 0;
-                    }
-                }
-                monitorTokenSource.Cancel();
-                monitorTokenSource = newCts;
-                monitoringTask = newMonitoringTask;
-                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitoring task handover", moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
+                Interlocked.Increment(ref restartNeeded);
             }
             else
             {
                 logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Add to monitor - already contains", moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
-                Debug.Print($"{fileId} is already in the monitored list.");
             }
+        }
+
+        private void RestartChecker()
+        {
+            if (restartNeeded > 0)
+            {
+                RestartMonitoring();
+            }
+            masterTokenSource.Token.WaitHandle.WaitOne(4000);
+            if (masterTokenSource.Token.IsCancellationRequested)
+            {
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Restart checker - stop", filePath: spaceFolder.name);
+                return;
+            }
+        }
+
+        private void RestartMonitoring()
+        {
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitoring task handover - START", moreInfo: monitoredPath, filePath: spaceFolder.name);
+            CancellationToken masterToken = masterTokenSource.Token;
+            const int sleepMS = 500;
+            const int timeout = 30 * sleepMS;
+            int clock = 0;
+
+            CancellationTokenSource newCts = CancellationTokenSource.CreateLinkedTokenSource(masterTokenSource.Token);
+            bool connected = false;
+            Task newMonitoringTask = Task.Run(() => MonitorFileEvents(newCts.Token, out connected));
+            while (!connected && clock < timeout)
+            {
+                masterToken.WaitHandle.WaitOne(sleepMS);
+                clock += sleepMS;
+                if (masterToken.IsCancellationRequested)
+                {
+                    newCts.Cancel();
+                    logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitoring task handover - cancelled", moreInfo: monitoredPath, filePath: spaceFolder.name);
+                    return;
+                }
+                if (newMonitoringTask.IsFaulted)
+                {
+                    newCts.Cancel();
+                    logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitoring task handover - new task faulted", moreInfo: monitoredPath, filePath: spaceFolder.name);
+                    return;
+                }
+            }
+            if (!connected)
+            {
+                newCts.Cancel();
+                logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitoring task handover - timeout", moreInfo: monitoredPath, filePath: spaceFolder.name);
+                return;
+            }
+            monitorTokenSource.Cancel();
+            monitorTokenSource = newCts;
+            monitoringTask = newMonitoringTask;
+            Interlocked.Decrement(ref restartNeeded);
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitoring task handover - OK", filePath: spaceFolder.name);
         }
 
         private void MonitorFileEvents(CancellationToken cancelToken, out bool connected)
@@ -569,14 +614,15 @@ namespace OnedataDrive
                         {
                             Task<string?> readTask = reader.ReadLineAsync(cancelToken).AsTask();
                             connected = true;
-                            long time = 0;
+                            int time = 0;
                             while (!readTask.IsCompleted)
                             {
-                                if (time % 10 == 0)
+                                if (time % 10 == 0 && !cancelToken.IsCancellationRequested)
                                 {
-                                    Debug.Print($"Waiting for read: {time}s");
+                                    Debug.Print($"ReadMonitorStream - waiting to read");
+                                    time = 0;
                                 }
-                                 cancelToken.WaitHandle.WaitOne(1000);
+                                cancelToken.WaitHandle.WaitOne(1000);
                                 time += 1;
                             }
                             if (cancelToken.IsCancellationRequested)
