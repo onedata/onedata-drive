@@ -265,19 +265,16 @@ namespace OnedataDrive
                 Debug.Print("Processing Task alive: {0}", spaceName);
                 if (events.Count > 0)
                 {
+                    bool eventCompleted = false;
+                    Event processedEvent = events[0];
+                    events.RemoveAt(0);
+                    List<string> moreInfo = EventMoreInfo(processedEvent);
                     try
                     {
-                        Event processedEvent = events[0];
-                        events.RemoveAt(0);
                         string parentFolder = GetParentFolder(processedEvent.fileEvent);
-                        Debug.Print("Processing event of type: {0}", processedEvent.type.ToString());
-
-                        List<string> moreInfo = EventMoreInfo(processedEvent);
                         moreInfo.Add($"ParentFolder: {parentFolder}");
                         AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Processing event",
                             moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
-
-                        bool eventCompleted = false;
                         string filePath = Path.Combine(parentFolder, processedEvent.fileName ?? string.Empty);
                         bool directory = processedEvent.fileEvent.data.type == PlaceholderData.DIRECTORY;
                         switch (processedEvent.type)
@@ -342,24 +339,25 @@ namespace OnedataDrive
                                 Debug.Print("Unknown event type");
                                 break;
                         }
-                        if (!eventCompleted)
-                        {
-                            AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER",
-                                "Event not processed - re-adding to the queue with penalty",
-                                moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
-                            processedEvent.Penalize(5);
-                            ReAddEvent(processedEvent);
-                        }
-                        else
-                        {
-                            AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Event processed",
-                                moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
-                        }
+                        
                     }
                     catch (Exception e)
                     {
                         AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "Process event error", e,
                             filePath: autoRefresh.spaceFolder.name, opID: opID);
+                    }
+                    if (!eventCompleted)
+                    {
+                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER",
+                            "Event not processed - re-adding to the queue with penalty",
+                            moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
+                        processedEvent.Penalize(5);
+                        ReAddEvent(processedEvent);
+                    }
+                    else
+                    {
+                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Event processed",
+                            moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
                     }
                 }
                 else
