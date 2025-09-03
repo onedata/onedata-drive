@@ -253,13 +253,13 @@ namespace OnedataDrive
 
         private void ProcessEvents(CancellationToken cancellationToken, string spaceName)
         {
-            string opID = IdGenerator.GenerateId8();
             while (true)
             {
+                string opID = IdGenerator.GenerateId8();
                 if (cancellationToken.IsCancellationRequested)
                 {
                     AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Process event cancel request", 
-                        filePath: autoRefresh.spaceFolder.name);
+                        filePath: autoRefresh.spaceFolder.name, opID: opID);
                     break;
                 }
                 Debug.Print("Processing Task alive: {0}", spaceName);
@@ -350,19 +350,19 @@ namespace OnedataDrive
                     {
                         AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER",
                             "Event not processed - re-adding to the queue with penalty",
-                            moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
+                            filePath: autoRefresh.spaceFolder.name, opID: opID);
                         processedEvent.Penalize(5);
                         ReAddEvent(processedEvent);
                     }
                     else
                     {
                         AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Event processed",
-                            moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
+                            filePath: autoRefresh.spaceFolder.name, opID: opID);
                     }
                 }
                 else
                 {
-                    Thread.Sleep(2000);
+                    cancellationToken.WaitHandle.WaitOne(2000);
                 }
             }
             AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Process event stopped",
