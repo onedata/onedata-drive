@@ -3,17 +3,10 @@ using NLog;
 using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
-using System.Security.Cryptography;
 using System.Text.Json;
-using System.Threading;
-using Vanara;
-using Vanara.Collections;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
-using static Vanara.PInvoke.CldApi.CF_CALLBACK_PARAMETERS;
 
 
 namespace OnedataDrive
@@ -24,13 +17,13 @@ namespace OnedataDrive
         internal FileEvent fileEvent;
         internal string? fileName;
         internal FileAttribute? fileAttribute;
-        internal int penalty;
-        // timestamp
+        internal int penaltyDurationSeconds { get; private set; }
+        internal DateTime penaltyStartTime { get; private set; }
         private Event(FileEvent fileEvent, EventType eventType)
         {
             type = eventType;
             this.fileEvent = fileEvent;
-            this.penalty = 0;
+            this.penaltyDurationSeconds = 0;
 
             this.fileName = null;
             this.fileAttribute = null;
@@ -57,7 +50,18 @@ namespace OnedataDrive
 
         public void Penalize(int penalty)
         {
-            this.penalty += penalty;
+            this.penaltyDurationSeconds = penalty;
+            this.penaltyStartTime = DateTime.UtcNow;
+        }
+
+        public bool IsPenalized()
+        {
+            if (DateTime.UtcNow.AddSeconds(-this.penaltyDurationSeconds) > this.penaltyStartTime)
+            {
+                this.penaltyDurationSeconds = 0;
+                return false;
+            }
+            return true;
         }
     }
 
@@ -265,87 +269,29 @@ namespace OnedataDrive
                 Debug.Print("Processing Task alive: {0}", spaceName);
                 if (events.Count > 0)
                 {
-                    bool eventCompleted = false;
-                    Event processedEvent = events[0];
-                    events.RemoveAt(0);
-                    List<string> moreInfo = EventMoreInfo(processedEvent);
-                    try
+                    int index;
+                    for (index = 0; index < events.Count; index++)
                     {
-                        string parentFolder = GetParentFolder(processedEvent.fileEvent);
-                        moreInfo.Add($"ParentFolder: {parentFolder}");
-                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Processing event",
-                            moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
-                        string filePath = Path.Combine(parentFolder, processedEvent.fileName ?? string.Empty);
-                        bool directory = processedEvent.fileEvent.data.type == PlaceholderData.DIRECTORY;
-                        switch (processedEvent.type)
+                        Event investigatedEvent = events[index];
+                        if (investigatedEvent.IsPenalized())
                         {
-                            case EventType.Updated:
-                                CF_FS_METADATA metadata = Placeholders.CreateFSMetadata(
-                                    processedEvent.fileAttribute, directory);
-                                UpdatePlaceholderMetadata(metadata, filePath);
-                                Debug.Print($"File Updated: {processedEvent.fileEvent.fileId}");
-                                eventCompleted = true;
-                                break;
-                            case EventType.Renamed:
-                                metadata = Placeholders.CreateFSMetadata(processedEvent.fileAttribute, directory);
-                                UpdatePlaceholderMetadata(metadata, filePath);
-                                if (directory)
-                                {
-                                    FileSystem.RenameDirectory(filePath, processedEvent.fileAttribute!.name);
-                                }
-                                else
-                                {
-                                    FileSystem.RenameFile(filePath, processedEvent.fileAttribute!.name);
-                                }
-                                Debug.Print($"File Renamed: {processedEvent.fileEvent.fileId}");
-                                eventCompleted = true;
-                                break;
-                            case EventType.Created:
-                                using (PlaceholderCreateInfo createInfo = new())
-                                {
-                                    PlaceholderData placeholderData = new(processedEvent.fileAttribute);
-                                    createInfo.Add(Placeholders.CreateInfo(placeholderData));
-                                    CF_PLACEHOLDER_CREATE_INFO[] infoArr = createInfo.GetArray();
-                                    HRESULT hres = CfCreatePlaceholders(parentFolder, infoArr, (uint)infoArr.Length, 
-                                        CF_CREATE_FLAGS.CF_CREATE_FLAG_NONE, out uint entriesProcessed);
-                                    if (hres == HRESULT.S_OK || entriesProcessed == infoArr.Length)
-                                    {
-                                        eventCompleted = true;
-                                        Debug.Print($"File Created: {processedEvent.fileEvent.fileId}");
-                                    }
-                                }
-                                break;
-                            case EventType.Deleted:
-                                if (processedEvent.fileName is null)
-                                {
-                                    eventCompleted = true;
-                                    Debug.Print("Event Delete: file can not be found. Event completed.");
-                                    break;
-                                }
-                                if (directory)
-                                {
-                                    Directory.Delete(filePath, true);
-                                    Debug.Print($"Directory Deleted: {processedEvent.fileEvent.fileId}");
-                                    eventCompleted = true;
-                                }
-                                else
-                                {
-                                    File.Delete(filePath);
-                                    Debug.Print($"File Deleted: {processedEvent.fileEvent.fileId}");
-                                    eventCompleted = true;
-                                }
-                                break;
-                            default:
-                                Debug.Print("Unknown event type");
-                                break;
+                            continue;
                         }
-                        
+                        else
+                        {
+                            break;
+                        }
                     }
-                    catch (Exception e)
+                    if (index >= events.Count)
                     {
-                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "Process event error", e,
-                            filePath: autoRefresh.spaceFolder.name, opID: opID);
+                        continue;
                     }
+                    
+                    Event processedEvent = events[index];
+                    events.RemoveAt(index);
+
+                    bool eventCompleted = ProcessEventWorker(processedEvent, opID);
+
                     if (!eventCompleted)
                     {
                         AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER",
@@ -367,6 +313,91 @@ namespace OnedataDrive
             }
             AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Process event stopped",
                         filePath: autoRefresh.spaceFolder.name);
+        }
+
+        private bool ProcessEventWorker(Event processedEvent, string opID)
+        {
+            bool eventCompleted = false;
+            List<string> moreInfo = EventMoreInfo(processedEvent);
+            try
+            {
+                string parentFolder = GetParentFolder(processedEvent.fileEvent);
+                moreInfo.Add($"ParentFolder: {parentFolder}");
+                AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Processing event",
+                    moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
+                string filePath = Path.Combine(parentFolder, processedEvent.fileName ?? string.Empty);
+                bool directory = processedEvent.fileEvent.data.type == PlaceholderData.DIRECTORY;
+                switch (processedEvent.type)
+                {
+                    case EventType.Updated:
+                        CF_FS_METADATA metadata = Placeholders.CreateFSMetadata(
+                            processedEvent.fileAttribute, directory);
+                        UpdatePlaceholderMetadata(metadata, filePath);
+                        Debug.Print($"File Updated: {processedEvent.fileEvent.fileId}");
+                        eventCompleted = true;
+                        break;
+                    case EventType.Renamed:
+                        metadata = Placeholders.CreateFSMetadata(processedEvent.fileAttribute, directory);
+                        UpdatePlaceholderMetadata(metadata, filePath);
+                        if (directory)
+                        {
+                            FileSystem.RenameDirectory(filePath, processedEvent.fileAttribute!.name);
+                        }
+                        else
+                        {
+                            FileSystem.RenameFile(filePath, processedEvent.fileAttribute!.name);
+                        }
+                        Debug.Print($"File Renamed: {processedEvent.fileEvent.fileId}");
+                        eventCompleted = true;
+                        break;
+                    case EventType.Created:
+                        using (PlaceholderCreateInfo createInfo = new())
+                        {
+                            PlaceholderData placeholderData = new(processedEvent.fileAttribute);
+                            createInfo.Add(Placeholders.CreateInfo(placeholderData));
+                            CF_PLACEHOLDER_CREATE_INFO[] infoArr = createInfo.GetArray();
+                            HRESULT hres = CfCreatePlaceholders(parentFolder, infoArr, (uint)infoArr.Length,
+                                CF_CREATE_FLAGS.CF_CREATE_FLAG_NONE, out uint entriesProcessed);
+                            if (hres == HRESULT.S_OK || entriesProcessed == infoArr.Length)
+                            {
+                                eventCompleted = true;
+                                Debug.Print($"File Created: {processedEvent.fileEvent.fileId}");
+                            }
+                        }
+                        break;
+                    case EventType.Deleted:
+                        if (processedEvent.fileName is null)
+                        {
+                            eventCompleted = true;
+                            Debug.Print("Event Delete: file can not be found. Event completed.");
+                            break;
+                        }
+                        if (directory)
+                        {
+                            Directory.Delete(filePath, true);
+                            Debug.Print($"Directory Deleted: {processedEvent.fileEvent.fileId}");
+                            eventCompleted = true;
+                        }
+                        else
+                        {
+                            File.Delete(filePath);
+                            Debug.Print($"File Deleted: {processedEvent.fileEvent.fileId}");
+                            eventCompleted = true;
+                        }
+                        break;
+                    default:
+                        Debug.Print("Unknown event type");
+                        break;
+                }
+
+            }
+            catch (Exception e)
+            {
+                AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "Process event error", e,
+                    filePath: autoRefresh.spaceFolder.name, opID: opID);
+            }
+            
+            return eventCompleted;
         }
 
         private void UpdatePlaceholderMetadata(CF_FS_METADATA metadata, string placeholderPath)
