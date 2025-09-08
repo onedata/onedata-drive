@@ -67,7 +67,7 @@ namespace OnedataDrive
 
     internal class EventManager
     {
-        public List<Event> events;
+        public ThreadSafeList<Event> events;
         private CancellationTokenSource processingTokenSource;
         private AutoRefresh autoRefresh;
         private Task processingTask;
@@ -76,7 +76,7 @@ namespace OnedataDrive
         {
             this.processingTokenSource = new();
             this.autoRefresh = autoRefresh;
-            this.events = new List<Event>();
+            this.events = new ThreadSafeList<Event>();
             this.processingTask = Task.Run(() => ProcessEvents(processingTokenSource.Token, autoRefresh.spaceFolder.name));
             AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "CREATED", 
                 filePath: autoRefresh.spaceFolder.name);
@@ -266,7 +266,6 @@ namespace OnedataDrive
                         filePath: autoRefresh.spaceFolder.name, opID: opID);
                     break;
                 }
-                Debug.Print("Processing Task alive: {0}", spaceName);
                 if (events.Count > 0)
                 {
                     int index;
@@ -374,13 +373,19 @@ namespace OnedataDrive
                         }
                         if (directory)
                         {
-                            Directory.Delete(filePath, true);
+                            if (Directory.Exists(filePath))
+                            {
+                                Directory.Delete(filePath, true);
+                            }
                             Debug.Print($"Directory Deleted: {processedEvent.fileEvent.fileId}");
                             eventCompleted = true;
                         }
                         else
                         {
-                            File.Delete(filePath);
+                            if (File.Exists(filePath))
+                            {
+                                File.Delete(filePath);
+                            }
                             Debug.Print($"File Deleted: {processedEvent.fileEvent.fileId}");
                             eventCompleted = true;
                         }
