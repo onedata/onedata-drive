@@ -143,15 +143,15 @@ namespace OnedataDrive
             
         }
 
-        public void ReAddEvent(Event newEvent)
+        public void ReAddEvent(Event newEvent, string opID)
         {
             List<string> moreInfo = EventMoreInfo(newEvent);
             if (events.Any(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId 
                 && newEvent.type == EventType.Renamed && ev.type == EventType.Updated))
             {
                 AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, 
-                    "EVENT MANAGER", "event not readded - not relevant anymore", 
-                    moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name);
+                    "EVENT MANAGER", "Event not readded - not relevant anymore", 
+                     opID:opID, filePath: autoRefresh.spaceFolder.name);
             }
             else if (!events.Any(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId 
                 && ev.type > newEvent.type))
@@ -159,14 +159,14 @@ namespace OnedataDrive
                 events.RemoveAll(ev => ev.fileEvent.fileId == newEvent.fileEvent.fileId);
                 events.Add(newEvent);
 
-                AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "event readded",
-                    moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name);
+                AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "Event readded",
+                    opID: opID, filePath: autoRefresh.spaceFolder.name);
             }
             else 
             {
                 AutoRefresh.logFormatter.LogFileOP(LogLevel.Error,
-                    "EVENT MANAGER", "event not readded - event with higher priority already exists",
-                    moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name);
+                    "EVENT MANAGER", "Event not readded - event with higher priority already exists",
+                    opID: opID, filePath: autoRefresh.spaceFolder.name);
             }
         }
 
@@ -297,7 +297,7 @@ namespace OnedataDrive
                             "Event not processed - re-adding to the queue with penalty",
                             filePath: autoRefresh.spaceFolder.name, opID: opID);
                         processedEvent.Penalize(5);
-                        ReAddEvent(processedEvent);
+                        ReAddEvent(processedEvent, opID);
                     }
                     else
                     {
@@ -408,10 +408,15 @@ namespace OnedataDrive
         private void UpdatePlaceholderMetadata(CF_FS_METADATA metadata, string placeholderPath)
         {
             SafeHCFFILE? handle = null;
+            CF_OPEN_FILE_FLAGS flags = CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE;
+            if (File.Exists(placeholderPath))
+            {
+                flags = CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE;
+            }
             try
             {
                 HRESULT openHres = CfOpenFileWithOplock(placeholderPath, 
-                    CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, 
+                    flags, 
                     out handle);
                 if (openHres != HRESULT.S_OK)
                 {
