@@ -37,7 +37,7 @@ namespace OnedataDrive
             string icon;
             if (WindowsTheme.IsSystemDarkMode())
             {
-                icon = exeDir + "\\icon-light.ico,0";
+                icon = exeDir + "\\icon-light-shadow.ico,0";
             }
             else
             {
