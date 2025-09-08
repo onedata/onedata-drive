@@ -329,23 +329,12 @@ namespace OnedataDrive
                 switch (processedEvent.type)
                 {
                     case EventType.Updated:
-                        CF_FS_METADATA metadata = Placeholders.CreateFSMetadata(
-                            processedEvent.fileAttribute, directory);
-                        UpdatePlaceholderMetadata(metadata, filePath);
+                        UpdatePlaceholderMetadata(processedEvent, filePath, directory);
                         Debug.Print($"File Updated: {processedEvent.fileEvent.fileId}");
                         eventCompleted = true;
                         break;
                     case EventType.Renamed:
-                        metadata = Placeholders.CreateFSMetadata(processedEvent.fileAttribute, directory);
-                        UpdatePlaceholderMetadata(metadata, filePath);
-                        if (directory)
-                        {
-                            FileSystem.RenameDirectory(filePath, processedEvent.fileAttribute!.name);
-                        }
-                        else
-                        {
-                            FileSystem.RenameFile(filePath, processedEvent.fileAttribute!.name);
-                        }
+                        UpdatePlaceholderMetadata(processedEvent, filePath, directory, rename: true);
                         Debug.Print($"File Renamed: {processedEvent.fileEvent.fileId}");
                         eventCompleted = true;
                         break;
@@ -405,11 +394,13 @@ namespace OnedataDrive
             return eventCompleted;
         }
 
-        private void UpdatePlaceholderMetadata(CF_FS_METADATA metadata, string placeholderPath)
+        private void UpdatePlaceholderMetadata(Event processedEvent, string placeholderPath, bool directory, bool rename = false)
         {
+            CF_FS_METADATA metadata = Placeholders.CreateFSMetadata(processedEvent.fileAttribute, directory);
+
             SafeHCFFILE? handle = null;
             CF_OPEN_FILE_FLAGS flags = CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE;
-            if (File.Exists(placeholderPath))
+            if (!directory)
             {
                 flags = CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE;
             }
@@ -424,7 +415,7 @@ namespace OnedataDrive
                         $"\n HRES text: {openHres}");
                 }
                 long updateUsn = 0;
-                HRESULT hres = CfUpdatePlaceholder(FileHandle: handle.DangerousGetHandle(),
+                HRESULT updateHres = CfUpdatePlaceholder(FileHandle: handle.DangerousGetHandle(),
                                     FsMetadata: metadata,
                                     FileIdentity: 0,
                                     FileIdentityLength: 0,
@@ -432,10 +423,31 @@ namespace OnedataDrive
                                     UpdateFlags: CF_UPDATE_FLAGS.CF_UPDATE_FLAG_MARK_IN_SYNC,
                                     UpdateUsn: ref updateUsn
                                     );
-                if (hres != HRESULT.S_OK)
+                if (updateHres != HRESULT.S_OK)
                 {
-                    throw new Exception($"CfUpdatePlaceholder HRES number: {((int)hres)}" +
-                        $"\n HRES text: {hres}");
+                    throw new Exception($"CfUpdatePlaceholder HRES number: {((int)updateHres)}" +
+                        $"\n HRES text: {updateHres}");
+                }
+
+                if (rename)
+                {
+                    if (directory)
+                    {
+                        FileSystem.RenameDirectory(placeholderPath, processedEvent.fileAttribute.name);
+                    }
+                    else
+                    {
+                        FileSystem.RenameFile(placeholderPath, processedEvent.fileAttribute.name);
+                    }
+                        HRESULT inSyncHres = CfSetInSyncState(
+                        handle.DangerousGetHandle(),
+                        CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC,
+                        CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
+                    if (inSyncHres != HRESULT.S_OK)
+                    {
+                        throw new Exception($"CfSetInSync HRES number: {((int)updateHres)}" +
+                            $"\n HRES text: {updateHres}");
+                    }
                 }
             }
             catch (Exception)
