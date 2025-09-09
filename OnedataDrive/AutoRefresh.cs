@@ -431,21 +431,24 @@ namespace OnedataDrive
 
                 if (rename)
                 {
-                    if (directory)
+                    if (PathUtils.GetLastInPath(placeholderPath) != processedEvent.fileAttribute.name)
                     {
-                        FileSystem.RenameDirectory(placeholderPath, processedEvent.fileAttribute.name);
+                        if (directory)
+                        {
+                            FileSystem.RenameDirectory(placeholderPath, processedEvent.fileAttribute.name);
+                        }
+                        else
+                        {
+                            FileSystem.RenameFile(placeholderPath, processedEvent.fileAttribute.name);
+                        }
+                        processedEvent.fileName = processedEvent.fileAttribute.name;
                     }
-                    else
-                    {
-                        FileSystem.RenameFile(placeholderPath, processedEvent.fileAttribute.name);
-                    }
-                    processedEvent.fileName = processedEvent.fileAttribute.name;
                     HRESULT inSyncHres = CfSetInSyncState(handle.DangerousGetHandle(), 
                         CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
                     if (inSyncHres != HRESULT.S_OK)
                     {
-                        throw new Exception($"CfSetInSync HRES number: {((int)updateHres)}" +
-                            $"\n HRES text: {updateHres}");
+                        throw new Exception($"CfSetInSync HRES number: {((int)inSyncHres)}" +
+                            $"\n HRES text: {inSyncHres}");
                     }
                 }
             }
