@@ -1,14 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <Source>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light.png</Source>
-    <SmallTileSource>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light.png</SmallTileSource>
-    <MediumTileSource>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light.png</MediumTileSource>
-    <WideTileSource>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light.png</WideTileSource>
-    <LargeTileSource>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light.png</LargeTileSource>
-    <AppIconSource>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light.png</AppIconSource>
-    <SplashScreenSource>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light.png</SplashScreenSource>
-    <PackageLogoSource>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light.png</PackageLogoSource>
+    <Source>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light-shadow-crop.png</Source>
+    <SmallTileSource>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light-shadow-padding.png</SmallTileSource>
+    <MediumTileSource>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light-shadow-padding.png</MediumTileSource>
+    <WideTileSource>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light-shadow-padding.png</WideTileSource>
+    <LargeTileSource>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light-shadow-padding.png</LargeTileSource>
+    <AppIconSource>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light-shadow-crop.png</AppIconSource>
+    <SplashScreenSource>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light-shadow-padding.png</SplashScreenSource>
+    <PackageLogoSource>C:\Users\Andrej\MUNI\onedata-drive\OnedataDrivePackage\resources\icon-light-shadow-crop.png</PackageLogoSource>
     <UapAppxPackageBuildMode>SideloadOnly</UapAppxPackageBuildMode>
     <AppxShowAllApps>False</AppxShowAllApps>
     <AppxBuildConfigurationSelection>x64</AppxBuildConfigurationSelection>
