@@ -13,7 +13,7 @@
     Version="0.5.2.0" />
 
   <Properties>
-    <DisplayName>OnedataDrivePackage</DisplayName>
+    <DisplayName>Onedata Drive</DisplayName>
     <PublisherDisplayName>Andrej</PublisherDisplayName>
     <Logo>Images\StoreLogo.png</Logo>
   </Properties>
@@ -32,12 +32,12 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="OnedataDriveDevelop"
-        Description="OnedataDrivePackage"
+        DisplayName="Onedata Drive Develop"
+        Description="Onedata Drive"
         BackgroundColor="transparent"
         Square150x150Logo="Images\Square150x150Logo.png"
         Square44x44Logo="Images\Square44x44Logo.png">
-        <uap:DefaultTile Wide310x150Logo="Images\Wide310x150Logo.png"  Square71x71Logo="Images\SmallTile.png" Square310x310Logo="Images\LargeTile.png" ShortName="OnedataDrive">
+        <uap:DefaultTile Wide310x150Logo="Images\Wide310x150Logo.png"  Square71x71Logo="Images\SmallTile.png" Square310x310Logo="Images\LargeTile.png" ShortName="Onedata Drive">
           <uap:ShowNameOnTiles>
             <uap:ShowOn Tile="square310x310Logo"/>
             <uap:ShowOn Tile="wide310x150Logo"/>

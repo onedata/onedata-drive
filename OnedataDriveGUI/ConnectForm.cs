@@ -8,9 +8,10 @@ namespace OnedataDriveGUI
 {
     public partial class ConnectForm : Form
     {
-        private const string ROOT_DIR = "OnedataDrive";
+        private const string ROOT_DIR = "Onedata Drive";
 
-        public static Logger logger = LogManager.GetCurrentClassLogger();
+        private string loggerPath;
+        private Logger logger;
         private bool connectClicked = false;
         private string userProfilePath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         private string defaultRootPath { get => userProfilePath + "\\" + ROOT_DIR; }
@@ -18,7 +19,11 @@ namespace OnedataDriveGUI
 
         public ConnectForm()
         {
+            loggerPath = Windows.Storage.ApplicationData.Current.LocalFolder.Path + "\\Logs";
+            NLog.GlobalDiagnosticsContext.Set("logdir", loggerPath);
+            logger = LogManager.GetCurrentClassLogger();
             logger.Info("APP GUI LAUNCHED - version: " + CloudSync.VERSION);
+
             InitializeComponent();
 
             InitGuiValuesDefaults();
@@ -262,8 +267,7 @@ namespace OnedataDriveGUI
 
         private void openLogFolder_button_Click(object sender, EventArgs e)
         {
-            string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            string logPath = Path.Join(appDataPath, "OnedataDrive\\logs");
+            string logPath = loggerPath;
             Process.Start("explorer.exe", logPath);
         }
 

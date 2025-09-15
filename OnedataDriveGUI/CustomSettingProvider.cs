@@ -11,6 +11,7 @@ namespace OnedataDriveGUI
     using System.Configuration;
     using System.IO;
     using System.Xml;
+    using Windows.Storage;
 
     public class CustomSettingsProvider : SettingsProvider
     {
@@ -27,7 +28,7 @@ namespace OnedataDriveGUI
 
         public CustomSettingsProvider()
         {
-            folderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OnedataDrive");
+            folderPath = ApplicationData.Current.LocalFolder.Path;
             fileName = "UserSettings.config";
             filePath = Path.Combine(folderPath, fileName);
             logger.Info("User settings path: {0}", filePath);
