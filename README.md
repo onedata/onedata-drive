@@ -30,7 +30,6 @@ All options can be set in the graphicall user interface. You can fill the connec
 ```
 
 ### Configuration
- The configuration is stored in the file at `C:\Users\username\AppData\Local\OnedataDrive\UserSettings.config`. 
 
 Selected configuration options:
 
@@ -43,7 +42,7 @@ Selected configuration options:
     - limiting token access to specific paths (during token creation) might not work as expected with spaces of which you are not owner.
 
 ## Logging
-Files with logs can be found at `C:\Users\username\AppData\Local\OnedataDrive\logs\`. 
+Files with logs can be found at `C:\Users\Andrej\AppData\Local\Packages\<packageName>\LocalState\Logs`. 
 
 ## In case of app failure
 - If the app crashes and you can not reconnect to the cloud restarting computer should fix the issue.

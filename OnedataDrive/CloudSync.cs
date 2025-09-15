@@ -17,6 +17,7 @@ namespace OnedataDrive
         public static bool running { get; private set; } = false;
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public const string VERSION = "0.5.3";
+        public const string APP_NAME = "Onedata Drive";
 
         /// <summary>
         /// Method to start CloudSync

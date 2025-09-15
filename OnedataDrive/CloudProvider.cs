@@ -26,7 +26,7 @@ namespace OnedataDrive
         public static void RegisterWithShell(string folderPath)
         {
             StorageProviderSyncRootInfo info = new();
-            info.DisplayNameResource = "Onedata Drive";
+            info.DisplayNameResource = CloudSync.APP_NAME;
             info.Id = GetSyncRootId();
 
             Task<StorageFolder> storageFolderTask = StorageFolder.GetFolderFromPathAsync(folderPath).AsTask();

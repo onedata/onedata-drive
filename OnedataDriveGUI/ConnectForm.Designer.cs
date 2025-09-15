@@ -408,7 +408,6 @@
             MaximumSize = new Size(900, 1080);
             MinimumSize = new Size(800, 525);
             Name = "ConnectForm";
-            Text = "Onedata Drive";
             FormClosing += ConnectForm_Closing;
             FormClosed += ConnectForm_FormClosed;
             header_panel.ResumeLayout(false);

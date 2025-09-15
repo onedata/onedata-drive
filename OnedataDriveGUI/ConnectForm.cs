@@ -8,7 +8,7 @@ namespace OnedataDriveGUI
 {
     public partial class ConnectForm : Form
     {
-        private const string ROOT_DIR = "Onedata Drive";
+        private const string ROOT_DIR = CloudSync.APP_NAME;
 
         private string loggerPath;
         private Logger logger;
@@ -19,6 +19,7 @@ namespace OnedataDriveGUI
 
         public ConnectForm()
         {
+            this.Text = CloudSync.APP_NAME;
             loggerPath = Windows.Storage.ApplicationData.Current.LocalFolder.Path + "\\Logs";
             NLog.GlobalDiagnosticsContext.Set("logdir", loggerPath);
             logger = LogManager.GetCurrentClassLogger();
