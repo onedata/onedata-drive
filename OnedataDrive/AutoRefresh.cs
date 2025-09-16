@@ -335,6 +335,10 @@ namespace OnedataDrive
                         break;
                     case EventType.Renamed:
                         UpdatePlaceholderMetadata(processedEvent, filePath, directory, rename: true);
+                        if (directory)
+                        {
+                            autoRefresh.RenameMonitored(processedEvent.fileEvent.fileId, processedEvent.fileAttribute.name);
+                        }
                         Debug.Print($"File Renamed: {processedEvent.fileEvent.fileId}");
                         eventCompleted = true;
                         break;
@@ -515,8 +519,6 @@ namespace OnedataDrive
         internal static LoggerFormater logFormatter = new(logger);
 
         internal SpaceFolder spaceFolder;
-        //internal List<string> monitoredId;
-        //internal List<string> monitoredPath;
         internal ThreadSafeMonitored monitored;
         private CancellationTokenSource masterTokenSource;
         private CancellationTokenSource monitorTokenSource;
@@ -530,8 +532,6 @@ namespace OnedataDrive
             this.monitorTokenSource = CancellationTokenSource.CreateLinkedTokenSource(masterTokenSource.Token);
 
             this.spaceFolder = spaceFolder;
-            //this.monitoredId = new();
-            //this.monitoredPath = new();
             this.monitored = new();
             this.restartNeeded = 0;
             this.eventManager = new EventManager(this);
@@ -591,42 +591,18 @@ namespace OnedataDrive
 
         public void RenameMonitored(string fileId, string newName)
         {   
-            try
+            List<string> renamed = monitored.RenameMonitored(fileId, newName);
+            string id = IdGenerator.GenerateId8();
+            if (renamed.Count <= 0)
             {
-                MonitoredFolder monitoredFolder = monitored.First(x => x.id == fileId);
-                string oldPath = monitoredFolder.path;
-                string newPath = PathUtils.ReplaceLastInPath(oldPath, newName);
-
-
-                int index = monitoredId.IndexOf(fileId);
-                string newPath = PathUtils.ReplaceLastInPath(monitoredPath[index], newName);
-                if (index >= 0)
-                {
-                    string oldPath = monitoredPath[index];
-                    monitoredPath[index] = newPath;
-
-                    foreach (string path in monitoredPath)
-                    {
-                        if (path.StartsWith(oldPath))
-                        {
-                            path.Replace(oldPath, newPath);
-                        }
-                    }
-
-                    List<string> moreInfo = new() { $"FileId: {fileId}", $"OldPath: {oldPath}", $"NewPath: {newPath}" };
-                    logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Renamed in monitor",
-                        moreInfo: moreInfo, filePath: spaceFolder.name);
-                }
-                else
-                {
-                    List<string> moreInfo = new() { $"FileId: {fileId}", $"NewPath: {newPath}" };
-                    logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "Rename in monitor - not found",
-                        moreInfo: moreInfo, filePath: spaceFolder.name);
-                }
+                logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "Rename monitored - not found", 
+                    moreInfo: new List<string> { $"FileId: {fileId}", $"NewName: {newName}" }, 
+                    filePath: spaceFolder.name, opID: id);
             }
-            catch (Exception e)
+            else
             {
-
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Renamed monitored", 
+                    moreInfo: renamed, filePath: spaceFolder.name, opID: id);
             }
         }
 
