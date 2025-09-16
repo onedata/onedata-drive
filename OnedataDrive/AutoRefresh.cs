@@ -467,7 +467,8 @@ namespace OnedataDrive
 
         private string GetParentFolder(FileEvent fileEvent)
         {
-            return autoRefresh.monitoredPath[autoRefresh.monitoredId.IndexOf(fileEvent.parentFileId)];
+            return autoRefresh.monitored
+                .First(m => m.id == fileEvent.parentFileId).path;
         }
 
         private List<string> EventMoreInfo(FileEvent fileEvent)
@@ -499,12 +500,24 @@ namespace OnedataDrive
 
     public class AutoRefresh
     {
+        public class MonitoredFolder
+        {
+            public string id;
+            public string path;
+            public MonitoredFolder(string id, string path)
+            {
+                this.id = id;
+                this.path = path;
+            }
+        }
+
         internal static Logger logger = LogManager.GetCurrentClassLogger();
         internal static LoggerFormater logFormatter = new(logger);
 
         internal SpaceFolder spaceFolder;
-        internal List<string> monitoredId;
-        internal List<string> monitoredPath;
+        //internal List<string> monitoredId;
+        //internal List<string> monitoredPath;
+        internal ThreadSafeMonitored monitored;
         private CancellationTokenSource masterTokenSource;
         private CancellationTokenSource monitorTokenSource;
         private EventManager eventManager;
@@ -517,8 +530,9 @@ namespace OnedataDrive
             this.monitorTokenSource = CancellationTokenSource.CreateLinkedTokenSource(masterTokenSource.Token);
 
             this.spaceFolder = spaceFolder;
-            this.monitoredId = new();
-            this.monitoredPath = new();
+            //this.monitoredId = new();
+            //this.monitoredPath = new();
+            this.monitored = new();
             this.restartNeeded = 0;
             this.eventManager = new EventManager(this);
 
@@ -562,10 +576,8 @@ namespace OnedataDrive
         {
             string id = IdGenerator.GenerateId8();
             List<string> moreInfo = new() { $"FileId: {fileId}", $"Path: {path}" };
-            if (!monitoredId.Contains(fileId))
+            if (monitored.AddToMonitored(fileId, path))
             {
-                monitoredId.Add(fileId);
-                monitoredPath.Add(path);
                 logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Added to monitor", 
                     moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
                 Interlocked.Increment(ref restartNeeded);
@@ -574,6 +586,47 @@ namespace OnedataDrive
             {
                 logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Add to monitor - already contains", 
                     moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
+            }
+        }
+
+        public void RenameMonitored(string fileId, string newName)
+        {   
+            try
+            {
+                MonitoredFolder monitoredFolder = monitored.First(x => x.id == fileId);
+                string oldPath = monitoredFolder.path;
+                string newPath = PathUtils.ReplaceLastInPath(oldPath, newName);
+
+
+                int index = monitoredId.IndexOf(fileId);
+                string newPath = PathUtils.ReplaceLastInPath(monitoredPath[index], newName);
+                if (index >= 0)
+                {
+                    string oldPath = monitoredPath[index];
+                    monitoredPath[index] = newPath;
+
+                    foreach (string path in monitoredPath)
+                    {
+                        if (path.StartsWith(oldPath))
+                        {
+                            path.Replace(oldPath, newPath);
+                        }
+                    }
+
+                    List<string> moreInfo = new() { $"FileId: {fileId}", $"OldPath: {oldPath}", $"NewPath: {newPath}" };
+                    logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Renamed in monitor",
+                        moreInfo: moreInfo, filePath: spaceFolder.name);
+                }
+                else
+                {
+                    List<string> moreInfo = new() { $"FileId: {fileId}", $"NewPath: {newPath}" };
+                    logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "Rename in monitor - not found",
+                        moreInfo: moreInfo, filePath: spaceFolder.name);
+                }
+            }
+            catch (Exception e)
+            {
+
             }
         }
 
@@ -594,8 +647,10 @@ namespace OnedataDrive
         private void RestartMonitoring()
         {
             string opID = IdGenerator.GenerateId8();
+            List<string> allPaths = monitored.Select(m => m.path).ToList();
+
             logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitoring task handover - START", 
-                moreInfo: monitoredPath, filePath: spaceFolder.name, opID: opID);
+                moreInfo: allPaths, filePath: spaceFolder.name, opID: opID);
             CancellationToken masterToken = masterTokenSource.Token;
             const int sleepMS = 500;
             const int timeout = 30 * sleepMS;
@@ -612,14 +667,14 @@ namespace OnedataDrive
                 {
                     newCts.Cancel();
                     logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitoring task handover - cancelled", 
-                        moreInfo: monitoredPath, filePath: spaceFolder.name, opID: opID);
+                        moreInfo: allPaths, filePath: spaceFolder.name, opID: opID);
                     return;
                 }
                 if (newMonitoringTask.IsFaulted)
                 {
                     newCts.Cancel();
                     logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitoring task handover - new task faulted", 
-                        moreInfo: monitoredPath, filePath: spaceFolder.name, opID: opID);
+                        moreInfo: allPaths, filePath: spaceFolder.name, opID: opID);
                     return;
                 }
             }
@@ -627,7 +682,7 @@ namespace OnedataDrive
             {
                 newCts.Cancel();
                 logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Monitoring task handover - timeout", 
-                    moreInfo: monitoredPath, filePath: spaceFolder.name, opID: opID);
+                    moreInfo: allPaths, filePath: spaceFolder.name, opID: opID);
                 return;
             }
             monitorTokenSource.Cancel();
@@ -642,7 +697,7 @@ namespace OnedataDrive
         {
             string opID = IdGenerator.GenerateId8();
             connected = false;
-            if (monitoredId.Count <= 0)
+            if (monitored.Count <= 0)
             {
                 logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Empty", 
                     filePath: spaceFolder.name, opID: opID);
@@ -659,7 +714,7 @@ namespace OnedataDrive
             {
                 try
                 {
-                    Task<Stream> connectionTask = RestClient.GetFileEventStream(monitoredId, providerInfos, spaceId);
+                    Task<Stream> connectionTask = RestClient.GetFileEventStream(monitored.Select(x => x.id).ToList(), providerInfos, spaceId);
                     connectionTask.Wait();
                     ReadMonitorStream(cancelToken, ref connected, connectionTask);
                 }

@@ -8,8 +8,8 @@ namespace OnedataDrive
 {
     internal class ThreadSafeList<T>
     {
-        private readonly List<T> _list;
-        private readonly object _lock;
+        protected readonly List<T> _list;
+        protected readonly object _lock;
 
         public int Count
         {
@@ -92,5 +92,29 @@ namespace OnedataDrive
                 return _list.First(predicate);
             }
         }
+
+        public bool Contains(T item)
+        {
+            lock (_lock)
+            {
+                return _list.Contains(item);
+            }
+        }
+
+        public bool Contains(Func<T, bool> predicate)
+        {
+            lock (_lock)
+            {
+                return _list.Any(predicate);
+            }
+        }
+        public IEnumerable<TResult> Select<TResult>(Func<T, TResult> selector)
+        {
+            lock (_lock)
+            {
+                return _list.Select(selector).ToList();
+            }
+        }
+        
     }
 }

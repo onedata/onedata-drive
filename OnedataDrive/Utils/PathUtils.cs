@@ -113,5 +113,13 @@ namespace OnedataDrive.Utils
             string spaceName = GetSpaceName(fullPath);
             return CloudSync.spaces[spaceName];
         }
+
+        public static string ReplaceLastInPath(string fullPath, string newLast)
+        {
+            string parentPath = GetParentPath(fullPath);
+            string newPath = Path.Combine(parentPath, newLast);
+            newPath += '\\';
+            return newPath;
+        }
     }
 }
