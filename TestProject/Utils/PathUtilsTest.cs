@@ -160,6 +160,40 @@ namespace TestProject.Utils
                 PathUtils.IsRootPath(PATH6),
                 "Empty path");
         }
+
+        [TestMethod]
+        public void ReplaceLastInPath_Test()
+        {
+            // Replace file name in a normal path
+            Assert.AreEqual(
+                "C:\\Users\\User\\win-client\\syncRoot\\space\\NEWFILE.txt\\",
+                PathUtils.ReplaceLastInPath(PATH1, "NEWFILE.txt"),
+                "Replace file name in path without trailing \\");
+
+            // Replace file name in a path with trailing backslash
+            Assert.AreEqual(
+                "C:\\Users\\User\\win-client\\syncRoot\\space\\NEWFILE.txt\\",
+                PathUtils.ReplaceLastInPath(PATH2, "NEWFILE.txt"),
+                "Replace file name in path with trailing \\");
+
+            // Replace last in path with empty string
+            Assert.AreEqual(
+                "",
+                PathUtils.ReplaceLastInPath(PATH1, ""),
+                "Replace file name with empty string");
+
+            // Replace last in empty path
+            Assert.AreEqual(
+                "",
+                PathUtils.ReplaceLastInPath(PATH6, "ANY"),
+                "Replace last in empty path");
+
+            // Replace last in drive root
+            Assert.AreEqual(
+                "NEWROOT\\",
+                PathUtils.ReplaceLastInPath(PATH4, "NEWROOT"),
+                "Replace last in drive root path");
+        }
     }
 }
 

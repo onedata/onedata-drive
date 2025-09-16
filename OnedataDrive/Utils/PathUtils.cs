@@ -116,6 +116,10 @@ namespace OnedataDrive.Utils
 
         public static string ReplaceLastInPath(string fullPath, string newLast)
         {
+            if (newLast == string.Empty || fullPath == string.Empty)
+            {
+                return "";
+            }
             string parentPath = GetParentPath(fullPath);
             string newPath = Path.Combine(parentPath, newLast);
             newPath += '\\';
