@@ -4,6 +4,9 @@ using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
+using System.IO;
+using System.Net.ServerSentEvents;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
@@ -692,7 +695,8 @@ namespace OnedataDrive
                 {
                     Task<Stream> connectionTask = RestClient.GetFileEventStream(monitored.Select(x => x.id).ToList(), providerInfos, spaceId);
                     connectionTask.Wait();
-                    ReadMonitorStream(cancelToken, ref connected, connectionTask);
+                    //ReadMonitorStream(cancelToken, ref connected, connectionTask);
+                    ReadMonitorStream2(cancelToken, ref connected, connectionTask);
                 }
                 catch (Exception e)
                 {
@@ -704,6 +708,49 @@ namespace OnedataDrive
             
             logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitor Stopped", 
                 filePath: spaceFolder.name, opID: opID);
+        }
+
+        private void ReadMonitorStream2(CancellationToken cancelToken, ref bool connected, Task<Stream> connectionTask)
+        {
+            string opID = IdGenerator.GenerateId8();
+            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Started",
+                filePath: spaceFolder.name, opID: opID);
+
+            using (Stream stream = connectionTask.Result)
+            {
+                connected = true;
+                ReadStream(cancelToken, stream, opID).Wait();
+            }
+                
+        }
+
+        private async Task ReadStream(CancellationToken cancelToken, Stream stream, string opID)
+        {
+            try
+            {
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    await foreach (SseItem<string> item in SseParser.Create(stream).EnumerateAsync(cancelToken))
+                    {
+                        string id = "";
+                        while (!reader.EndOfStream)
+                        {
+                            string temp = reader.ReadLine() ?? "";
+                            if (temp.Contains("id:"))
+                            {
+                                id = temp;
+                                break;
+                            }
+                        }
+                        Debug.Print($"{id} >>> {item.EventType} >>> {item.Data}");
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Cancel Requested",
+                                filePath: spaceFolder.name, opID: opID);
+            }
         }
 
         private void ReadMonitorStream(CancellationToken cancelToken, ref bool connected, Task<Stream> connectionTask)
