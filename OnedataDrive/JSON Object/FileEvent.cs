@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace OnedataDrive.JSON_Object
@@ -12,7 +14,15 @@ namespace OnedataDrive.JSON_Object
         public string eventType { get; set; }
         public string fileId { get; set; }
         public string parentFileId { get; set; }
+        [JsonPropertyName("attributes")]
         public FileEventData data { get; set; }
+        [JsonPropertyName("data")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public FileEventData data_alias
+        {
+            get { return data; }
+            set { data = value; }
+        }
 
         public FileEvent()
         {
@@ -21,6 +31,19 @@ namespace OnedataDrive.JSON_Object
             fileId = string.Empty;
             parentFileId = string.Empty;
             data = new FileEventData();
+        }
+
+        public FileEvent(SseEvent sseEvent) : this()
+        {
+            FileEvent? fe = JsonSerializer.Deserialize<FileEvent>(sseEvent.data);
+            if (fe != null)
+            {
+                eventId = sseEvent.eventId;
+                eventType = sseEvent.eventType;
+                fileId = fe.fileId;
+                parentFileId = fe.parentFileId;
+                data = fe.data;
+            }
         }
     }
 

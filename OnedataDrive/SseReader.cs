@@ -10,13 +10,13 @@ namespace OnedataDrive
 {
     public struct SseEvent
     {
-        public string Id;
-        public string Event;
-        public string Data;
+        public string eventId;
+        public string eventType;
+        public string data;
 
         public override string ToString()
         {
-            return $"Id: {Id}, Event: {Event}, Data: {Data}";
+            return $"Id: {eventId}, Event: {eventType}, Data: {data}";
         }
     }
 
@@ -39,9 +39,9 @@ namespace OnedataDrive
                         {
                             yield return new SseEvent
                             {
-                                Id = id ?? "",
-                                Event = eventType ?? "",
-                                Data = data.ToString().TrimEnd('\n')
+                                eventId = id ?? "",
+                                eventType = eventType ?? "",
+                                data = data.ToString().TrimEnd('\n')
                             };
                             id = null;
                             eventType = null;
@@ -65,6 +65,10 @@ namespace OnedataDrive
                     {
                         data.Append(line.Substring(5).Trim());
                         data.Append('\n');
+                    }
+                    else
+                    {
+                        throw new FormatException($"Invalid SSE line: {line}");
                     }
                 }
             }

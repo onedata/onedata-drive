@@ -728,9 +728,13 @@ namespace OnedataDrive
         {
             try
             {
-                await foreach (SseEvent newEvent in SseReader.Read(stream, cancelToken))
+                await foreach (SseEvent receivedEvent in SseReader.Read(stream, cancelToken))
                 {
-                    Debug.Print($"EVENT: {newEvent}");
+                    Debug.Print("Event received: {0}", receivedEvent.ToString());
+                    FileEvent newEvent = new FileEvent(receivedEvent);
+                    Task.Run(() => eventManager.AddEvent(newEvent));
+                    string json = JsonSerializer.Serialize(newEvent);
+                    Debug.Print("JSON: {0}", json);
                 }
             }
             catch (OperationCanceledException)
