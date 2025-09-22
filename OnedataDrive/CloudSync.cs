@@ -16,7 +16,7 @@ namespace OnedataDrive
         public static FileWatcher watcher = new();
         public static bool running { get; private set; } = false;
         public static Logger logger = LogManager.GetCurrentClassLogger();
-        public const string VERSION = "0.5.4.1";
+        public const string VERSION = "0.5.4";
         public const string APP_NAME = "Onedata Drive";
 
         /// <summary>
