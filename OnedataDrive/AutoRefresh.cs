@@ -696,7 +696,7 @@ namespace OnedataDrive
                     Task<Stream> connectionTask = RestClient.GetFileEventStream(monitored.Select(x => x.id).ToList(), providerInfos, spaceId);
                     connectionTask.Wait();
                     //ReadMonitorStream(cancelToken, ref connected, connectionTask);
-                    ReadMonitorStream2(cancelToken, ref connected, connectionTask);
+                    ReadMonitorStream(cancelToken, ref connected, connectionTask);
                 }
                 catch (Exception e)
                 {
@@ -710,7 +710,7 @@ namespace OnedataDrive
                 filePath: spaceFolder.name, opID: opID);
         }
 
-        private void ReadMonitorStream2(CancellationToken cancelToken, ref bool connected, Task<Stream> connectionTask)
+        private void ReadMonitorStream(CancellationToken cancelToken, ref bool connected, Task<Stream> connectionTask)
         {
             string opID = IdGenerator.GenerateId8();
             logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Started",
@@ -728,22 +728,9 @@ namespace OnedataDrive
         {
             try
             {
-                using (StreamReader reader = new StreamReader(stream))
+                await foreach (SseEvent newEvent in SseReader.Read(stream, cancelToken))
                 {
-                    await foreach (SseItem<string> item in SseParser.Create(stream).EnumerateAsync(cancelToken))
-                    {
-                        string id = "";
-                        while (!reader.EndOfStream)
-                        {
-                            string temp = reader.ReadLine() ?? "";
-                            if (temp.Contains("id:"))
-                            {
-                                id = temp;
-                                break;
-                            }
-                        }
-                        Debug.Print($"{id} >>> {item.EventType} >>> {item.Data}");
-                    }
+                    Debug.Print($"EVENT: {newEvent}");
                 }
             }
             catch (OperationCanceledException)
@@ -752,70 +739,5 @@ namespace OnedataDrive
                                 filePath: spaceFolder.name, opID: opID);
             }
         }
-
-        private void ReadMonitorStream(CancellationToken cancelToken, ref bool connected, Task<Stream> connectionTask)
-        {
-            string opID = IdGenerator.GenerateId8();
-            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Started", 
-                filePath: spaceFolder.name, opID: opID);
-            string lineRead = "";
-            using (Stream stream = connectionTask.Result)
-            {
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    while (true)
-                    {
-                        try
-                        {
-                            Task<string?> readTask = reader.ReadLineAsync(cancelToken).AsTask();
-                            connected = true;
-                            int time = 0;
-                            while (!readTask.IsCompleted)
-                            {
-                                if (time % 10 == 0 && !cancelToken.IsCancellationRequested)
-                                {
-                                    Debug.Print($"ReadMonitorStream - waiting to read");
-                                    time = 0;
-                                }
-                                cancelToken.WaitHandle.WaitOne(1000);
-                                time += 1;
-                            }
-                            if (cancelToken.IsCancellationRequested)
-                            {
-                                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Cancel Requested", 
-                                    filePath: spaceFolder.name, opID: opID);
-                                break;
-                            }
-                            lineRead = readTask.Result ?? "NOTHING WAS READ";
-                            Debug.Print($"READ LINE: {lineRead}");
-                            FileEvent fe = JsonSerializer.Deserialize<FileEvent>(lineRead) ?? throw new Exception("Json Deserialize FAIL");
-                            Task.Run(() => eventManager.AddEvent(fe));
-                            string json = JsonSerializer.Serialize(fe);
-                            Debug.Print("JSON: {0}", json);
-                        }
-                        catch (Exception e)
-                        {
-                            List<string> errString = new() { "Read line: " + lineRead };
-                            if (connectionTask.IsCompleted && !cancelToken.IsCancellationRequested)
-                            {
-                                logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Read monitor stream - Aborted", 
-                                    e, errString, filePath: spaceFolder.name, opID: opID);
-                                return;
-                            }
-                            logFormatter.LogFileOP(LogLevel.Error, "AUTOREFRESH", "Read monitor stream - Error", 
-                                e, errString, filePath: spaceFolder.name, opID: opID);
-                        }
-                        if (cancelToken.IsCancellationRequested)
-                        {
-                            logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Read monitor stream - Cancel Requested", 
-                                filePath: spaceFolder.name, opID: opID);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-
     }
 }
