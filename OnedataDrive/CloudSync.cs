@@ -1,11 +1,12 @@
-﻿using Vanara.PInvoke;
-using static Vanara.PInvoke.CldApi;
-using static Vanara.PInvoke.SearchApi;
-using OnedataDrive.Utils;
-using OnedataDrive.JSON_Object;
+﻿using NLog;
 using OnedataDrive.ErrorHandling;
-using NLog;
+using OnedataDrive.JSON_Object;
+using OnedataDrive.Utils;
 using System.Runtime.InteropServices;
+using Vanara.PInvoke;
+using static Vanara.PInvoke.CldApi;
+using static Vanara.PInvoke.CldApi.CF_CALLBACK_PARAMETERS;
+using static Vanara.PInvoke.SearchApi;
 
 namespace OnedataDrive
 {
@@ -31,31 +32,22 @@ namespace OnedataDrive
 
             configuration = config;
             spaces = new();
-            try
-            {
-                InitSyncRootDir(delete);
-                logger.Info("SyncRoot directory -> OK: " + configuration.root_path);
-            }
-            catch (Exception e)
-            {
-                logger.Error($"Failed to create Root Folder, {e}");
 
-                if (e is RootFolderNotEmptyException)
-                {
-                    return CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY;
-                }
-                if (e is UnauthorizedAccessException || e is IOException)
-                {
-                    return CloudSyncReturnCodes.ROOT_FOLDER_NO_ACCESS_RIGHT;
-                }
-
-                return CloudSyncReturnCodes.ERROR;
+            CloudSyncReturnCodes status = InitSyncRootDir(delete);
+            if (status != CloudSyncReturnCodes.SUCCESS)
+            {
+                return status;
             }
+            logger.Info("SyncRoot directory -> OK: " + configuration.root_path);
+            
 
             try
             {
                 RestClient.Init(configuration);
                 logger.Info("Init Rest Client -> OK");
+
+                TestTokenAndOnezone();
+                logger.Info("Test Token and Onezone -> OK");
 
                 AddFolderToSearchIndexer(configuration.root_path);
                 logger.Info("Add Folder To Search Indexer -> OK");
@@ -63,11 +55,10 @@ namespace OnedataDrive
                 CloudProvider.RegisterWithShell(configuration.root_path);
                 logger.Info("ShellRegister -> OK");
 
+                InitSpaceFolders();
+
                 CloudProvider.ConnectCallbacks(configuration.root_path);
                 logger.Info("ConnectCallbacks -> OK");
-
-                TestTokenAndOnezone();
-                InitSpaceFolders();
 
                 // start file watcher
                 watcher = new(configuration.root_path);
@@ -292,26 +283,45 @@ namespace OnedataDrive
             logger.Debug("Placeholders created in dirPath:{0} -> {1} / {2}", path, entriesProcessed, infoArr.Length);
         }
 
-        public static void InitSyncRootDir(bool deleteExisting = false)
+        public static CloudSyncReturnCodes InitSyncRootDir(bool deleteExisting = false)
         {
-            if (deleteExisting && Directory.Exists(configuration.root_path))
+            try
             {
-                Directory.Delete(configuration.root_path, true);
+                if (deleteExisting && Directory.Exists(configuration.root_path))
+                {
+                    Directory.Delete(configuration.root_path, true);
+                }
+
+                if (!Directory.Exists(configuration.root_path))
+                {
+                    _ = Directory.CreateDirectory(configuration.root_path);
+                    logger.Info("Creating new SyncRoot Directory.");
+                }
+
+                // test root folder permissions
+                File.Create(configuration.root_path + "testingAccess.txt").Close();
+                File.Delete(configuration.root_path + "testingAccess.txt");
+
+                if (Directory.EnumerateFileSystemEntries(configuration.root_path).Any())
+                {
+                    throw new RootFolderNotEmptyException("SyncRoot Directory must be empty.");
+                }
+                return CloudSyncReturnCodes.SUCCESS;
             }
-
-            if (!Directory.Exists(configuration.root_path))
+            catch (Exception e)
             {
-                _ = Directory.CreateDirectory(configuration.root_path);
-                logger.Info("Creating new SyncRoot Directory.");
-            }
+                logger.Error($"Failed to create Root Folder, {e}");
 
-            // test root folder permissions
-            File.Create(configuration.root_path + "testingAccess.txt").Close();
-            File.Delete(configuration.root_path + "testingAccess.txt");
+                if (e is RootFolderNotEmptyException)
+                {
+                    return CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY;
+                }
+                if (e is UnauthorizedAccessException || e is IOException)
+                {
+                    return CloudSyncReturnCodes.ROOT_FOLDER_NO_ACCESS_RIGHT;
+                }
 
-            if (Directory.EnumerateFileSystemEntries(configuration.root_path).Any())
-            {
-                throw new RootFolderNotEmptyException("SyncRoot Directory must be empty.");
+                return CloudSyncReturnCodes.ERROR;
             }
         }
     }

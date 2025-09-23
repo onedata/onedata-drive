@@ -13,21 +13,23 @@ static class CldApiUtils
     public static CF_PLACEHOLDER_BASIC_INFO GetBasicInfo(string fullPath)
     {
         SafeHCFFILE handle;
-        HRESULT hres = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE, out handle);
-        if (hres == FILE_NOT_FOUND)
+        HRESULT hresHandle = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE, out handle);
+        if (hresHandle == FILE_NOT_FOUND)
         {
             throw new FileNotFoundException($"File not found: {fullPath}");
         }
-        else if (hres != HRESULT.S_OK)
+        else if (hresHandle != HRESULT.S_OK)
         {
-            throw new Exception($"CfOpenFileWithOplock PATH: {fullPath} \n {hres} int value: {((int)hres)}");
+            throw new Exception($"CfOpenFileWithOplock PATH: {fullPath} \n {hresHandle} int value: {((int)hresHandle)}");
         }
         nint pointer = Marshal.AllocCoTaskMem(BLOB_LENGTH);
         // can not use generic variant, because it prohibits the app from terminating normally (hangs on return)
-        HRESULT hres2 = CfGetPlaceholderInfo(handle.DangerousGetHandle(), CF_PLACEHOLDER_INFO_CLASS.CF_PLACEHOLDER_INFO_BASIC, pointer, BLOB_LENGTH, out uint returnedLength);
-        if (hres != HRESULT.S_OK)
+        HRESULT hresInfo = CfGetPlaceholderInfo(handle.DangerousGetHandle(), CF_PLACEHOLDER_INFO_CLASS.CF_PLACEHOLDER_INFO_BASIC, pointer, BLOB_LENGTH, out uint returnedLength);
+        if (hresInfo != HRESULT.S_OK)
         {
-            throw new Exception($"CfGetPlaceholderInfo PATH: {fullPath} \n" + hres);
+            CfCloseHandle(handle);
+            Marshal.FreeCoTaskMem(pointer);
+            throw new Exception($"CfGetPlaceholderInfo PATH: {fullPath} \n" + hresInfo);
         }
         CF_PLACEHOLDER_BASIC_INFO info = Marshal.PtrToStructure<CF_PLACEHOLDER_BASIC_INFO>(pointer);
         info.FileIdentity = Encoding.Unicode.GetBytes(Marshal.PtrToStringAuto((nint) (pointer + returnedLength - info.FileIdentityLength), (int)info.FileIdentityLength / 2) ?? "");
@@ -41,21 +43,23 @@ static class CldApiUtils
     public static CF_PLACEHOLDER_STANDARD_INFO GetStandardInfo(string fullPath)
     {
         SafeHCFFILE handle;
-        HRESULT hres = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE, out handle);
-        if (hres == FILE_NOT_FOUND)
+        HRESULT hresHandle = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE, out handle);
+        if (hresHandle == FILE_NOT_FOUND)
         {
             throw new FileNotFoundException($"File not found: {fullPath}");
         }
-        else if (hres != HRESULT.S_OK)
+        else if (hresHandle != HRESULT.S_OK)
         {
-            throw new Exception($"CfOpenFileWithOplock PATH: {fullPath} \n {hres} int value: {((int)hres)}");
+            throw new Exception($"CfOpenFileWithOplock PATH: {fullPath} \n {hresHandle} int value: {((int)hresHandle)}");
         }
         nint pointer = Marshal.AllocCoTaskMem(BLOB_LENGTH);
         // can not use generic variant, because it prohibits the app from terminating normally (hangs on return)
-        HRESULT hres2 = CfGetPlaceholderInfo(handle.DangerousGetHandle(), CF_PLACEHOLDER_INFO_CLASS.CF_PLACEHOLDER_INFO_STANDARD, pointer, BLOB_LENGTH, out uint returnedLength);
-        if (hres != HRESULT.S_OK)
+        HRESULT hresInfo = CfGetPlaceholderInfo(handle.DangerousGetHandle(), CF_PLACEHOLDER_INFO_CLASS.CF_PLACEHOLDER_INFO_STANDARD, pointer, BLOB_LENGTH, out uint returnedLength);
+        if (hresInfo != HRESULT.S_OK)
         {
-            throw new Exception($"CfGetPlaceholderInfo PATH: {fullPath} \n" + hres);
+            CfCloseHandle(handle);
+            Marshal.FreeCoTaskMem(pointer);
+            throw new Exception($"CfGetPlaceholderInfo PATH: {fullPath} \n" + hresInfo);
         }
         CF_PLACEHOLDER_STANDARD_INFO info = Marshal.PtrToStructure<CF_PLACEHOLDER_STANDARD_INFO>(pointer);
         info.FileIdentity = Encoding.Unicode.GetBytes(Marshal.PtrToStringAuto((nint) (pointer + returnedLength - info.FileIdentityLength), (int)info.FileIdentityLength / 2) ?? "");
