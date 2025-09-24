@@ -2,9 +2,7 @@
 using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
-using System;
 using System.Diagnostics;
-using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -695,22 +693,32 @@ namespace OnedataDrive
             string destPath = CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath;
             if (destPath.StartsWith(CloudSync.configuration.root_path))
             {
-                HRESULT hresOpen = CfOpenFileWithOplock(destPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE, out SafeHCFFILE protectedHandle);
-                HRESULT hresSync = CfSetInSyncState(protectedHandle.DangerousGetHandle(), CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
-                CfCloseHandle(protectedHandle);
-                if (hresSync == HRESULT.S_OK)
+                SafeHCFFILE? protectedHandle = null;
+                try
                 {
-                    Debug.Print("Set InSync OK");
-                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME COMPLETION", "OK");
-                }
-                else
-                {
-                    List<string> moreInfo = new List<string>()
+                    HRESULT hresOpen = CfOpenFileWithOplock(destPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE, out protectedHandle);
+                    HRESULT hresSync = CfSetInSyncState(protectedHandle.DangerousGetHandle(), CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
+                    if (hresSync == HRESULT.S_OK)
+                    {
+                        Debug.Print("Set InSync OK");
+                        PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME COMPLETION", "OK");
+                    }
+                    else
+                    {
+                        List<string> moreInfo = new List<string>()
                     {
                         $"CfOpenFileWithOplock HRES: {hresOpen.ToString()}".Replace("\n", ""),
                         $"CfSetInSyncState HRES: {hresSync.ToString().Replace("\n", "")}"
                     };
-                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "RENAME COMPLETION", "FAIL", moreInfo: moreInfo);
+                        PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "RENAME COMPLETION", "FAIL", moreInfo: moreInfo);
+                    }
+                }
+                finally
+                {
+                    if (protectedHandle != null && !protectedHandle.IsInvalid)
+                    {
+                        protectedHandle.Dispose();
+                    }
                 }
             }
         }

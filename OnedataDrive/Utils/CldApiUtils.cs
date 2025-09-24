@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Text;
 using Vanara.PInvoke;
@@ -53,6 +51,7 @@ static class CldApiUtils
             if (handle != null && !handle.IsInvalid)
             {
                 handle.Dispose();
+                // CfCloseHandle(handle);   ---->>>> DO NOT USE THIS - casuses deadlock <<<<----
             }
         }
     }

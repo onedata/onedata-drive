@@ -4,9 +4,6 @@ using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
-using System.IO;
-using System.Net.ServerSentEvents;
-using System.Security.Cryptography;
 using System.Text.Json;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
@@ -465,9 +462,9 @@ namespace OnedataDrive
             }
             finally
             {
-                if (handle != null)
+                if (handle != null && !handle.IsInvalid)
                 {
-                    CfCloseHandle(handle);
+                    handle.Dispose();
                 }
             }
         }

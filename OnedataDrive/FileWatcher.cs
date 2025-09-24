@@ -2,8 +2,6 @@
 using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
-using System.Diagnostics;
-using System.IO;
 using System.Runtime.InteropServices;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
@@ -161,31 +159,53 @@ namespace OnedataDrive
 
         private void Hydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
         {
-            HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out SafeHCFFILE protectedHandle);
-            HRESULT hresHydrate = CfHydratePlaceholder(protectedHandle.DangerousGetHandle());
-            CfCloseHandle(protectedHandle);
-
-            if (hresOpen != HRESULT.S_OK || hresHydrate != HRESULT.S_OK)
+            SafeHCFFILE? protectedHandle = null;
+            try
             {
-                throw new Exception("CfOpenFileWithOplock: " + hresOpen + ", CfHydratePlaceholder: " + hresHydrate);
-            }
+                HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out protectedHandle);
+                HRESULT hresHydrate = CfHydratePlaceholder(protectedHandle.DangerousGetHandle());
 
-            loggerFormater.LogFileOP(LogLevel.Info, "Hydrate", "OK", opID: opID);
+                if (hresOpen != HRESULT.S_OK || hresHydrate != HRESULT.S_OK)
+                {
+                    throw new Exception("CfOpenFileWithOplock: " + hresOpen + ", CfHydratePlaceholder: " + hresHydrate);
+                }
+
+                loggerFormater.LogFileOP(LogLevel.Info, "Hydrate", "OK", opID: opID);
+            }
+            finally
+            {
+                if (protectedHandle != null && !protectedHandle.IsInvalid)
+                {
+                    protectedHandle.Dispose();
+                }
+            }
+            
         }
 
         private void Dehydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
         {
-            HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out SafeHCFFILE protectedHandle);
-            HRESULT hresDehydrate = CfDehydratePlaceholder(protectedHandle.DangerousGetHandle(), 0, info.OnDiskDataSize, CF_DEHYDRATE_FLAGS.CF_DEHYDRATE_FLAG_NONE);
-            HRESULT hresPinState = CfSetPinState(protectedHandle.DangerousGetHandle(), CF_PIN_STATE.CF_PIN_STATE_UNSPECIFIED, CF_SET_PIN_FLAGS.CF_SET_PIN_FLAG_NONE);
-            CfCloseHandle(protectedHandle);
-
-            if (hresOpen != HRESULT.S_OK || hresDehydrate != HRESULT.S_OK || hresPinState != HRESULT.S_OK)
+            SafeHCFFILE? protectedHandle = null;
+            try
             {
-                throw new Exception("CfOpenFileWithOplock: " + hresOpen + ", CfDehydratePlaceholder: " + hresDehydrate + ", CfSetPinState: " + hresPinState);
-            }
+                HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out protectedHandle);
+                HRESULT hresDehydrate = CfDehydratePlaceholder(protectedHandle.DangerousGetHandle(), 0, info.OnDiskDataSize, CF_DEHYDRATE_FLAGS.CF_DEHYDRATE_FLAG_NONE);
+                HRESULT hresPinState = CfSetPinState(protectedHandle.DangerousGetHandle(), CF_PIN_STATE.CF_PIN_STATE_UNSPECIFIED, CF_SET_PIN_FLAGS.CF_SET_PIN_FLAG_NONE);
 
-            loggerFormater.LogFileOP(LogLevel.Info, "Dehydrate", "OK", opID: opID);
+                if (hresOpen != HRESULT.S_OK || hresDehydrate != HRESULT.S_OK || hresPinState != HRESULT.S_OK)
+                {
+                    throw new Exception("CfOpenFileWithOplock: " + hresOpen + ", CfDehydratePlaceholder: " + hresDehydrate + ", CfSetPinState: " + hresPinState);
+                }
+
+                loggerFormater.LogFileOP(LogLevel.Info, "Dehydrate", "OK", opID: opID);
+            }
+            finally
+            {
+                if (protectedHandle != null && !protectedHandle.IsInvalid)
+                {
+                    protectedHandle.Dispose();
+                }
+            }
+            
         }
 
         private void UpdateFile(FileSystemEventArgs e, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
@@ -210,16 +230,16 @@ namespace OnedataDrive
 
             }
 
-            SafeHCFFILE? handle = null;
+            SafeHCFFILE? protectedHandle = null;
             try
             {
-                HRESULT openHres = CfOpenFileWithOplock(e.FullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out handle);
+                HRESULT openHres = CfOpenFileWithOplock(e.FullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out protectedHandle);
                 if (openHres != HRESULT.S_OK)
                 {
                     throw new Exception("CfOpenFileWithOplock HRES: " + openHres);
                 }
                 // SetInSyncState and set metadata
-                UpdatePlaceholderMetadata(info, handle, e.FullPath);
+                UpdatePlaceholderMetadata(info, protectedHandle, e.FullPath);
                 loggerFormater.LogFileOP(LogLevel.Info, "UpdatePlaceholderMetadata", "OK", opID: opID);
             }
             catch (Exception)
@@ -229,9 +249,9 @@ namespace OnedataDrive
             }
             finally
             {
-                if (handle != null)
+                if (protectedHandle != null && !protectedHandle.IsInvalid)
                 {
-                    CfCloseHandle(handle);
+                    protectedHandle.Dispose();
                 }
             }
         }
@@ -317,28 +337,41 @@ namespace OnedataDrive
 
         private void ConvertToPlaceholder(string fullPath, FileId id, bool isDir = false)
         {
-            HRESULT hresult;
-
-            SafeHCFFILE protectedHandle;
-            hresult = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out protectedHandle);
-            if (hresult != HRESULT.S_OK)
+            SafeHCFFILE? protectedHandle = null;
+            nint fileIdentity = IntPtr.Zero;
+            try
             {
-                throw new Exception("CfOpenFileWithOplock HRES: " + hresult);
-            }
+                HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out protectedHandle);
+                if (hresOpen != HRESULT.S_OK)
+                {
+                    throw new Exception("CfOpenFileWithOplock HRES: " + hresOpen);
+                }
 
-            nint fileIdentity = Marshal.StringToCoTaskMemUni(id.fileId);
-            uint fileIdentityLength = (uint)id.fileId.Length * 2;
+                fileIdentity = Marshal.StringToCoTaskMemUni(id.fileId);
+                uint fileIdentityLength = (uint)id.fileId.Length * 2;
 
-            unsafe
-            {
-                hresult = CfConvertToPlaceholder(protectedHandle.DangerousGetHandle(), fileIdentity, fileIdentityLength, CF_CONVERT_FLAGS.CF_CONVERT_FLAG_MARK_IN_SYNC);
+                HRESULT hresConvert;
+                unsafe
+                {
+                    hresConvert = CfConvertToPlaceholder(protectedHandle.DangerousGetHandle(), fileIdentity, fileIdentityLength, CF_CONVERT_FLAGS.CF_CONVERT_FLAG_MARK_IN_SYNC);
+                }
+                if (hresConvert != HRESULT.S_OK)
+                {
+                    throw new Exception("CfConvertToPlaceholder HRES: " + hresConvert);
+                }
             }
-            CfCloseHandle(protectedHandle);
-            Marshal.FreeCoTaskMem(fileIdentity);
-            if (hresult != HRESULT.S_OK)
+            finally
             {
-                throw new Exception("CfConvertToPlaceholder HRES: " + hresult);
+                if (protectedHandle != null && !protectedHandle.IsInvalid)
+                {
+                    protectedHandle.Dispose();
+                }
+                if (fileIdentity != IntPtr.Zero)
+                {
+                    Marshal.FreeCoTaskMem(fileIdentity);
+                }
             }
+            
         }
 
         public void Dispose()
