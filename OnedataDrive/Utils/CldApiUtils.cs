@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Text;
 using Vanara.PInvoke;
@@ -26,7 +27,12 @@ static class CldApiUtils
                 throw new Exception($"CfOpenFileWithOplock PATH: {fullPath} \n {hresHandle} int value: {((int)hresHandle)}");
             }
             pointer = Marshal.AllocCoTaskMem(BLOB_LENGTH);
-            // can not use generic variant, because it prohibits the app from terminating normally (hangs on return)
+            if (pointer == IntPtr.Zero)
+            {
+                throw new Exception("Memory allocation failed");
+            }
+
+            // can not use generic variant of CfGetPlaceholderInfo<T>, because it prohibits the app from terminating normally (hangs on return)
             HRESULT hresInfo = CfGetPlaceholderInfo(handle.DangerousGetHandle(), CF_PLACEHOLDER_INFO_CLASS.CF_PLACEHOLDER_INFO_BASIC, pointer, BLOB_LENGTH, out uint returnedLength);
             if (hresInfo != HRESULT.S_OK)
             {
@@ -53,49 +59,72 @@ static class CldApiUtils
 
     public static CF_PLACEHOLDER_STANDARD_INFO GetStandardInfo(string fullPath)
     {
-        SafeHCFFILE handle;
-        HRESULT hresHandle = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE, out handle);
-        if (hresHandle == FILE_NOT_FOUND)
+        SafeHCFFILE? handle = null;
+        nint pointer = IntPtr.Zero;
+        try
         {
-            throw new FileNotFoundException($"File not found: {fullPath}");
-        }
-        else if (hresHandle != HRESULT.S_OK)
-        {
-            throw new Exception($"CfOpenFileWithOplock PATH: {fullPath} \n {hresHandle} int value: {((int)hresHandle)}");
-        }
-        nint pointer = Marshal.AllocCoTaskMem(BLOB_LENGTH);
-        // can not use generic variant, because it prohibits the app from terminating normally (hangs on return)
-        HRESULT hresInfo = CfGetPlaceholderInfo(handle.DangerousGetHandle(), CF_PLACEHOLDER_INFO_CLASS.CF_PLACEHOLDER_INFO_STANDARD, pointer, BLOB_LENGTH, out uint returnedLength);
-        if (hresInfo != HRESULT.S_OK)
-        {
-            CfCloseHandle(handle);
-            Marshal.FreeCoTaskMem(pointer);
-            throw new Exception($"CfGetPlaceholderInfo PATH: {fullPath} \n" + hresInfo);
-        }
-        CF_PLACEHOLDER_STANDARD_INFO info = Marshal.PtrToStructure<CF_PLACEHOLDER_STANDARD_INFO>(pointer);
-        info.FileIdentity = Encoding.Unicode.GetBytes(Marshal.PtrToStringAuto((nint) (pointer + returnedLength - info.FileIdentityLength), (int)info.FileIdentityLength / 2) ?? "");
+            HRESULT hresHandle = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE, out handle);
+            if (hresHandle == FILE_NOT_FOUND)
+            {
+                throw new FileNotFoundException($"File not found: {fullPath}");
+            }
+            else if (hresHandle != HRESULT.S_OK)
+            {
+                throw new Exception($"CfOpenFileWithOplock PATH: {fullPath} \n {hresHandle} int value: {((int)hresHandle)}");
+            }
+            pointer = Marshal.AllocCoTaskMem(BLOB_LENGTH);
+            if (pointer == IntPtr.Zero)
+            {
+                throw new Exception("Memory allocation failed");
+            }
 
-        CfCloseHandle(handle);
-        Marshal.FreeCoTaskMem(pointer);
+            // can not use generic variant of CfGetPlaceholderInfo<T>, because it prohibits the app from terminating normally (hangs on return)
+            HRESULT hresInfo = CfGetPlaceholderInfo(handle.DangerousGetHandle(), CF_PLACEHOLDER_INFO_CLASS.CF_PLACEHOLDER_INFO_STANDARD, pointer, BLOB_LENGTH, out uint returnedLength);
+            if (hresInfo != HRESULT.S_OK)
+            {
+                throw new Exception($"CfGetPlaceholderInfo PATH: {fullPath} \n" + hresInfo);
+            }
+            CF_PLACEHOLDER_STANDARD_INFO info = Marshal.PtrToStructure<CF_PLACEHOLDER_STANDARD_INFO>(pointer);
+            info.FileIdentity = Encoding.Unicode.GetBytes(Marshal.PtrToStringAuto((nint)(pointer + returnedLength - info.FileIdentityLength), (int)info.FileIdentityLength / 2) ?? "");
 
-        return info;
+            return info;
+        }
+        finally
+        {
+            if (pointer != IntPtr.Zero)
+            {
+                Marshal.FreeCoTaskMem(pointer);
+            }
+
+            if (handle != null && !handle.IsInvalid)
+            {
+                handle.Dispose();
+            }
+        }
     }
 
     public static void SetInSyncState(string fullPath)
     {
-        SafeHCFFILE handle;
-        HRESULT openHres = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out handle);
-
-        if (openHres != HRESULT.S_OK)
+        SafeHCFFILE? handle = null;
+        try
         {
-            Debug.Print("Handle NOT OK");
-            return;
+            HRESULT hresHandle = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out handle);
+            if (hresHandle != HRESULT.S_OK)
+            {
+                throw new Exception($"CfOpenFileWithOplock PATH: {fullPath} \n {hresHandle} int value: {((int)hresHandle)}");
+            }
+            HRESULT hresSync = CfSetInSyncState(handle.DangerousGetHandle(), CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
+            if (hresSync != HRESULT.S_OK)
+            {
+                throw new Exception($"CfSetInSyncState PATH: {fullPath} \n {hresSync} int value: {((int)hresSync)}");
+            }
         }
-        HRESULT hresSync = CfSetInSyncState(handle.DangerousGetHandle(), CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
-        if (hresSync != HRESULT.S_OK)
+        finally
         {
-            Debug.Print("SetSyncState NOT OK");
+            if (handle != null && !handle.IsInvalid)
+            {
+                handle.Dispose();
+            }
         }
-        CfCloseHandle(handle);
     }
 }
