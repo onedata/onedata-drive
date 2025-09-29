@@ -15,6 +15,7 @@ namespace OnedataDrive
         public static string ZONE_PROTOCOL = "";
         private static HttpClient client = new();
         private static HttpClient clientNoHeaders = new();
+        private static HttpClient clientNoTimeout = new();
         private const string HTTP = "http://";
         private const string HTTPS = "https://";
         public static bool initialized { get; private set; } = false;
@@ -41,6 +42,10 @@ namespace OnedataDrive
             client.DefaultRequestHeaders.Clear();
             client.DefaultRequestHeaders.Add("x-auth-token", PROVIDER_TOKEN);
 
+            clientNoTimeout.DefaultRequestHeaders.Clear();
+            clientNoTimeout.DefaultRequestHeaders.Add("x-auth-token", PROVIDER_TOKEN);
+            clientNoTimeout.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
+
             clientNoHeaders.DefaultRequestHeaders.Clear();
 
             initialized = true;
@@ -49,8 +54,8 @@ namespace OnedataDrive
         public static void Stop()
         {
             client.CancelPendingRequests();
-
             clientNoHeaders.CancelPendingRequests();
+            clientNoTimeout.CancelPendingRequests();
             initialized = false;
         }
 
@@ -126,20 +131,6 @@ namespace OnedataDrive
              throw new JsonReturnedNullException();
         }
 
-        private static async Task<Stream> OnedataPostStream(string url, HttpContent? content)
-        {
-            HttpRequestMessage RequestMsg = new(HttpMethod.Post, url)
-            {
-                Content = content
-            };
-            var response = await client.SendAsync(RequestMsg, HttpCompletionOption.ResponseHeadersRead);
-
-            HandleFailedStatucCode(response, url);
-
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStreamAsync();
-        }
-
         private static async Task OnedataPut(string url, HttpContent content)
         {
             HttpRequestMessage RequestMsg = new(HttpMethod.Put, url)
@@ -164,6 +155,7 @@ namespace OnedataDrive
         }
 
         /////////////////////////////////////////////////////////////////////////////
+        /// No headers client
 
 
         public static async Task<TokenAccess> InferAccessTokenScope()
@@ -205,6 +197,7 @@ namespace OnedataDrive
         }
 
         /////////////////////////////////////////////////////////////////////////////
+        /// Everything
 
         public static async Task<SpaceDetails> GetSpacesDetails(string spaceId, string provider_domain)
         {
@@ -467,6 +460,23 @@ namespace OnedataDrive
                 }
             }
             throw new Exception("Failed to get FileInfo");
+        }
+
+        /////////////////////////////////////////////////////////////////////////////
+        /// No Timeout client
+
+        private static async Task<Stream> OnedataPostStream(string url, HttpContent? content)
+        {
+            HttpRequestMessage RequestMsg = new(HttpMethod.Post, url)
+            {
+                Content = content
+            };
+            var response = await clientNoTimeout.SendAsync(RequestMsg, HttpCompletionOption.ResponseHeadersRead);
+
+            HandleFailedStatucCode(response, url);
+
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStreamAsync();
         }
 
         public static async Task<Stream> GetFileEventStream(List<string> dirIDs, List<ProviderInfo> providerInfos, string spaceId, List<ObservedAttribute> obervedAttr)
