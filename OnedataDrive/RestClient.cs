@@ -54,18 +54,26 @@ namespace OnedataDrive
             initialized = false;
         }
 
+        private static void HandleFailedStatucCode(HttpResponseMessage response, string url)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                string responseContent = response.Content.ReadAsStringAsync().Result;
+                string errorMsg = $"Url: {url}\nResponse: {responseContent}";
+                HttpRequestException hre = new HttpRequestException(errorMsg, null, response.StatusCode);
+                if (responseContent.Contains("\"errno\":\"enoent\""))
+                {
+                    throw new NoSuchCloudFile(hre);
+                }
+                throw hre;
+            }
+        }
+
         private static async Task<T> OnedataGet<T>(string url)
         {
             var response = await client.GetAsync(url);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                string responseContent = await response.Content.ReadAsStringAsync();
-                if (responseContent.Contains("\"errno\":\"enoent\""))
-                {
-                    throw new NoSuchCloudFile(response);
-                }
-            }
+            HandleFailedStatucCode(response, url);
 
             response.EnsureSuccessStatusCode();
 
@@ -79,33 +87,27 @@ namespace OnedataDrive
         {
             var response = await client.GetAsync(url);
 
-            response.EnsureSuccessStatusCode();
+            HandleFailedStatucCode(response, url);
 
+            response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsByteArrayAsync();
         }
 
         private static async Task<Stream> OnedataGetStream(string url)
         {
-            Stream response = await client.GetStreamAsync(url);
-            return response;
+            var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            HandleFailedStatucCode(response, url);
+
+            response.EnsureSuccessStatusCode();
+            return response.Content.ReadAsStream();
         }
 
         private static async Task OnedataDelete(string url)
         {
             var response = await client.DeleteAsync(url);
-            if (response.StatusCode == HttpStatusCode.BadRequest)
-            {
-                var task = response.Content.ReadAsStringAsync();
-                task.Wait();
-                string responseText = task.Result;
-                if (responseText.Contains("\"errno\":\"enoent\""))
-                {
-                    return;
-                }
-            }
+            HandleFailedStatucCode(response, url);
 
             response.EnsureSuccessStatusCode();
-
             return;
         }
 
@@ -117,9 +119,9 @@ namespace OnedataDrive
             };
 
             var response = await client.SendAsync(RequestMsg);
+            HandleFailedStatucCode(response, url);
 
             response.EnsureSuccessStatusCode();
-
             return JsonSerializer.Deserialize<T>(response.Content.ReadAsStream()) ??
              throw new JsonReturnedNullException();
         }
@@ -132,13 +134,7 @@ namespace OnedataDrive
             };
             var response = await client.SendAsync(RequestMsg, HttpCompletionOption.ResponseHeadersRead);
 
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                var task = response.Content.ReadAsStringAsync();
-                task.Wait();
-                string responseText = task.Result;
-                Debug.Print("OnedataPostStream FAIL: " + responseText);
-            }
+            HandleFailedStatucCode(response, url);
 
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsStreamAsync();
@@ -152,24 +148,18 @@ namespace OnedataDrive
             };
 
             var response = await client.SendAsync(RequestMsg);
-            if (!response.IsSuccessStatusCode)
-            {
-                string responseContent = await response.Content.ReadAsStringAsync();
-                if (responseContent.Contains("\"errno\":\"enoent\""))
-                {
-                    throw new NoSuchCloudFile(response);
-                }
-            }
-            response.EnsureSuccessStatusCode();
+            HandleFailedStatucCode(response, url);
 
+            response.EnsureSuccessStatusCode();
             return;
         }
 
         private static async Task<string> OnedataGetString(string url)
         {
             var response = await client.GetAsync(url);
-            response.EnsureSuccessStatusCode();
+            HandleFailedStatucCode(response, url);
 
+            response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsStringAsync();
         }
 
@@ -214,6 +204,8 @@ namespace OnedataDrive
              throw new JsonReturnedNullException();
         }
 
+        /////////////////////////////////////////////////////////////////////////////
+
         public static async Task<SpaceDetails> GetSpacesDetails(string spaceId, string provider_domain)
         {
             string url = "https://" + provider_domain + "/api/v3/oneprovider/spaces/" + spaceId;
@@ -243,6 +235,10 @@ namespace OnedataDrive
                         + "/children?attribute=size&attribute=name&attribute=type&attribute=atime&attribute=mtime&attribute=ctime&attribute=file_id&limit=1000";
                     return await OnedataGet<DirChildren>(url);
                 }
+                catch (NoSuchCloudFile)
+                {
+                    throw;
+                }
                 catch (HttpRequestException e)
                 {
                     Debug.Print(e.Message);
@@ -266,6 +262,10 @@ namespace OnedataDrive
                     string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId + "/content";
                     return await OnedataGetByteArr(url);
                 }
+                catch (NoSuchCloudFile)
+                {
+                    throw;
+                }
                 catch (HttpRequestException e)
                 {
                     Debug.Print(e.Message);
@@ -282,6 +282,10 @@ namespace OnedataDrive
                 {
                     string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId + "/content";
                     return await OnedataGetStream(url);
+                }
+                catch (NoSuchCloudFile)
+                {
+                    throw;
                 }
                 catch (HttpRequestException e)
                 {
@@ -300,6 +304,10 @@ namespace OnedataDrive
                     string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId;
                     await OnedataDelete(url);
                     return;
+                }
+                catch (NoSuchCloudFile)
+                {
+                    throw;
                 }
                 catch (HttpRequestException e)
                 {
@@ -332,6 +340,10 @@ namespace OnedataDrive
                         return await OnedataPost<FileId>(url, content);
                     }
                 }
+                catch (NoSuchCloudFile)
+                {
+                    throw;
+                }
                 catch (HttpRequestException e)
                 {
                     Debug.Print(e.Message);
@@ -355,6 +367,10 @@ namespace OnedataDrive
                     await OnedataPut(url, content);
                     return;
                 }
+                catch (NoSuchCloudFile)
+                {
+                    throw;
+                }
                 catch (HttpRequestException e)
                 {
                     exceptionList.Add(e);
@@ -362,31 +378,6 @@ namespace OnedataDrive
                 }
             }
             throw new AggregateException("Failed to put file.", exceptionList);
-        }
-
-        public static async Task Move(List<ProviderInfo> providerInfos, string source, string dest, string spaceName)
-        {
-            foreach (ProviderInfo info in providerInfos)
-            {
-                try
-                {
-                    string url = $"https://{info.providerDomain}/cdmi/{spaceName}/{dest}";
-
-                    string json = "{\"move\":\"" + spaceName + "/" + source + "\"}";
-                    StringContent content = new StringContent(json);
-                    content.Headers.Clear();
-                    content.Headers.Add("X-CDMI-Specification-Version", "1.1.1");
-                    content.Headers.Add("Content-type", "application/cdmi-object");
-
-                    await OnedataPut(url, content);
-                    return;
-                }
-                catch (HttpRequestException e)
-                {
-                    Debug.Print(e.Message);
-                }
-            }
-            throw new Exception("Failed to put file");
         }
 
         public static async Task Move(List<ProviderInfo> providerInfos, string source, string target)
@@ -412,6 +403,10 @@ namespace OnedataDrive
 
                     await OnedataPut(url, content);
                     return;
+                }
+                catch (NoSuchCloudFile)
+                {
+                    throw;
                 }
                 catch (HttpRequestException e)
                 {
@@ -462,6 +457,10 @@ namespace OnedataDrive
                         + fileId;
                     return await OnedataGet<FileAttribute>(url);
                 }
+                catch (NoSuchCloudFile)
+                {
+                    throw;
+                }
                 catch (HttpRequestException e)
                 {
                     Debug.Print(e.Message);
@@ -495,9 +494,13 @@ namespace OnedataDrive
 
                     return await OnedataPostStream(url, content);
                 }
+                catch (NoSuchCloudFile)
+                {
+                    throw;
+                }
                 catch (HttpRequestException e)
                 {
-                    Debug.Print(e.Message);
+                    Debug.Print("HERE:", e.HttpRequestError.ToString());
                     exceptionList.Add(e);
                 }
             }

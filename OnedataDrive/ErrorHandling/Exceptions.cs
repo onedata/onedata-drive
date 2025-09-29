@@ -74,16 +74,14 @@
         }
     }
 
-    public class NoSuchCloudFile : Exception
+    public class NoSuchCloudFile : HttpRequestException
     {
-        public HttpResponseMessage? response = null;
-        public NoSuchCloudFile() : base() { }
-        public NoSuchCloudFile(string message) : base(message) { }
-        public NoSuchCloudFile(string message, Exception innerException) : base(message, innerException) { }
-        public NoSuchCloudFile(HttpResponseMessage rm) : base()
-        {
-            this.response = rm;
-        }
+        public NoSuchCloudFile(HttpRequestException hre) : base(hre.Message, hre.InnerException, hre.StatusCode) { }
+
+        public NoSuchCloudFile(HttpRequestException hre, string message) : base(
+                  hre.Message + "\n" + "NoSuchCloudFIle info: " + message, 
+                  hre.InnerException, 
+                  hre.StatusCode) { }
 
         public override string ToString()
         {

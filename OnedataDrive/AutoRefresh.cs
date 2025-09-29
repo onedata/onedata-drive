@@ -692,7 +692,6 @@ namespace OnedataDrive
                 {
                     Task<Stream> connectionTask = RestClient.GetFileEventStream(monitored.Select(x => x.id).ToList(), providerInfos, spaceId);
                     connectionTask.Wait();
-                    //ReadMonitorStream(cancelToken, ref connected, connectionTask);
                     ReadMonitorStream(cancelToken, ref connected, connectionTask);
                 }
                 catch (Exception e)
