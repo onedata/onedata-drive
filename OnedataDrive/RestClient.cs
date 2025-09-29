@@ -59,7 +59,7 @@ namespace OnedataDrive
             if (!response.IsSuccessStatusCode)
             {
                 string responseContent = response.Content.ReadAsStringAsync().Result;
-                string errorMsg = $"Url: {url}\nResponse: {responseContent}";
+                string errorMsg = $"Url: {url} | Status code: {response.StatusCode} | Response: {responseContent}";
                 HttpRequestException hre = new HttpRequestException(errorMsg, null, response.StatusCode);
                 if (responseContent.Contains("\"errno\":\"enoent\""))
                 {

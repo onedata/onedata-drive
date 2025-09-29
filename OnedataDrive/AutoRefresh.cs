@@ -523,7 +523,7 @@ namespace OnedataDrive
         private CancellationTokenSource masterTokenSource;
         private CancellationTokenSource monitorTokenSource;
         private EventManager eventManager;
-        private uint restartNeeded;
+        private bool restartNeeded;
         private Task monitoringTask;
         private Task restartCheckerTask;
         public AutoRefresh(SpaceFolder spaceFolder)
@@ -533,7 +533,7 @@ namespace OnedataDrive
 
             this.spaceFolder = spaceFolder;
             this.monitored = new();
-            this.restartNeeded = 0;
+            this.restartNeeded = false;
             this.eventManager = new EventManager(this);
 
             this.monitoringTask = Task.Run(() => MonitorFileEvents(monitorTokenSource.Token, out _));
@@ -580,7 +580,7 @@ namespace OnedataDrive
             {
                 logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Added to monitor", 
                     moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
-                Interlocked.Increment(ref restartNeeded);
+                restartNeeded = true;
             }
             else
             {
@@ -610,9 +610,17 @@ namespace OnedataDrive
         {
             while (!masterTokenSource.Token.IsCancellationRequested)
             {
-                if (restartNeeded > 0)
+                if (restartNeeded)
                 {
-                    RestartMonitoring();
+                    try
+                    {
+                        restartNeeded = false;
+                        RestartMonitoring();
+                    }
+                    catch (Exception)
+                    {
+                        restartNeeded = true;
+                    }
                 }
                 masterTokenSource.Token.WaitHandle.WaitOne(4000);
             }
@@ -664,7 +672,6 @@ namespace OnedataDrive
             monitorTokenSource.Cancel();
             monitorTokenSource = newCts;
             monitoringTask = newMonitoringTask;
-            Interlocked.Decrement(ref restartNeeded);
             logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Monitoring task handover - OK", 
                 filePath: spaceFolder.name, opID: opID);
         }
