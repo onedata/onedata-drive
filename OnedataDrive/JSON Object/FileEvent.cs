@@ -68,6 +68,7 @@ namespace OnedataDrive.JSON_Object
         public bool hasJsonMetadata { get; set; }
         public string jsonMetadata { get; set; }
         public Dictionary<string, string> xattr { get; set; }
+        public string name { get; set; }
 
         public FileEventData()
         {
@@ -93,33 +94,8 @@ namespace OnedataDrive.JSON_Object
             hasJsonMetadata = false;
             jsonMetadata = string.Empty;
             xattr = new Dictionary<string, string>();
+            name = string.Empty;
         }
-    }
-
-    public static class ObservedAttributes
-    {
-        public static readonly string index = "index";
-        public static readonly string type = "type";
-        public static readonly string activePermissionsType = "activePermissionsType";
-        public static readonly string posixPermissions = "posixPermissions";
-        public static readonly string acl = "acl";
-        public static readonly string parentFileId = "parentFileId";
-        public static readonly string originProviderId = "originProviderId";
-        public static readonly string directShareIds = "directShareIds";
-        public static readonly string ownerUserId = "ownerUserId";
-        public static readonly string hardlinkCount = "hardlinkCount";
-        public static readonly string symlinkValue = "symlinkValue";
-        public static readonly string creationTime = "creationTime";
-        public static readonly string atime = "atime";
-        public static readonly string mtime = "mtime";
-        public static readonly string ctime = "ctime";
-        public static readonly string size = "size";
-        public static readonly string isFullyReplicatedLocally = "isFullyReplicatedLocally";
-        public static readonly string localReplicationRate = "localReplicationRate";
-        public static readonly string hasCustomMetadata = "hasCustomMetadata";
-        public static readonly string hasJsonMetadata = "hasJsonMetadata";
-        public static readonly string jsonMetadata = "jsonMetadata";
-        public static readonly string xattr = "xattr";
     }
 
     public enum ObservedAttribute

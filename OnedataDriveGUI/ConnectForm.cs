@@ -3,6 +3,7 @@ using OnedataDrive;
 using OnedataDrive.JSON_Object;
 using NLog;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace OnedataDriveGUI
 {
@@ -122,6 +123,28 @@ namespace OnedataDriveGUI
             }
         }
 
+        /// <summary>
+        /// Creates border around advanced_panel
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void advanced_panel_paint(object sender, PaintEventArgs e)
+        {
+            if (advanced_panel.BorderStyle == BorderStyle.None)
+            {
+                int thickness = 20;//it's up to you
+                int halfThickness = thickness / 2;
+                using (Pen p = new Pen(SystemColors.Control, thickness))
+                {
+                    e.Graphics.DrawLine(p, new Point(halfThickness, 0), new Point(halfThickness, advanced_panel.ClientSize.Height));
+                    e.Graphics.DrawLine(
+                        p,
+                        new Point(advanced_panel.ClientSize.Width - halfThickness, 0),
+                        new Point(advanced_panel.ClientSize.Width - halfThickness, advanced_panel.ClientSize.Height));
+                }
+            }
+        }
+
         /* ---------- EVENT FUNCTIONS ---------- */
         /*          |                 |          */
         /*          V                 V          */
@@ -226,6 +249,33 @@ namespace OnedataDriveGUI
             }
         }
 
+        private void saveToFile_button_Click(object sender, EventArgs e)
+        {
+            config_saveFileDialog.Filter = "JSON files (*.json)|*.json";
+            config_saveFileDialog.FilterIndex = 1;
+            config_saveFileDialog.FileName = "config.json";
+            if (config_saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                Config config = new();
+                try
+                {
+                    config.onezone = onezone_comboBox.Text;
+                    config.provider_token = oneproviderToken_textBox.Text;
+                    config.root_path = rootFolder_textBox.Text;
+                    string content = JsonSerializer.Serialize(config);
+
+
+                    string filePath = config_saveFileDialog.FileName;
+                    
+                    File.WriteAllText(config_saveFileDialog.FileName, content);
+                }
+                catch (Exception)
+                {
+                    statusMessage.Text = "Failed to save file";
+                }
+            }
+        }
+
         private void ConnectForm_FormClosed(object sender, FormClosedEventArgs e)
         {
             SetDisplayStatus(Status.DISCONNECTING);
@@ -270,28 +320,6 @@ namespace OnedataDriveGUI
         {
             string logPath = loggerPath;
             Process.Start("explorer.exe", logPath);
-        }
-
-        /// <summary>
-        /// Creates border around advanced_panel
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void advanced_panel_paint(object sender, PaintEventArgs e)
-        {
-            if (advanced_panel.BorderStyle == BorderStyle.None)
-            {
-                int thickness = 20;//it's up to you
-                int halfThickness = thickness / 2;
-                using (Pen p = new Pen(SystemColors.Control, thickness))
-                {
-                    e.Graphics.DrawLine(p, new Point(halfThickness, 0), new Point(halfThickness, advanced_panel.ClientSize.Height));
-                    e.Graphics.DrawLine(
-                        p,
-                        new Point(advanced_panel.ClientSize.Width - halfThickness, 0),
-                        new Point(advanced_panel.ClientSize.Width - halfThickness, advanced_panel.ClientSize.Height));
-                }
-            }
         }
 
         private void removeSyncRoot_button_Click(object sender, EventArgs e)

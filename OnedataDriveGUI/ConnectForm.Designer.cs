@@ -51,6 +51,7 @@
             advanced_button = new Button();
             rootFolderErase_button = new Button();
             advanced_panel = new Panel();
+            saveToFile_button = new Button();
             removeSyncRoot_button = new Button();
             openLogFolder_button = new Button();
             controls_panel = new Panel();
@@ -64,6 +65,7 @@
             refreshStatusMessage = new ToolStripStatusLabel();
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
+            config_saveFileDialog = new SaveFileDialog();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             form_panel.SuspendLayout();
@@ -278,6 +280,7 @@
             // advanced_panel
             // 
             advanced_panel.BackColor = Color.FromArgb(225, 225, 225);
+            advanced_panel.Controls.Add(saveToFile_button);
             advanced_panel.Controls.Add(removeSyncRoot_button);
             advanced_panel.Controls.Add(openLogFolder_button);
             advanced_panel.Controls.Add(rootFolderErase_button);
@@ -289,15 +292,27 @@
             advanced_panel.Dock = DockStyle.Top;
             advanced_panel.Location = new Point(0, 300);
             advanced_panel.Name = "advanced_panel";
-            advanced_panel.Size = new Size(767, 250);
+            advanced_panel.Size = new Size(767, 295);
             advanced_panel.TabIndex = 21;
             advanced_panel.Visible = false;
             advanced_panel.Paint += advanced_panel_paint;
             // 
+            // saveToFile_button
+            // 
+            saveToFile_button.BackColor = SystemColors.Window;
+            saveToFile_button.Location = new Point(177, 151);
+            saveToFile_button.Margin = new Padding(2, 3, 2, 3);
+            saveToFile_button.Name = "saveToFile_button";
+            saveToFile_button.Size = new Size(234, 33);
+            saveToFile_button.TabIndex = 22;
+            saveToFile_button.Text = "Save configuration to file";
+            saveToFile_button.UseVisualStyleBackColor = false;
+            saveToFile_button.Click += saveToFile_button_Click;
+            // 
             // removeSyncRoot_button
             // 
             removeSyncRoot_button.BackColor = SystemColors.Window;
-            removeSyncRoot_button.Location = new Point(177, 199);
+            removeSyncRoot_button.Location = new Point(177, 247);
             removeSyncRoot_button.Margin = new Padding(2, 3, 2, 3);
             removeSyncRoot_button.Name = "removeSyncRoot_button";
             removeSyncRoot_button.Size = new Size(234, 33);
@@ -309,7 +324,7 @@
             // openLogFolder_button
             // 
             openLogFolder_button.BackColor = SystemColors.Window;
-            openLogFolder_button.Location = new Point(177, 151);
+            openLogFolder_button.Location = new Point(177, 199);
             openLogFolder_button.Margin = new Padding(2, 3, 2, 3);
             openLogFolder_button.Name = "openLogFolder_button";
             openLogFolder_button.Size = new Size(234, 33);
@@ -323,7 +338,7 @@
             controls_panel.Controls.Add(connect_button);
             controls_panel.Controls.Add(disconect_button);
             controls_panel.Dock = DockStyle.Top;
-            controls_panel.Location = new Point(0, 550);
+            controls_panel.Location = new Point(0, 595);
             controls_panel.Name = "controls_panel";
             controls_panel.Size = new Size(767, 97);
             controls_panel.TabIndex = 22;
@@ -393,6 +408,10 @@
             scrollPanel.Size = new Size(784, 464);
             scrollPanel.TabIndex = 24;
             // 
+            // config_saveFileDialog
+            // 
+            config_saveFileDialog.FileName = "config.json";
+            // 
             // ConnectForm
             // 
             AutoScaleDimensions = new SizeF(8F, 19F);
@@ -460,5 +479,7 @@
         private Button openLogFolder_button;
         private ToolStripStatusLabel refreshStatusMessage;
         private Button removeSyncRoot_button;
+        private Button saveToFile_button;
+        private SaveFileDialog config_saveFileDialog;
     }
 }
