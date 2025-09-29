@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NLog" Version="6.0.4" />
+    <PackageReference Include="NLog" Version="5.5.1" />
     <PackageReference Include="System.Net.ServerSentEvents" Version="9.0.9" />
     <PackageReference Include="Vanara.PInvoke.CldApi" Version="4.2.1" />
     <PackageReference Include="Vanara.PInvoke.SearchApi" Version="4.2.1" />
