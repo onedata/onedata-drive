@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.ComponentModel;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace OnedataDrive.JSON_Object
 {
@@ -96,6 +93,92 @@ namespace OnedataDrive.JSON_Object
             hasJsonMetadata = false;
             jsonMetadata = string.Empty;
             xattr = new Dictionary<string, string>();
+        }
+    }
+
+    public static class ObservedAttributes
+    {
+        public static readonly string index = "index";
+        public static readonly string type = "type";
+        public static readonly string activePermissionsType = "activePermissionsType";
+        public static readonly string posixPermissions = "posixPermissions";
+        public static readonly string acl = "acl";
+        public static readonly string parentFileId = "parentFileId";
+        public static readonly string originProviderId = "originProviderId";
+        public static readonly string directShareIds = "directShareIds";
+        public static readonly string ownerUserId = "ownerUserId";
+        public static readonly string hardlinkCount = "hardlinkCount";
+        public static readonly string symlinkValue = "symlinkValue";
+        public static readonly string creationTime = "creationTime";
+        public static readonly string atime = "atime";
+        public static readonly string mtime = "mtime";
+        public static readonly string ctime = "ctime";
+        public static readonly string size = "size";
+        public static readonly string isFullyReplicatedLocally = "isFullyReplicatedLocally";
+        public static readonly string localReplicationRate = "localReplicationRate";
+        public static readonly string hasCustomMetadata = "hasCustomMetadata";
+        public static readonly string hasJsonMetadata = "hasJsonMetadata";
+        public static readonly string jsonMetadata = "jsonMetadata";
+        public static readonly string xattr = "xattr";
+    }
+
+    public enum ObservedAttribute
+    {
+        [System.ComponentModel.Description("index")]
+        index,
+        [System.ComponentModel.Description("type")]
+        type,
+        [System.ComponentModel.Description("activePermissionsType")]
+        activePermissionsType,
+        [System.ComponentModel.Description("posixPermissions")]
+        posixPermissions,
+        [System.ComponentModel.Description("acl")]
+        acl,
+        [System.ComponentModel.Description("parentFileId")]
+        parentFileId,
+        [System.ComponentModel.Description("originProviderId")]
+        originProviderId,
+        [System.ComponentModel.Description("directShareIds")]
+        directShareIds,
+        [System.ComponentModel.Description("ownerUserId")]
+        ownerUserId,
+        [System.ComponentModel.Description("hardlinkCount")]
+        hardlinkCount,
+        [System.ComponentModel.Description("symlinkValue")]
+        symlinkValue,
+        [System.ComponentModel.Description("creationTime")]
+        creationTime,
+        [System.ComponentModel.Description("atime")]
+        atime,
+        [System.ComponentModel.Description("mtime")]
+        mtime,
+        [System.ComponentModel.Description("ctime")]
+        ctime,
+        [System.ComponentModel.Description("size")]
+        size,
+        [System.ComponentModel.Description("isFullyReplicatedLocally")]
+        isFullyReplicatedLocally,
+        [System.ComponentModel.Description("localReplicationRate")]
+        localReplicationRate,
+        [System.ComponentModel.Description("hasCustomMetadata")]
+        hasCustomMetadata,
+        [System.ComponentModel.Description("hasJsonMetadata")]
+        hasJsonMetadata,
+        [System.ComponentModel.Description("jsonMetadata")]
+        jsonMetadata,
+        [System.ComponentModel.Description("xattr")]
+        xattr,
+        [System.ComponentModel.Description("name")]
+        name
+    }
+
+    public static class EnumExtensions
+    {
+        public static string GetDescription(this Enum value)
+        {
+            var field = value.GetType().GetField(value.ToString());
+            var attr = field?.GetCustomAttribute<DescriptionAttribute>();
+            return attr?.Description ?? value.ToString();
         }
     }
 }

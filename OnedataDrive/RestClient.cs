@@ -59,7 +59,7 @@ namespace OnedataDrive
             if (!response.IsSuccessStatusCode)
             {
                 string responseContent = response.Content.ReadAsStringAsync().Result;
-                string errorMsg = $"Url: {url} | Status code: {response.StatusCode} | Response: {responseContent}";
+                string errorMsg = $"Status code: {((int)response.StatusCode)} - {response.StatusCode} | Url: {url} | Response: {responseContent}";
                 HttpRequestException hre = new HttpRequestException(errorMsg, null, response.StatusCode);
                 if (responseContent.Contains("\"errno\":\"enoent\""))
                 {
@@ -469,7 +469,7 @@ namespace OnedataDrive
             throw new Exception("Failed to get FileInfo");
         }
 
-        public static async Task<Stream> GetFileEventStream(List<string> dirIDs, List<ProviderInfo> providerInfos, string spaceId)
+        public static async Task<Stream> GetFileEventStream(List<string> dirIDs, List<ProviderInfo> providerInfos, string spaceId, List<ObservedAttribute> obervedAttr)
         {
             List<Exception> exceptionList = new();
             foreach (ProviderInfo info in providerInfos)
@@ -482,7 +482,7 @@ namespace OnedataDrive
                         + spaceId
                         + "/events/files";
 
-                    List<string> observedAttr = new() { "mtime" };
+                    List<string> observedAttr = obervedAttr.Distinct().Select(attr => attr.GetDescription()).ToList();
                     string json = JsonSerializer.Serialize(
                         new {
                             observedDirectories = dirIDs,
