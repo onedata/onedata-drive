@@ -214,7 +214,7 @@
             // 
             // config_openFileDialog
             // 
-            config_openFileDialog.FileName = "openFileDialog1";
+            config_openFileDialog.FileName = "config";
             config_openFileDialog.Filter = "JSON|*.json";
             // 
             // form_panel

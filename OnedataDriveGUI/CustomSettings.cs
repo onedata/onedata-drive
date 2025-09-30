@@ -44,6 +44,14 @@ namespace OnedataDriveGUI
             get => (bool)this[nameof(OneproviderTokenKeep)];
             set => this[nameof(OneproviderTokenKeep)] = value;
         }
+
+        [UserScopedSetting]
+        [DefaultSettingValue("False")]
+        public bool DisableRefreshCheckbox
+        {
+            get => (bool)this[nameof(DisableRefreshCheckbox)];
+            set => this[nameof(DisableRefreshCheckbox)] = value;
+        }
     }
 
 }

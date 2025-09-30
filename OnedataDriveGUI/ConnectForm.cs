@@ -230,6 +230,9 @@ namespace OnedataDriveGUI
 
         private void loadFromFile_button_Click(object sender, EventArgs e)
         {
+            config_openFileDialog.Filter = "JSON files (*.json)|*.json";
+            config_openFileDialog.FilterIndex = 1;
+            config_openFileDialog.FileName = "config.json";
             if (config_openFileDialog.ShowDialog() == DialogResult.OK)
             {
                 Config config = new();
