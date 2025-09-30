@@ -66,6 +66,7 @@
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
             config_saveFileDialog = new SaveFileDialog();
+            disableRefresh_checkBox = new CheckBox();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             form_panel.SuspendLayout();
@@ -203,7 +204,7 @@
             // loadFromFile_button
             // 
             loadFromFile_button.BackColor = SystemColors.Window;
-            loadFromFile_button.Location = new Point(177, 103);
+            loadFromFile_button.Location = new Point(177, 135);
             loadFromFile_button.Margin = new Padding(2, 3, 2, 3);
             loadFromFile_button.Name = "loadFromFile_button";
             loadFromFile_button.Size = new Size(234, 33);
@@ -280,6 +281,7 @@
             // advanced_panel
             // 
             advanced_panel.BackColor = Color.FromArgb(225, 225, 225);
+            advanced_panel.Controls.Add(disableRefresh_checkBox);
             advanced_panel.Controls.Add(saveToFile_button);
             advanced_panel.Controls.Add(removeSyncRoot_button);
             advanced_panel.Controls.Add(openLogFolder_button);
@@ -292,7 +294,7 @@
             advanced_panel.Dock = DockStyle.Top;
             advanced_panel.Location = new Point(0, 300);
             advanced_panel.Name = "advanced_panel";
-            advanced_panel.Size = new Size(767, 295);
+            advanced_panel.Size = new Size(767, 336);
             advanced_panel.TabIndex = 21;
             advanced_panel.Visible = false;
             advanced_panel.Paint += advanced_panel_paint;
@@ -300,7 +302,7 @@
             // saveToFile_button
             // 
             saveToFile_button.BackColor = SystemColors.Window;
-            saveToFile_button.Location = new Point(177, 151);
+            saveToFile_button.Location = new Point(177, 183);
             saveToFile_button.Margin = new Padding(2, 3, 2, 3);
             saveToFile_button.Name = "saveToFile_button";
             saveToFile_button.Size = new Size(234, 33);
@@ -312,7 +314,7 @@
             // removeSyncRoot_button
             // 
             removeSyncRoot_button.BackColor = SystemColors.Window;
-            removeSyncRoot_button.Location = new Point(177, 247);
+            removeSyncRoot_button.Location = new Point(177, 279);
             removeSyncRoot_button.Margin = new Padding(2, 3, 2, 3);
             removeSyncRoot_button.Name = "removeSyncRoot_button";
             removeSyncRoot_button.Size = new Size(234, 33);
@@ -324,7 +326,7 @@
             // openLogFolder_button
             // 
             openLogFolder_button.BackColor = SystemColors.Window;
-            openLogFolder_button.Location = new Point(177, 199);
+            openLogFolder_button.Location = new Point(177, 231);
             openLogFolder_button.Margin = new Padding(2, 3, 2, 3);
             openLogFolder_button.Name = "openLogFolder_button";
             openLogFolder_button.Size = new Size(234, 33);
@@ -338,7 +340,7 @@
             controls_panel.Controls.Add(connect_button);
             controls_panel.Controls.Add(disconect_button);
             controls_panel.Dock = DockStyle.Top;
-            controls_panel.Location = new Point(0, 595);
+            controls_panel.Location = new Point(0, 636);
             controls_panel.Name = "controls_panel";
             controls_panel.Size = new Size(767, 97);
             controls_panel.TabIndex = 22;
@@ -412,6 +414,17 @@
             // 
             config_saveFileDialog.FileName = "config.json";
             // 
+            // disableRefresh_checkBox
+            // 
+            disableRefresh_checkBox.AutoSize = true;
+            disableRefresh_checkBox.Location = new Point(179, 98);
+            disableRefresh_checkBox.Margin = new Padding(2, 3, 2, 3);
+            disableRefresh_checkBox.Name = "disableRefresh_checkBox";
+            disableRefresh_checkBox.Size = new Size(141, 23);
+            disableRefresh_checkBox.TabIndex = 23;
+            disableRefresh_checkBox.Text = "Disable file refresh";
+            disableRefresh_checkBox.UseVisualStyleBackColor = true;
+            // 
             // ConnectForm
             // 
             AutoScaleDimensions = new SizeF(8F, 19F);
@@ -481,5 +494,6 @@
         private Button removeSyncRoot_button;
         private Button saveToFile_button;
         private SaveFileDialog config_saveFileDialog;
+        private CheckBox disableRefresh_checkBox;
     }
 }

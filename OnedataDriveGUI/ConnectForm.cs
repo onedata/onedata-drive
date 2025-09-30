@@ -39,6 +39,7 @@ namespace OnedataDriveGUI
             rootFolder_textBox.PlaceholderText = defaultRootPath;
             rootFolder_folderBrowserDialog.InitialDirectory = userProfilePath;
             version_label.Text = CloudSync.VERSION;
+            disableRefresh_checkBox.Checked = false;
         }
 
         private void LoadLastConfig()
@@ -49,13 +50,15 @@ namespace OnedataDriveGUI
 
             oneproviderTokenKeep_checkBox.Checked = userSettings.OneproviderTokenKeep;
             rootFolderDelete_checkBox.Checked = userSettings.RootFolderDeleteCheckBox;
+            disableRefresh_checkBox.Checked = userSettings.DisableRefreshCheckbox;
         }
 
         private async Task<CloudSyncReturnCodes> LaunchCloudSyncAsync(Config config)
         {
             CloudSyncReturnCodes status;
 
-            status = await Task.Run(() => CloudSync.Run(config, delete: rootFolderDelete_checkBox.Checked));
+            status = await Task.Run(() => 
+                CloudSync.Run(config, delete: rootFolderDelete_checkBox.Checked, refresh: !disableRefresh_checkBox.Checked));
 
             if (status == CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY && !rootFolderDelete_checkBox.Checked)
             {
@@ -64,7 +67,8 @@ namespace OnedataDriveGUI
                 + " is not empty. Do you want to delete contents of this folder?";
                 if (MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.Yes)
                 {
-                    status = await Task.Run(() => CloudSync.Run(config, delete: true));
+                    status = await Task.Run(() => 
+                        CloudSync.Run(config, delete: true, refresh: !disableRefresh_checkBox.Checked));
                 }
             }
             return status;
@@ -76,6 +80,7 @@ namespace OnedataDriveGUI
             userSettings.Onezone = onezone_comboBox.Text;
             userSettings.RootFolderPath = rootFolder_textBox.Text;
             userSettings.OneproviderTokenKeep = oneproviderTokenKeep_checkBox.Checked;
+            userSettings.DisableRefreshCheckbox = disableRefresh_checkBox.Checked;
             if (oneproviderTokenKeep_checkBox.Checked)
             {
                 userSettings.OneproviderToken = oneproviderToken_textBox.Text;

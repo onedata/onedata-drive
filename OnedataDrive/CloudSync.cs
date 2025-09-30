@@ -14,6 +14,7 @@ namespace OnedataDrive
         public static Dictionary<string, SpaceFolder> spaces = new(); // spaces: KEY is space name
         public static FileWatcher watcher = new();
         public static bool running { get; private set; } = false;
+        public static bool autorefresh { get; private set; } = true;
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public const string VERSION = "0.5.5";
         public const string APP_NAME = "Onedata Drive";
@@ -24,11 +25,14 @@ namespace OnedataDrive
         /// <param name="config">Configuration of CloudSync</param>
         /// <param name="delete">If true, already existing root directory and its contents will be deleted</param>
         /// <returns></returns>
-        public static CloudSyncReturnCodes Run(Config config, bool delete = false)
+        public static CloudSyncReturnCodes Run(Config config, bool delete = false, bool refresh = true)
         {
             logger.Info("CLOUD SYNC: Start Connecting");
 
             configuration = config;
+            autorefresh = refresh;
+            logger.Info($"CLOUD SYNC: Autorefresh - {autorefresh}");
+
             spaces = new();
 
             CloudSyncReturnCodes status = InitSyncRootDir(delete);
@@ -234,7 +238,8 @@ namespace OnedataDrive
 
                                 placeholderAdded = true;
 
-                                spaceFolder = new(spaceName, fileInfo.file_id, space.Key, new ProviderInfo(providerId, providerDomain));
+                                spaceFolder = new(spaceName, fileInfo.file_id, space.Key, 
+                                    new ProviderInfo(providerId, providerDomain), autorefresh);
                             }
                             else
                             {

@@ -16,13 +16,16 @@
             this.providerInfos = new();
         }
 
-        public SpaceFolder(string name, string dirId, string spaceId, ProviderInfo providerInfo)
+        public SpaceFolder(string name, string dirId, string spaceId, ProviderInfo providerInfo, bool autorefresh = true)
         {
             this.name = name;
             this.dirId = dirId;
             this.spaceId = spaceId;
             this.providerInfos = [providerInfo];
-            this.autoRefresh = new AutoRefresh(this);
+            if (autorefresh)
+            {
+                this.autoRefresh = new AutoRefresh(this);
+            }
         }
     }
 
