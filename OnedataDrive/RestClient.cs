@@ -39,6 +39,10 @@ namespace OnedataDrive
                 ZONE_PROTOCOL = HTTPS;
             }
 
+            client = new();
+            clientNoHeaders = new();
+            clientNoTimeout = new();
+
             client.DefaultRequestHeaders.Clear();
             client.DefaultRequestHeaders.Add("x-auth-token", PROVIDER_TOKEN);
 
@@ -56,6 +60,9 @@ namespace OnedataDrive
             client.CancelPendingRequests();
             clientNoHeaders.CancelPendingRequests();
             clientNoTimeout.CancelPendingRequests();
+            client.Dispose();
+            clientNoHeaders.Dispose();
+            clientNoTimeout.Dispose();
             initialized = false;
         }
 
