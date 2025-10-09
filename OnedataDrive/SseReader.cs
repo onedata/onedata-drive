@@ -51,6 +51,7 @@ namespace OnedataDrive
                     else if (line.StartsWith(":"))
                     {
                         // Comment line, ignore
+                        Debug.Print($"SSE READER - IT IS ALIVE - comment: {line}");
                         continue;
                     }
                     else if (line.StartsWith("id:"))
