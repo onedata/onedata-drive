@@ -42,6 +42,48 @@ namespace OnedataDrive.JSON_Object
                 data = fe.data;
             }
         }
+
+        public void Merge(FileEvent updateFrom)
+        {
+            if (this.fileId != updateFrom.fileId)
+            {
+                throw new ArgumentException("Cannot update FileEvent with different fileId");
+            }
+
+            /*
+            if (!string.IsNullOrWhiteSpace(updateFrom.parentFileId)) parentFileId = updateFrom.parentFileId;
+            if (!string.IsNullOrWhiteSpace(updateFrom.eventType)) eventType = updateFrom.eventType;
+
+            data.index = updateFrom.data.index;
+            if (!string.IsNullOrWhiteSpace(updateFrom.data.type)) data.type = updateFrom.data.type;
+            if (!string.IsNullOrWhiteSpace(updateFrom.data.activePermissionsType)) data.activePermissionsType = updateFrom.data.activePermissionsType;
+            if (!string.IsNullOrWhiteSpace(updateFrom.data.posixPermissions)) data.posixPermissions = updateFrom.data.posixPermissions;
+            if (!string.IsNullOrWhiteSpace(updateFrom.data.acl)) data.acl = updateFrom.data.acl;
+            if (!string.IsNullOrWhiteSpace(updateFrom.data.parentFileId)) data.parentFileId = updateFrom.data.parentFileId;
+            if (!string.IsNullOrWhiteSpace(updateFrom.data.originProviderId)) data.originProviderId = updateFrom.data.originProviderId;
+            if (updateFrom.data.directShareIds != null && updateFrom.data.directShareIds.Count > 0) data.directShareIds = updateFrom.data.directShareIds;
+            if (!string.IsNullOrWhiteSpace(updateFrom.data.ownerUserId)) data.ownerUserId = updateFrom.data.ownerUserId;
+            if (!string.IsNullOrWhiteSpace(updateFrom.data.symlinkValue)) data.symlinkValue = updateFrom.data.symlinkValue;
+            if (updateFrom.data.creationTime != 0) data.creationTime = updateFrom.data.creationTime;
+            if (updateFrom.data.atime != 0) data.atime = updateFrom.data.atime;
+            if (updateFrom.data.mtime != 0) data.mtime = updateFrom.data.mtime;
+            if (updateFrom.data.ctime != 0) data.ctime = updateFrom.data.ctime;
+
+
+
+            if (updateFrom.data.size != 0) data.size = updateFrom.data.size;
+            data.isFullyReplicatedLocally = updateFrom.data.isFullyReplicatedLocally;
+            if (updateFrom.data.localReplicationRate != 0.0) data.localReplicationRate = updateFrom.data.localReplicationRate;
+            data.hasCustomMetadata = updateFrom.data.hasCustomMetadata;
+            data.hasJsonMetadata = updateFrom.data.hasJsonMetadata;
+            if (!string.IsNullOrWhiteSpace(updateFrom.data.jsonMetadata)) data.jsonMetadata = updateFrom.data.jsonMetadata;
+            if (updateFrom.data.xattr != null && updateFrom.data.xattr.Count > 0) data.xattr = new Dictionary<string, string>(updateFrom.data.xattr);
+            if (!string.IsNullOrWhiteSpace(updateFrom.data.name)) data.name = updateFrom.data.name;
+
+            // not sure about this
+            if (updateFrom.data.hardlinkCount != 0) data.hardlinkCount = updateFrom.data.hardlinkCount;
+            */
+        }
     }
 
     public class FileEventData

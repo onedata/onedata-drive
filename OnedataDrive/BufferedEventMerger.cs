@@ -34,7 +34,7 @@ namespace OnedataDrive
                 this.expirationUtc = DateTime.UtcNow + new TimeSpan(0, 0, (int)lifespanLength);
             }
 
-            public void UpdateEvent(FileEvent newEvent)
+            public void MergeEvent(FileEvent newEvent)
             {
                 if (this.IsExpired())
                 {
@@ -70,6 +70,12 @@ namespace OnedataDrive
             {
                 return expirationUtc <= DateTime.UtcNow;
             }
+
+            private void Merge(FileEvent newer)
+            {
+                FileEvent updated;
+                
+            }
         }
 
         internal class BufferExpirable
@@ -89,7 +95,7 @@ namespace OnedataDrive
             {
                 if (buffer.TryGetValue(fileEvent.fileId, out FileEventExpirable? fileEventExpirable))
                 {
-                    fileEventExpirable.UpdateEvent(fileEvent);
+                    fileEventExpirable.MergeEvent(fileEvent);
                 }
                 else
                 {
@@ -128,6 +134,7 @@ namespace OnedataDrive
             this.output = output;
             this.eventLifespan = eventLifespan;
             queueReaderTask = Task.Run(() => QueueReader(tokenSource.Token));
+            bufferFlusherTask = Task.Run(() => BufferFlusher(tokenSource.Token));
 
             isRunning = true;
             
@@ -171,7 +178,23 @@ namespace OnedataDrive
         {
             while (!token.IsCancellationRequested)
             {
-                
+                if (bufferExpirable.expirationQueue.TryPeek(out string? id))
+                {
+                    FileEventExpirable fileEvent = bufferExpirable.buffer[id];
+                    if (fileEvent.IsExpired() && !fileEvent.IsLocked())
+                    {
+                        output.AddEvent(fileEvent.fileEvent);
+                        bufferExpirable.PopOldest();
+                    }
+                    else 
+                    {
+                        token.WaitHandle.WaitOne(cyclePeriod);
+                    }
+                }
+                else
+                {
+                    token.WaitHandle.WaitOne(cyclePeriod);
+                }
             }
         }
 
