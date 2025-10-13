@@ -27,11 +27,12 @@ namespace OnedataDrive
             {
                 this.fileEvent = fileEvent;
                 this.expirationUtc = DateTime.UtcNow + new TimeSpan(0, 0, (int)lifespanLength);
+                Debug.Print($"New expirable event: expiration {expirationUtc}, now {DateTime.UtcNow}");
             }
 
             public void MergeEvent(FileEvent newEvent)
             {
-                if (this.IsExpired())
+                if (!this.IsExpired())
                 {
                     if (Monitor.TryEnter(_lock, 0))
                     {
@@ -63,6 +64,7 @@ namespace OnedataDrive
 
             public bool IsExpired()
             {
+                Debug.Print($"Expiration time: {expirationUtc}, now: {DateTime.UtcNow}");
                 return expirationUtc <= DateTime.UtcNow;
             }
         }
@@ -131,6 +133,11 @@ namespace OnedataDrive
 
         public bool isRunning;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="output"></param>
+        /// <param name="eventLifespan">In seconds</param>
         public BufferedEventMerger(EventManager output, uint eventLifespan)
         {
             this.tokenSource = new();
