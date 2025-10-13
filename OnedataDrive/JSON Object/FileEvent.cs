@@ -7,12 +7,21 @@ namespace OnedataDrive.JSON_Object
 {
     public class FileEvent
     {
+        [JsonIgnore]
+        public const string EVENT_CHANGED = "changedOrCreated";
+        [JsonIgnore]
+        public const string EVENT_DELETED = "deleted";
+        [JsonIgnore]
+        public bool isMerged { get; private set; }
+
         public string eventId { get; set; }
         public string eventType { get; set; }
         public string fileId { get; set; }
         public string parentFileId { get; set; }
+
         [JsonPropertyName("attributes")]
         public FileEventData data { get; set; }
+
         [JsonPropertyName("data")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public FileEventData data_alias
@@ -23,6 +32,7 @@ namespace OnedataDrive.JSON_Object
 
         public FileEvent()
         {
+            isMerged = false;
             eventId = string.Empty;
             eventType = string.Empty;
             fileId = string.Empty;
@@ -43,6 +53,11 @@ namespace OnedataDrive.JSON_Object
             }
         }
 
+        /// <summary>
+        /// Merges properties: eventId, eventType, data.size, data.mtime, data.name, data.type
+        /// </summary>
+        /// <param name="updateFrom"></param>
+        /// <exception cref="ArgumentException"></exception>
         public void Merge(FileEvent updateFrom)
         {
             if (this.fileId != updateFrom.fileId)
@@ -50,93 +65,46 @@ namespace OnedataDrive.JSON_Object
                 throw new ArgumentException("Cannot update FileEvent with different fileId");
             }
 
-            /*
-            if (!string.IsNullOrWhiteSpace(updateFrom.parentFileId)) parentFileId = updateFrom.parentFileId;
-            if (!string.IsNullOrWhiteSpace(updateFrom.eventType)) eventType = updateFrom.eventType;
-
-            data.index = updateFrom.data.index;
-            if (!string.IsNullOrWhiteSpace(updateFrom.data.type)) data.type = updateFrom.data.type;
-            if (!string.IsNullOrWhiteSpace(updateFrom.data.activePermissionsType)) data.activePermissionsType = updateFrom.data.activePermissionsType;
-            if (!string.IsNullOrWhiteSpace(updateFrom.data.posixPermissions)) data.posixPermissions = updateFrom.data.posixPermissions;
-            if (!string.IsNullOrWhiteSpace(updateFrom.data.acl)) data.acl = updateFrom.data.acl;
-            if (!string.IsNullOrWhiteSpace(updateFrom.data.parentFileId)) data.parentFileId = updateFrom.data.parentFileId;
-            if (!string.IsNullOrWhiteSpace(updateFrom.data.originProviderId)) data.originProviderId = updateFrom.data.originProviderId;
-            if (updateFrom.data.directShareIds != null && updateFrom.data.directShareIds.Count > 0) data.directShareIds = updateFrom.data.directShareIds;
-            if (!string.IsNullOrWhiteSpace(updateFrom.data.ownerUserId)) data.ownerUserId = updateFrom.data.ownerUserId;
-            if (!string.IsNullOrWhiteSpace(updateFrom.data.symlinkValue)) data.symlinkValue = updateFrom.data.symlinkValue;
-            if (updateFrom.data.creationTime != 0) data.creationTime = updateFrom.data.creationTime;
-            if (updateFrom.data.atime != 0) data.atime = updateFrom.data.atime;
-            if (updateFrom.data.mtime != 0) data.mtime = updateFrom.data.mtime;
-            if (updateFrom.data.ctime != 0) data.ctime = updateFrom.data.ctime;
-
-
-
-            if (updateFrom.data.size != 0) data.size = updateFrom.data.size;
-            data.isFullyReplicatedLocally = updateFrom.data.isFullyReplicatedLocally;
-            if (updateFrom.data.localReplicationRate != 0.0) data.localReplicationRate = updateFrom.data.localReplicationRate;
-            data.hasCustomMetadata = updateFrom.data.hasCustomMetadata;
-            data.hasJsonMetadata = updateFrom.data.hasJsonMetadata;
-            if (!string.IsNullOrWhiteSpace(updateFrom.data.jsonMetadata)) data.jsonMetadata = updateFrom.data.jsonMetadata;
-            if (updateFrom.data.xattr != null && updateFrom.data.xattr.Count > 0) data.xattr = new Dictionary<string, string>(updateFrom.data.xattr);
+            eventId = updateFrom.eventId;
+            if (!string.IsNullOrWhiteSpace(updateFrom.eventType) && updateFrom.eventId == EVENT_DELETED) eventType = updateFrom.eventType;
+            if (updateFrom.data.size != null) data.size = updateFrom.data.size;
+            if (updateFrom.data.mtime != null) data.mtime = updateFrom.data.mtime;
             if (!string.IsNullOrWhiteSpace(updateFrom.data.name)) data.name = updateFrom.data.name;
+            if (!string.IsNullOrWhiteSpace(updateFrom.data.type)) data.type = updateFrom.data.type;
 
-            // not sure about this
-            if (updateFrom.data.hardlinkCount != 0) data.hardlinkCount = updateFrom.data.hardlinkCount;
-            */
+            isMerged = true;
         }
     }
 
     public class FileEventData
     {
-        public long index { get; set; }
-        public string type { get; set; }
-        public string activePermissionsType { get; set; }
-        public string posixPermissions { get; set; }
-        public string acl { get; set; }
-        public string parentFileId { get; set; }
-        public string originProviderId { get; set; }
-        public List<string> directShareIds { get; set; }
-        public string ownerUserId { get; set; }
-        public long hardlinkCount { get; set; }
-        public string symlinkValue { get; set; }
-        public long creationTime { get; set; }
-        public long atime { get; set; }
-        public long mtime { get; set; }
-        public long ctime { get; set; }
-        public long size { get; set; }
-        public bool isFullyReplicatedLocally { get; set; }
-        public double localReplicationRate { get; set; }
-        public bool hasCustomMetadata { get; set; }
-        public bool hasJsonMetadata { get; set; }
-        public string jsonMetadata { get; set; }
-        public Dictionary<string, string> xattr { get; set; }
-        public string name { get; set; }
+        public long? index { get; set; }
+        public string? type { get; set; }
+        public string? activePermissionsType { get; set; }
+        public string? posixPermissions { get; set; }
+        public string? acl { get; set; }
+        public string? parentFileId { get; set; }
+        public string? originProviderId { get; set; }
+        public List<string>? directShareIds { get; set; }
+        public string? ownerUserId { get; set; }
+        public long? hardlinkCount { get; set; }
+        public string? symlinkValue { get; set; }
+        public long? creationTime { get; set; }
+        public long? atime { get; set; }
+        public long? mtime { get; set; }
+        public long? ctime { get; set; }
+        public long? size { get; set; }
+        public bool? isFullyReplicatedLocally { get; set; }
+        public double? localReplicationRate { get; set; }
+        public bool? hasCustomMetadata { get; set; }
+        public bool? hasJsonMetadata { get; set; }
+        public string? jsonMetadata { get; set; }
+        public Dictionary<string, string>? xattr { get; set; }
+        public string? name { get; set; }
 
         public FileEventData()
         {
-            index = 0;
-            type = string.Empty;
-            activePermissionsType = string.Empty;
-            posixPermissions = string.Empty;
-            acl = string.Empty;
-            parentFileId = string.Empty;
-            originProviderId = string.Empty;
-            directShareIds = new List<string>();
-            ownerUserId = string.Empty;
-            hardlinkCount = 0;
-            symlinkValue = string.Empty;
-            creationTime = 0;
-            atime = 0;
-            mtime = 0;
-            ctime = 0;
-            size = 0;
-            isFullyReplicatedLocally = false;
-            localReplicationRate = 0.0;
-            hasCustomMetadata = false;
-            hasJsonMetadata = false;
-            jsonMetadata = string.Empty;
-            xattr = new Dictionary<string, string>();
-            name = string.Empty;
+
         }
     }
 

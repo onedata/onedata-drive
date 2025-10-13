@@ -1,11 +1,6 @@
 ﻿using OnedataDrive.JSON_Object;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OnedataDrive
 {
@@ -42,7 +37,7 @@ namespace OnedataDrive
                     {
                         try
                         {
-                            // update logic here
+                            fileEvent.Merge(newEvent);
                             return;
                         }
                         finally
@@ -70,19 +65,13 @@ namespace OnedataDrive
             {
                 return expirationUtc <= DateTime.UtcNow;
             }
-
-            private void Merge(FileEvent newer)
-            {
-                FileEvent updated;
-                
-            }
         }
 
         internal class BufferExpirable
         {
-            internal ConcurrentDictionary<string, FileEventExpirable> buffer;
-            internal ConcurrentQueue<string> expirationQueue;
-            internal uint eventLifespan;
+            private ConcurrentDictionary<string, FileEventExpirable> buffer;
+            private ConcurrentQueue<string> expirationQueue;
+            public uint eventLifespan { get; private set; }
 
             public BufferExpirable(uint eventLifespan)
             {
@@ -105,20 +94,36 @@ namespace OnedataDrive
                 }
             }
 
-            public FileEvent? PopOldest()
+            public FileEventExpirable? PopOldestExpired()
             {
                 FileEventExpirable? fileEventExpirable = null;
-                if (expirationQueue.TryDequeue(out string? fileId))
-                {
-                    buffer.TryRemove(fileId, out fileEventExpirable);   
+
+                if (expirationQueue.TryPeek(out string? fileId))
+                {   
+                    if (buffer.TryGetValue(fileId, out fileEventExpirable))
+                    {
+                        if (fileEventExpirable.IsExpired() && !fileEventExpirable.IsLocked())
+                        {
+                            expirationQueue.TryDequeue(out _);
+                            buffer.TryRemove(fileId, out fileEventExpirable);
+                        }
+                        else
+                        {
+                            fileEventExpirable = null;
+                        }
+                    }
+                    else
+                    {
+                        expirationQueue.TryDequeue(out _);
+                    }
                 }
-                return fileEventExpirable?.fileEvent;
+                return fileEventExpirable;
             }
         }
 
         private ConcurrentQueue<FileEvent> input;
         private BufferExpirable bufferExpirable;
-        private uint eventLifespan;
+        private readonly uint eventLifespan;
         private CancellationTokenSource tokenSource;
         private EventManager output;
         private Task queueReaderTask;
@@ -178,18 +183,10 @@ namespace OnedataDrive
         {
             while (!token.IsCancellationRequested)
             {
-                if (bufferExpirable.expirationQueue.TryPeek(out string? id))
+                FileEventExpirable? fileEventExpirable = bufferExpirable.PopOldestExpired();
+                if (fileEventExpirable is not null)
                 {
-                    FileEventExpirable fileEvent = bufferExpirable.buffer[id];
-                    if (fileEvent.IsExpired() && !fileEvent.IsLocked())
-                    {
-                        output.AddEvent(fileEvent.fileEvent);
-                        bufferExpirable.PopOldest();
-                    }
-                    else 
-                    {
-                        token.WaitHandle.WaitOne(cyclePeriod);
-                    }
+                    output.AddEvent(fileEventExpirable.fileEvent);
                 }
                 else
                 {
@@ -202,8 +199,8 @@ namespace OnedataDrive
         {
             tokenSource.Cancel();
             queueReaderTask.Wait();
+            bufferFlusherTask.Wait();
             isRunning = false;
-            throw new NotImplementedException();
         }
     }
 }
