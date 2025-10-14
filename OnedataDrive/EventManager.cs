@@ -175,10 +175,12 @@ namespace OnedataDrive
 
                     if (!eventCompleted)
                     {
+                        int penalizeMultiplier = processedEvent.penalizedCount / 3 + 1;
+                        int penaltyTime = 5 * penalizeMultiplier;
+                        processedEvent.Penalize(penaltyTime);
                         logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER",
-                            "Event not processed - re-adding to the queue with penalty",
+                            $"Event not processed - re-adding to the queue with penalty of {penaltyTime}s",
                             filePath: autoRefresh.spaceFolder.name, opID: opID);
-                        processedEvent.Penalize(5);
                     }
                     else
                     {
@@ -204,18 +206,20 @@ namespace OnedataDrive
             {
                 string parentFolder = GetParentFolder(processedEvent.fileEvent);
                 moreInfo.Add($"ParentFolder: {parentFolder}");
-                logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Processing event",
-                    moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
 
                 processedEvent.localFileName = GetFileNameFromId(processedEvent.fileEvent.fileId, parentFolder, out bool directory) ?? string.Empty;
+                moreInfo.Add($"LocalFileName: {processedEvent.localFileName}");
+
                 string filePath = Path.Combine(parentFolder, processedEvent.localFileName ?? string.Empty);
 
                 switch (processedEvent.fileEvent.eventType)
                 {
                     case FileEvent.EVENT_CHANGED:
                         // create
-                        if (filePath == string.Empty)
+                        if (string.IsNullOrWhiteSpace(processedEvent.localFileName))
                         {
+                            logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Processing event - Create new",
+                                moreInfo: moreInfo, opID: opID);
                             List<ProviderInfo> providerInfos = autoRefresh.spaceFolder.providerInfos;
                             FileAttribute attribute = RestClient.GetFileAttribute(processedEvent.fileEvent.fileId, providerInfos).Result;
                             using (PlaceholderCreateInfo createInfo = new())
@@ -235,12 +239,17 @@ namespace OnedataDrive
                         // update
                         else
                         {
-                            UpdatePlaceholderMetadata(processedEvent, filePath, directory);
+                            logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Processing event - Update",
+                                moreInfo: moreInfo, opID: opID);
+                            UpdatePlaceholderMetadata(processedEvent, filePath, directory, opID);
                             eventCompleted = true;
                         }    
                         break;
                     case FileEvent.EVENT_DELETED:
-                        if (filePath == string.Empty)
+                        // delete
+                        logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Processing event - Delete",
+                                moreInfo: moreInfo,opID: opID);
+                        if (string.IsNullOrWhiteSpace(processedEvent.localFileName))
                         {
                             eventCompleted = true;
                         }
@@ -259,10 +268,17 @@ namespace OnedataDrive
                         break;
                     default:
                         logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER",
-                            $"Unknown event type: {processedEvent.fileEvent.eventType}",
+                            $"Unknown event type - Discarding event: {processedEvent.fileEvent.eventType}",
                             moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
+                        eventCompleted = true;
                         break;
                 }
+            }
+            catch (ThreadSafeMonitored.DirectoryNotMonitoredException e)
+            {
+                eventCompleted = true;
+                logFormatter.LogFileOP(LogLevel.Warn, "EVENT MANAGER", "Parent folder not monitored - Unknown parent id - discarding event",
+                    e, moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
             }
             catch (Exception e)
             {
@@ -272,7 +288,7 @@ namespace OnedataDrive
             return eventCompleted;
         }
 
-        private void UpdatePlaceholderMetadata(Event processedEvent, string placeholderPath, bool directory)
+        private void UpdatePlaceholderMetadata(Event processedEvent, string placeholderPath, bool directory, string opID)
         {
             CF_FS_METADATA metadata = new();
             if (processedEvent.fileEvent.data.size is not null) metadata.FileSize = (long)processedEvent.fileEvent.data.size;
@@ -311,30 +327,31 @@ namespace OnedataDrive
                 // rename if needed
                 if (processedEvent.fileEvent.data.name is not null)
                 {
-                    if (PathUtils.GetLastInPath(placeholderPath) != processedEvent.fileEvent.data.name)
+                    string oldName = PathUtils.GetLastInPath(placeholderPath);
+                    string newName = processedEvent.fileEvent.data.name;
+                    if (oldName != newName)
                     {
                         if (directory)
                         {
-                            FileSystem.RenameDirectory(placeholderPath, processedEvent.fileEvent.data.name);
+                            FileSystem.RenameDirectory(placeholderPath, newName);
                         }
                         else
                         {
-                            FileSystem.RenameFile(placeholderPath, processedEvent.fileEvent.data.name);
+                            FileSystem.RenameFile(placeholderPath, newName);
                         }
-                        processedEvent.localFileName = processedEvent.fileEvent.data.name;
-                    }
-                    HRESULT inSyncHres = CfSetInSyncState(handle.DangerousGetHandle(),
+                        processedEvent.localFileName = newName;
+                        HRESULT inSyncHres = CfSetInSyncState(handle.DangerousGetHandle(),
                         CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
-                    if (inSyncHres != HRESULT.S_OK)
-                    {
-                        throw new Exception($"CfSetInSync HRES number: {((int)inSyncHres)}" +
-                            $"\n HRES text: {inSyncHres}");
+                        if (inSyncHres != HRESULT.S_OK)
+                        {
+                            throw new Exception($"CfSetInSync HRES number: {((int)inSyncHres)}" +
+                                $"\n HRES text: {inSyncHres}");
+                        }
+                        List<string> moreInfo = new List<string>() { $"{oldName} -> {newName}" };
+                        logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Placeholder renamed", moreInfo: moreInfo,
+                            opID: opID);
                     }
                 }
-            }
-            catch (Exception)
-            {
-                throw;
             }
             finally
             {
@@ -347,13 +364,31 @@ namespace OnedataDrive
 
         private string GetParentFolder(FileEvent fileEvent)
         {
-            return autoRefresh.monitored
+            ThreadSafeMonitored monitored = autoRefresh.monitored;
+            try
+            {
+                return monitored
                 .First(m => m.id == fileEvent.parentFileId).path;
+            }
+            catch (InvalidOperationException e)
+            {
+                if (!monitored.Any(m => m.id == fileEvent.parentFileId))
+                {
+                    throw new ThreadSafeMonitored.DirectoryNotMonitoredException(
+                        $"Parent folder with id {fileEvent.parentFileId} not found in monitored folders.", e);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            
         }
 
         private List<string> EventMoreInfo(FileEvent fileEvent)
         {
             return new List<string> {
+                $"Merged: {fileEvent.isMerged}",
                 $"EventId: {fileEvent.eventId}",
                 $"EventType: {fileEvent.eventType}",
                 $"FileId: {fileEvent.fileId}",

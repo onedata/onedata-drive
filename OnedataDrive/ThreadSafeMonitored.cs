@@ -5,6 +5,11 @@ namespace OnedataDrive
 {
     internal class ThreadSafeMonitored : ThreadSafeList<AutoRefresh.MonitoredFolder>
     {
+        internal class DirectoryNotMonitoredException : Exception
+        {
+            public DirectoryNotMonitoredException(string message, Exception innerException) : base(message, innerException) { }
+        }
+
         public bool AddToMonitored(string fileId, string path)
         {
             bool added = false;
