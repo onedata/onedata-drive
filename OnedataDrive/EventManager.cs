@@ -3,7 +3,6 @@ using NLog;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
-using System.Security.Cryptography;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
 
@@ -13,7 +12,7 @@ namespace OnedataDrive
     {
         internal FileEvent fileEvent;
         internal DateTime penalizedUntil { get; private set; }
-
+        internal int penalizedCount { get; private set; }
 
         internal string? localFileName;
 
@@ -21,6 +20,7 @@ namespace OnedataDrive
         {
             this.fileEvent = fileEvent;
             this.penalizedUntil = DateTime.MinValue;
+            this.penalizedCount = 0;
 
             this.localFileName = null;
         }
@@ -28,6 +28,7 @@ namespace OnedataDrive
         public void Penalize(int penalty)
         {
             this.penalizedUntil = DateTime.UtcNow + TimeSpan.FromSeconds(penalty);
+            this.penalizedCount += 1;
         }
 
         public bool IsPenalized()
@@ -42,6 +43,9 @@ namespace OnedataDrive
 
     internal class EventManager
     {
+        internal static Logger logger = LogManager.GetCurrentClassLogger();
+        internal static LoggerFormater logFormatter = new(logger);
+
         public ThreadSafeList<Event> events;
         private CancellationTokenSource processingTokenSource;
         private AutoRefresh autoRefresh;
@@ -53,19 +57,19 @@ namespace OnedataDrive
             this.autoRefresh = autoRefresh;
             this.events = new ThreadSafeList<Event>();
             this.processingTask = Task.Run(() => ProcessEvents(processingTokenSource.Token, autoRefresh.spaceFolder.name));
-            AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "CREATED",
+            logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "CREATED",
                 filePath: autoRefresh.spaceFolder.name);
         }
 
         public bool StopProcessing()
         {
-            AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Stop processing",
+            logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Stop processing",
                 filePath: autoRefresh.spaceFolder.name);
             processingTokenSource.Cancel();
             try
             {
                 processingTask.Wait();
-                AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "STOP OK",
+                logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "STOP OK",
                     filePath: autoRefresh.spaceFolder.name);
                 return true;
             }
@@ -75,12 +79,12 @@ namespace OnedataDrive
                 {
                     if (e is TaskCanceledException)
                     {
-                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Warn, "EVENT MANAGER", "stopped/canceled OK",
+                        logFormatter.LogFileOP(LogLevel.Warn, "EVENT MANAGER", "stopped/canceled OK",
                             e, filePath: autoRefresh.spaceFolder.name);
                     }
                     else
                     {
-                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "STOP FAIL",
+                        logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "STOP FAIL",
                             e, filePath: autoRefresh.spaceFolder.name);
                         return false;
                     }
@@ -171,7 +175,7 @@ namespace OnedataDrive
 
                     if (!eventCompleted)
                     {
-                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER",
+                        logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER",
                             "Event not processed - re-adding to the queue with penalty",
                             filePath: autoRefresh.spaceFolder.name, opID: opID);
                         processedEvent.Penalize(5);
@@ -179,7 +183,7 @@ namespace OnedataDrive
                     else
                     {
                         events.RemoveAt(index);
-                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Event processed",
+                        logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Event processed",
                             filePath: autoRefresh.spaceFolder.name, opID: opID);
                     }
                 }
@@ -188,7 +192,7 @@ namespace OnedataDrive
                     cancellationToken.WaitHandle.WaitOne(SLEEP_INTERVAL);
                 }
             }
-            AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Process event stopped",
+            logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Process event stopped",
                         filePath: autoRefresh.spaceFolder.name);
         }
 
@@ -200,7 +204,7 @@ namespace OnedataDrive
             {
                 string parentFolder = GetParentFolder(processedEvent.fileEvent);
                 moreInfo.Add($"ParentFolder: {parentFolder}");
-                AutoRefresh.logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Processing event",
+                logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Processing event",
                     moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
 
                 processedEvent.localFileName = GetFileNameFromId(processedEvent.fileEvent.fileId, parentFolder, out bool directory) ?? string.Empty;
@@ -254,7 +258,7 @@ namespace OnedataDrive
                         }
                         break;
                     default:
-                        AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER",
+                        logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER",
                             $"Unknown event type: {processedEvent.fileEvent.eventType}",
                             moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
                         break;
@@ -262,7 +266,7 @@ namespace OnedataDrive
             }
             catch (Exception e)
             {
-                AutoRefresh.logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "Process event error", e,
+                logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "Process event error", e,
                     filePath: autoRefresh.spaceFolder.name, opID: opID);
             }
             return eventCompleted;

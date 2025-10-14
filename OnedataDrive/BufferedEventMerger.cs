@@ -39,6 +39,7 @@ namespace OnedataDrive
                         try
                         {
                             fileEvent.Merge(newEvent);
+                            Debug.Print("Event merged");
                             return;
                         }
                         finally
