@@ -266,9 +266,7 @@ namespace OnedataDrive
                     string spaceName = PathUtils.GetSpaceName(folderPath);
                     if (CloudSync.spaces.TryGetValue(spaceName, out SpaceFolder? spaceFolder))
                     {
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                        spaceFolder.autoRefresh.AddToMonitored(PathUtils.GetPlaceholderId(folderPath), folderPath);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
+                        spaceFolder.autoRefresh?.AddToMonitored(PathUtils.GetPlaceholderId(folderPath), folderPath);
                         Debug.Print("Added to monitored: {0} - {1}", spaceName, folderPath);
                     }
                     else
