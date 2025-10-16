@@ -8,6 +8,7 @@
         ROOT_FOLDER_NO_ACCESS_RIGHT,
         ONEZONE_FAIL,
         TOKEN_FAIL,
-        INVALID_TOKEN_TYPE
+        INVALID_TOKEN_TYPE,
+        STARTUP_CANCELED,
     }
 }

@@ -199,7 +199,7 @@
             disconect_button.TabIndex = 17;
             disconect_button.Text = "Disconnect";
             disconect_button.UseVisualStyleBackColor = false;
-            disconect_button.Click += disconect_button_Click;
+            disconect_button.Click += disconect_button_ClickAsync;
             // 
             // loadFromFile_button
             // 

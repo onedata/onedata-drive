@@ -35,11 +35,10 @@ namespace OnedataDrive
                     executedSteps.Push(step);
                 }
             }
-            catch (OperationCanceledException ex)
+            catch (Exception ex)
             {
-                Debug.Print("Startup CANCELED: {0}", ex);
-                // Undo in reverse order
-                foreach (var step in executedSteps)
+                Debug.Print("Undo steps.");
+                foreach (Step step in executedSteps)
                 {
                     try
                     {
@@ -51,16 +50,21 @@ namespace OnedataDrive
                         Debug.Print($"Error during undo of step '{step.Name}': {undoEx}");
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                Debug.Print("Startup FAILED: {0}", ex);
+                if (ex is OperationCanceledException)
+                {
+                    Debug.Print("Startup CANCELED: {0}", ex);
+                }
+                else
+                {
+                    Debug.Print("Startup FAILED: {0}", ex);
+                }
                 throw;
             }
+            Debug.Print("Startup SUCCEEDED.");
         }
     }
 
-    internal class Step
+    public class Step
     {
         public required string Name { get; init; }
         public required Func<CancellationToken, Task> Run { get; init; }

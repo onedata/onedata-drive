@@ -57,8 +57,9 @@ namespace OnedataDriveGUI
         {
             CloudSyncReturnCodes status;
 
-            status = await Task.Run(() => 
-                CloudSync.Run(config, delete: rootFolderDelete_checkBox.Checked, refresh: !disableRefresh_checkBox.Checked));
+            config.deleteExistingRootDir = rootFolderDelete_checkBox.Checked;
+            config.enableRefresh = !disableRefresh_checkBox.Checked;
+            status = await CloudSync.RunAsync(config);
 
             if (status == CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY && !rootFolderDelete_checkBox.Checked)
             {
@@ -67,8 +68,8 @@ namespace OnedataDriveGUI
                 + " is not empty. Do you want to delete contents of this folder?";
                 if (MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.Yes)
                 {
-                    status = await Task.Run(() => 
-                        CloudSync.Run(config, delete: true, refresh: !disableRefresh_checkBox.Checked));
+                    config.deleteExistingRootDir = true;
+                    status = await CloudSync.RunAsync(config);
                 }
             }
             return status;
@@ -205,6 +206,9 @@ namespace OnedataDriveGUI
                 case CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY:
                     statusMessage.Text = "Root Folder not empty";
                     break;
+                case CloudSyncReturnCodes.STARTUP_CANCELED:
+                    statusMessage.Text = "Startup Canceled";
+                    break;
                 default:
                     SetDisplayStatus(Status.ERROR);
                     statusMessage.Text = "Unknown Error";
@@ -215,11 +219,11 @@ namespace OnedataDriveGUI
             connectClicked = false;
         }
 
-        private void disconect_button_Click(object sender, EventArgs e)
+        private async void disconect_button_ClickAsync(object sender, EventArgs e)
         {
             SetDisplayStatus(Status.DISCONNECTING);
             statusMessage.Text = "Disconnecting";
-            CloudSync.Stop();
+            await CloudSync.Stop();
             statusMessage.Text = "Disconected";
             SetDisplayStatus(Status.NOT_CONNECTED);
         }

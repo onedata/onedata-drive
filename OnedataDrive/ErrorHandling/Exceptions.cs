@@ -23,7 +23,18 @@
         {
             return "RootFolderNotEmptyException: " + base.ToString();
         }
+    }
 
+    public class RootFolderAcessException : Exception
+    {
+        public RootFolderAcessException() : base() { }
+        public RootFolderAcessException(string message) : base(message) { }
+        public RootFolderAcessException(string message, Exception innerException) : base(message, innerException) { }
+
+        public override string ToString()
+        {
+            return "RootFolderAcessException: " + base.ToString();
+        }
     }
 
     public class JsonReturnedNullException : Exception

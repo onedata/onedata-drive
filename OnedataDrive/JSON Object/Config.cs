@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace OnedataDrive.JSON_Object
 {
@@ -7,6 +8,10 @@ namespace OnedataDrive.JSON_Object
         public string onezone { get; set; } = "";
         public string provider_token { get; set; } = "";
         public string root_path { get; set; } = "";
+        [JsonIgnore]
+        public bool deleteExistingRootDir { get; set; } = false;
+        [JsonIgnore]
+        public bool enableRefresh { get; set; } = true;
 
         public void Init(string path)
         {

@@ -1,6 +1,7 @@
 ﻿using NLog;
 using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
@@ -14,7 +15,8 @@ namespace OnedataDrive
         public static Dictionary<string, SpaceFolder> spaces = new(); // spaces: KEY is space name
         public static FileWatcher watcher = new();
         public static bool running { get; private set; } = false;
-        public static bool autorefresh { get; private set; } = true;
+        private static CancellationTokenSource cts = new();
+        private static Task startupTask = Task.CompletedTask;
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public const string VERSION = "0.5.5";
         public const string APP_NAME = "Onedata Drive";
@@ -25,58 +27,48 @@ namespace OnedataDrive
         /// <param name="config">Configuration of CloudSync</param>
         /// <param name="delete">If true, already existing root directory and its contents will be deleted</param>
         /// <returns></returns>
-        public static CloudSyncReturnCodes Run(Config config, bool delete = false, bool refresh = true)
+        public static async Task<CloudSyncReturnCodes> RunAsync(Config config)
         {
+            cts = new();
             logger.Info("CLOUD SYNC: Start Connecting");
 
             configuration = config;
-            autorefresh = refresh;
-            logger.Info($"CLOUD SYNC: Autorefresh - {autorefresh}");
+            logger.Info($"CLOUD SYNC: Autorefresh - {config.enableRefresh}");
+            logger.Info($"CLOUD SYNC: DeleteExistingRootDir - {config.deleteExistingRootDir}");
 
             spaces = new();
 
-            CloudSyncReturnCodes status = InitSyncRootDir(delete);
-            if (status != CloudSyncReturnCodes.SUCCESS)
-            {
-                return status;
-            }
-            logger.Info("SyncRoot directory -> OK: " + configuration.root_path);
-            
-
+            List<Step> startupSteps = CreateStartupSteps();
+            PipelineRunner runner = new(logger);
+            runner.AddSteps(startupSteps);
             try
             {
-                RestClient.Init(configuration);
-                logger.Info("Init Rest Client -> OK");
-
-                TestTokenAndOnezone();
-                logger.Info("Test Token and Onezone -> OK");
-
-                AddFolderToSearchIndexer(configuration.root_path);
-                logger.Info("Add Folder To Search Indexer -> OK");
-
-                CloudProvider.RegisterWithShell(configuration.root_path);
-                logger.Info("ShellRegister -> OK");
-
-                InitSpaceFolders();
-
-                CloudProvider.ConnectCallbacks(configuration.root_path);
-                logger.Info("ConnectCallbacks -> OK");
-
-                // start file watcher
-                watcher = new(configuration.root_path);
-                logger.Info("Filewatcher Start -> OK");
+                startupTask = runner.RunAsync(cts.Token);
+                await startupTask;
+            }
+            catch (OperationCanceledException e)
+            {
+                logger.Error($"CLOUD SYNC FAIL -> Startup CANCELED, {e}");
+                return CloudSyncReturnCodes.STARTUP_CANCELED;
+            }
+            catch (RootFolderNotEmptyException e)
+            {
+                logger.Error($"CLOUD SYNC FAIL -> Root Folder Not Empty, {e}");
+                return CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY;
+            }
+            catch (RootFolderAcessException e)
+            {
+                logger.Error($"CLOUD SYNC FAIL -> Root Folder - No Access Right, {e}");
+                return CloudSyncReturnCodes.ROOT_FOLDER_NO_ACCESS_RIGHT;
             }
             catch (OnezoneException e)
             {
-                Stop();
-                logger.Error($"CLOUD SYNC FAIL -> Onezone, {e}");
+                logger.Error($"CLOUD SYNC FAIL -> Invalid Onezone, {e}");
                 return CloudSyncReturnCodes.ONEZONE_FAIL;
             }
             catch (ProviderTokenException e)
             {
-                Stop();
                 logger.Error($"CLOUD SYNC FAIL -> Provider Token, {e}");
-
                 if (e is InvalidTokenType)
                 {
                     return CloudSyncReturnCodes.INVALID_TOKEN_TYPE;
@@ -85,33 +77,146 @@ namespace OnedataDrive
             }
             catch (Exception e)
             {
-                Stop();
-                logger.Error($"CLOUD SYNC FAIL, {e}");
+                logger.Error($"CLOUD SYNC FAIL -> Startup, {e}");
                 return CloudSyncReturnCodes.ERROR;
             }
+            
             running = true;
             logger.Info("CLOUD SYNC IS RUNNING");
 
             return CloudSyncReturnCodes.SUCCESS;
         }
 
-        public static void Stop()
+        public static async Task Stop()
         {
-            watcher.Pause();
-            CloudProvider.DisconectCallbacks();
-            logger.Info("Callbacks disconected");
-            CloudProvider.UnregisterSafely();
-            logger.Info("SyncRoot unregistered");
-            RestClient.Stop();
-            logger.Info("Rest client stopped");
-            watcher.Dispose();
-            logger.Info("FileWatcher stopped");
-            foreach (var space in spaces.Values)
+            if (running)
             {
-                space.autoRefresh?.StopMonitoring();
+                TurnOff();
+            }
+            else
+            {
+                cts.Cancel();
+                try
+                {
+                    await startupTask;
+                }
+                catch (Exception)
+                {
+                    // ignore
+                }
+                logger.Info("Startup task canceled");
+                if (running)
+                {
+                    TurnOff();
+                }
             }
             running = false;
             logger.Info("CLOUD SYNC STOPPED");
+        }
+
+        private static void TurnOff()
+        {
+            if (running)
+            {
+                watcher.Pause();
+                CloudProvider.DisconectCallbacks();
+                logger.Info("Callbacks disconected");
+                CloudProvider.UnregisterSafely();
+                logger.Info("SyncRoot unregistered");
+                RestClient.Stop();
+                logger.Info("Rest client stopped");
+                watcher.Dispose();
+                logger.Info("FileWatcher stopped");
+                foreach (var space in spaces.Values)
+                {
+                    space.autoRefresh?.StopMonitoring();
+                }
+            }
+        }
+
+        public static List<Step> CreateStartupSteps()
+        {
+            List<Step> steps = new();
+            steps.Add(new Step { 
+                Name="InitRootDir",
+                Run = (token) => Task.Run(() => { 
+                    InitSyncRootDir(token);
+                    logger.Info("SyncRootDir OK");
+                }),
+                Undo = () => Task.CompletedTask
+            });
+
+            steps.Add(new Step
+            {
+                Name = "InitRestClient",
+                Run = (token) => Task.Run(() => { 
+                    RestClient.Init(configuration);
+                    logger.Info("RestInit OK"); 
+                }),
+                Undo = () => Task.Run(() => RestClient.Stop())
+            });
+
+            steps.Add(new Step
+            {
+                Name = "TestTokenAndOnezone",
+                Run = (token) => Task.Run(() => { 
+                    TestTokenAndOnezone(); 
+                    logger.Info("TestTokenAndOnezone OK"); 
+                }),
+                Undo = () => Task.CompletedTask
+            });
+
+            steps.Add(new Step
+            {
+                Name = "AddFolderToSearchIndexer",
+                Run = (token) => Task.Run(() => { 
+                    AddFolderToSearchIndexer(configuration.root_path); 
+                    logger.Info("AddFolderToSearchIndexer OK");
+                }),
+                Undo = () => Task.CompletedTask
+            });
+
+            steps.Add(new Step
+            {
+                Name = "ShellRegister",
+                Run = (token) => Task.Run(() => { 
+                    CloudProvider.RegisterWithShell(configuration.root_path);
+                    logger.Info("RegisterWithShell OK");
+                }),
+                Undo = () => Task.Run(() => CloudProvider.UnregisterSafely())
+            });
+
+            steps.Add(new Step
+            {
+                Name = "InitSpaceFolders",
+                Run = (token) => Task.Run(() => {
+                    InitSpaceFolders();
+                    logger.Info("InitSpaceFolders OK");
+                }),
+                Undo = () => Task.CompletedTask
+            });
+
+            steps.Add(new Step
+            {
+                Name = "ConnectCallbacks",
+                Run = (token) => Task.Run(() => {
+                    CloudProvider.ConnectCallbacks(configuration.root_path);
+                    logger.Info("ConnectCallbacks OK");
+                }),
+                Undo = () => Task.Run(() => CloudProvider.DisconectCallbacks())
+            });
+
+            steps.Add(new Step
+            {
+                Name = "StartFileWatcher",
+                Run = (token) => Task.Run(() => { 
+                    watcher = new(configuration.root_path);
+                    logger.Info("StartFileWatcher OK");
+                }),
+                Undo = () => Task.Run(() => { watcher.Dispose(); })
+            });
+
+            return steps;
         }
 
         /// <summary>
@@ -239,7 +344,7 @@ namespace OnedataDrive
                                 placeholderAdded = true;
 
                                 spaceFolder = new(spaceName, fileInfo.file_id, space.Key, 
-                                    new ProviderInfo(providerId, providerDomain), autorefresh);
+                                    new ProviderInfo(providerId, providerDomain), configuration.enableRefresh);
                             }
                             else
                             {
@@ -286,11 +391,11 @@ namespace OnedataDrive
             logger.Debug("Placeholders created in dirPath:{0} -> {1} / {2}", path, entriesProcessed, infoArr.Length);
         }
 
-        public static CloudSyncReturnCodes InitSyncRootDir(bool deleteExisting = false)
+        public static void InitSyncRootDir(CancellationToken token)
         {
             try
             {
-                if (deleteExisting && Directory.Exists(configuration.root_path))
+                if (configuration.deleteExistingRootDir && Directory.Exists(configuration.root_path))
                 {
                     Directory.Delete(configuration.root_path, true);
                 }
@@ -302,29 +407,20 @@ namespace OnedataDrive
                 }
 
                 // test root folder permissions
-                File.Create(configuration.root_path + "testingAccess.txt").Close();
-                File.Delete(configuration.root_path + "testingAccess.txt");
+                File.Create(configuration.root_path + "testingAccess").Close();
+                File.Delete(configuration.root_path + "testingAccess");
 
                 if (Directory.EnumerateFileSystemEntries(configuration.root_path).Any())
                 {
                     throw new RootFolderNotEmptyException("SyncRoot Directory must be empty.");
                 }
-                return CloudSyncReturnCodes.SUCCESS;
+                return;
             }
-            catch (Exception e)
+            catch (Exception e) when (e is UnauthorizedAccessException || e is IOException)
             {
-                logger.Error($"Failed to create Root Folder, {e}");
+                logger.Error($"Failed to create Root Folder - acess rights, {e}");
 
-                if (e is RootFolderNotEmptyException)
-                {
-                    return CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY;
-                }
-                if (e is UnauthorizedAccessException || e is IOException)
-                {
-                    return CloudSyncReturnCodes.ROOT_FOLDER_NO_ACCESS_RIGHT;
-                }
-
-                return CloudSyncReturnCodes.ERROR;
+                throw new RootFolderAcessException("Insufficiend acess rights", e);
             }
         }
     }
