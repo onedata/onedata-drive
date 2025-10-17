@@ -20,6 +20,7 @@ namespace OnedataDrive
         private static LoggerFormater loggerFormater = new(logger);
         public const string ID = @"TestStorageProvider";
         public const string ACCOUNT = @"TestAccount";
+        public static List<Task> fetchDataTasks = new();
 
         public static void RegisterWithShell(string folderPath)
         {
@@ -319,15 +320,52 @@ namespace OnedataDrive
             return;
         }
 
+        public class FetchDataCallback
+        {
+            public CF_CONNECTION_KEY connectionKey;
+            public CF_TRANSFER_KEY transferKey;
+            public string fileIdentity;
+            public uint fileIdentityLength;
+            public string volumeDosName;
+            public string normalizedPath;
+            public long fileSize;
+            public string filePath;
+            public FetchDataCallback(in CF_CALLBACK_INFO callbackInfo, in CF_CALLBACK_PARAMETERS callbackParameters)
+            {
+                this.connectionKey = callbackInfo.ConnectionKey;
+                this.transferKey = callbackInfo.TransferKey;
+                this.fileIdentityLength = callbackInfo.FileIdentityLength;
+                if (this.fileIdentityLength > 0)
+                {
+                    this.fileIdentity = Marshal.PtrToStringAuto(callbackInfo.FileIdentity, (int)callbackInfo.FileIdentityLength / 2) ?? "";
+                }
+                else
+                {
+                    this.fileIdentity = "";
+                }
+                this.volumeDosName = callbackInfo.VolumeDosName;
+                this.normalizedPath = callbackInfo.NormalizedPath;
+                this.fileSize = callbackInfo.FileSize;
+                this.filePath = this.volumeDosName + this.normalizedPath;
+            }
+        }
+
         public static void OnFetchData(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH DATA", "START");
+            FetchDataCallback localCallback = new(CallbackInfo, CallbackParameters);
+            fetchDataTasks.Add(Task.Run(() => FetchDataAsync(localCallback)));
+            Debug.Print("FETCH CALLBACK EXITED");
+        }
+
+        public static void FetchDataAsync(FetchDataCallback callback)
+        {
+            PrintInfo(callback, LogLevel.Info, "FETCH DATA", "START");
 
             CF_OPERATION_INFO oi = new()
             {
                 Type = CF_OPERATION_TYPE.CF_OPERATION_TYPE_TRANSFER_DATA,
-                ConnectionKey = CallbackInfo.ConnectionKey,
-                TransferKey = CallbackInfo.TransferKey
+                ConnectionKey = callback.connectionKey,
+                TransferKey = callback.transferKey
             };
             oi.StructSize = (uint)Marshal.SizeOf(oi);
 
@@ -337,21 +375,21 @@ namespace OnedataDrive
 
             try
             {
-                string fileIdentity = Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int)CallbackInfo.FileIdentityLength / 2) ?? "";
-                SpaceFolder space = CloudSync.spaces[PathUtils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath)];
+                string fileIdentity = callback.fileIdentity;
+                SpaceFolder space = CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)];
 
                 var taskInfo = RestClient.GetFileAttribute(fileIdentity, space.providerInfos);
                 taskInfo.Wait();
                 FileAttribute fileInfo = taskInfo.Result;
-                if (fileInfo.size != CallbackInfo.FileSize)
+                if (fileInfo.size != callback.fileSize)
                 {
                     throw new Exception("Size of cloud file does not match local file size. Try to refresh placeholders (R)");
                     // TODO: update placeholder, so operation runs OK
                 }
 
                 Task<Stream> taskData = RestClient.GetStream(
-                    CloudSync.spaces[PathUtils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath)].providerInfos,
-                    Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int)CallbackInfo.FileIdentityLength / 2) ?? ""
+                    CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)].providerInfos,
+                    callback.fileIdentity
                     );
                 taskData.Wait();
 
@@ -376,7 +414,7 @@ namespace OnedataDrive
                 {
                     read = stream.Read(buffer, 0, CHUNK);
 
-                    while (read != CHUNK && read + offset < CallbackInfo.FileSize)
+                    while (read != CHUNK && read + offset < callback.fileSize)
                     {
                         read += stream.Read(buffer, read, CHUNK - read);
                     }
@@ -390,7 +428,7 @@ namespace OnedataDrive
 
                     op = CF_OPERATION_PARAMETERS.Create(td);
 
-                    CfReportProviderProgress(CallbackInfo.ConnectionKey, CallbackInfo.TransferKey, CallbackInfo.FileSize, offset);
+                    CfReportProviderProgress(callback.connectionKey, callback.transferKey, callback.fileSize, offset);
 
                     HRESULT hres = CfExecute(oi, ref op);
                     if (hres != HRESULT.S_OK)
@@ -398,7 +436,7 @@ namespace OnedataDrive
                         throw new Exception($"Fetch data CfExecute FAIL - HRES: {hres}");
                     }
                 } while (read == CHUNK);
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info,"FETCH DATA", "OK");
+                PrintInfo(callback, LogLevel.Info, "FETCH DATA", "OK");
 
             }
             catch (AggregateException e)
@@ -427,10 +465,9 @@ namespace OnedataDrive
                     ex = new Exception($"CfExecute Stop operation HRES: {hres}", e);
                 }
 
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Warn, "FETCH DATA", "FAIL - No such file", ex);
+                PrintInfo(callback, LogLevel.Warn, "FETCH DATA", "FAIL - No such file", ex);
 
-                //Thread.Sleep(1000);
-                File.Delete(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath);
+                File.Delete(callback.filePath);
             }
             catch (Exception e)
             {
@@ -454,7 +491,7 @@ namespace OnedataDrive
                     e = new Exception($"CfExecute Stop operation HRES: {hres}", e);
                 }
 
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "FETCH DATA", "FAIL", e);
+                PrintInfo(callback, LogLevel.Error, "FETCH DATA", "FAIL", e);
             }
             finally
             {
@@ -733,33 +770,28 @@ namespace OnedataDrive
 
         private static void PrintInfo(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Debug);
+            FetchDataCallback callback = new(CallbackInfo, CallbackParameters);
+            PrintInfo(callback, LogLevel.Debug);
+        }
+
+        private static void PrintInfo(FetchDataCallback callback)
+        {
+            PrintInfo(callback, LogLevel.Debug);
         }
 
         private static void PrintInfo(
             in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters, LogLevel logLevel,
             string method = "unknown", string status = "", Exception? exception = null, List<string>? moreInfo = null, string opID = "")
         {
-            /*
-            string msg = $"{method}\t {status}\n\tFile path: {CallbackInfo.NormalizedPath}";
+            FetchDataCallback callback = new(CallbackInfo, CallbackParameters);
+            PrintInfo(callback, logLevel, method, status, exception, moreInfo, opID);
+        }
 
-            if (moreInfo is not null && moreInfo.Count > 0)
-            {
-                foreach (string info in moreInfo) 
-                { 
-                    msg += $"\n\t{info}";
-                }
-            }
-
-            if (exception is not null)
-            {
-                msg += $"\n\t{exception}";
-            }
-            logger.Log(logLevel, msg);
-            */
-
-
-            string filePath = Path.Join(CallbackInfo.VolumeDosName, CallbackInfo.NormalizedPath);
+        private static void PrintInfo(
+            FetchDataCallback callback, LogLevel logLevel,
+            string method = "unknown", string status = "", Exception? exception = null, List<string>? moreInfo = null, string opID = "")
+        {
+            string filePath = Path.Join(callback.volumeDosName, callback.normalizedPath);
             if (exception is null && moreInfo is null)
             {
                 loggerFormater.LogFileOP(logLevel, method, status, filePath: filePath, opID: opID);
@@ -776,8 +808,6 @@ namespace OnedataDrive
             {
                 loggerFormater.LogFileOP(logLevel, method, status, moreInfo, filePath: filePath, opID: opID);
             }
-
-
         }
     }
 }

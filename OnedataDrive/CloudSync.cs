@@ -137,11 +137,23 @@ namespace OnedataDrive
         public static List<Step> CreateStartupSteps()
         {
             List<Step> steps = new();
-            steps.Add(new Step { 
-                Name="InitRootDir",
-                Run = (token) => Task.Run(() => { 
+
+            steps.Add(new Step
+            {
+                Name = "InitRootDir",
+                Run = (token) => Task.Run(() => {
                     InitSyncRootDir(token);
                     logger.Info("SyncRootDir OK");
+                }),
+                Undo = () => Task.CompletedTask
+            });
+
+            steps.Add(new Step
+            {
+                Name = "AddFolderToSearchIndexer",
+                Run = (token) => Task.Run(() => {
+                    AddFolderToSearchIndexer(configuration.root_path);
+                    logger.Info("AddFolderToSearchIndexer OK");
                 }),
                 Undo = () => Task.CompletedTask
             });
@@ -168,18 +180,8 @@ namespace OnedataDrive
 
             steps.Add(new Step
             {
-                Name = "AddFolderToSearchIndexer",
-                Run = (token) => Task.Run(() => { 
-                    AddFolderToSearchIndexer(configuration.root_path); 
-                    logger.Info("AddFolderToSearchIndexer OK");
-                }),
-                Undo = () => Task.CompletedTask
-            });
-
-            steps.Add(new Step
-            {
                 Name = "ShellRegister",
-                Run = (token) => Task.Run(() => { 
+                Run = (token) => Task.Run(() => {
                     CloudProvider.RegisterWithShell(configuration.root_path);
                     logger.Info("RegisterWithShell OK");
                 }),
