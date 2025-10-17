@@ -81,9 +81,9 @@ namespace OnedataDrive
             }
         }
 
-        private static async Task<T> OnedataGet<T>(string url)
+        private static async Task<T> OnedataGet<T>(string url, CancellationToken token = default)
         {
-            var response = await client.GetAsync(url);
+            var response = await client.GetAsync(url, token);
 
             HandleFailedStatucCode(response, url);
 
@@ -165,7 +165,7 @@ namespace OnedataDrive
         /// No headers client
 
 
-        public static async Task<TokenAccess> InferAccessTokenScope()
+        public static async Task<TokenAccess> InferAccessTokenScope(CancellationToken token)
         {
             string url = ZONE_PROTOCOL
                 + ZONE_HOST
@@ -176,7 +176,7 @@ namespace OnedataDrive
             content.Headers.Clear();
             content.Headers.Add("Content-Type", "application/json");
 
-            var response = await clientNoHeaders.PostAsync(url, content);
+            var response = await clientNoHeaders.PostAsync(url, content, token);
 
             response.EnsureSuccessStatusCode();
 
@@ -184,7 +184,7 @@ namespace OnedataDrive
              throw new JsonReturnedNullException();
         }
 
-        public static async Task<TokenExamine> ExamineToken()
+        public static async Task<TokenExamine> ExamineToken(CancellationToken token)
         {
             string url = ZONE_PROTOCOL
                 + ZONE_HOST
@@ -195,7 +195,7 @@ namespace OnedataDrive
             content.Headers.Clear();
             content.Headers.Add("Content-Type", "application/json");
 
-            var response = await clientNoHeaders.PostAsync(url, content);
+            var response = await clientNoHeaders.PostAsync(url, content, token);
 
             response.EnsureSuccessStatusCode();
 
@@ -436,13 +436,13 @@ namespace OnedataDrive
             return encoded;
         }
 
-        public static async Task<FileAttribute> GetFileAttribute(string fileId, string providerDomain)
+        public static async Task<FileAttribute> GetFileAttribute(string fileId, string providerDomain, CancellationToken token)
         {
             string url = "https://"
                         + providerDomain
                         + "/api/v3/oneprovider/data/"
                         + fileId;
-            return await OnedataGet<FileAttribute>(url);
+            return await OnedataGet<FileAttribute>(url, token);
         }
 
         public static async Task<FileAttribute> GetFileAttribute(string fileId, List<ProviderInfo> providerInfos)

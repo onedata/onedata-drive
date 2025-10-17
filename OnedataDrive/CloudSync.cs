@@ -160,7 +160,7 @@ namespace OnedataDrive
             {
                 Name = "TestTokenAndOnezone",
                 Run = (token) => Task.Run(() => { 
-                    TestTokenAndOnezone(); 
+                    TestTokenAndOnezone(token); 
                     logger.Info("TestTokenAndOnezone OK"); 
                 }),
                 Undo = () => Task.CompletedTask
@@ -190,7 +190,7 @@ namespace OnedataDrive
             {
                 Name = "InitSpaceFolders",
                 Run = (token) => Task.Run(() => {
-                    InitSpaceFolders();
+                    InitSpaceFolders(token);
                     logger.Info("InitSpaceFolders OK");
                 }),
                 Undo = () => Task.CompletedTask
@@ -248,9 +248,9 @@ namespace OnedataDrive
             return 0;
         }
 
-        private static void TestTokenValidity()
+        private static void TestTokenValidity(CancellationToken token)
         {
-            var task = RestClient.ExamineToken();
+            var task = RestClient.ExamineToken(token);
             task.Wait();
             TokenExamine te = task.Result;
             if (!te.isRestInterface())
@@ -259,17 +259,17 @@ namespace OnedataDrive
             }
         }
 
-        private static void TestTokenAndOnezone()
+        private static void TestTokenAndOnezone(CancellationToken token)
         {
-            InferTokenAccess();
-            TestTokenValidity();
+            InferTokenAccess(token);
+            TestTokenValidity(token);
         }
 
-        public static TokenAccess InferTokenAccess()
+        public static TokenAccess InferTokenAccess(CancellationToken token)
         {
             try
             {
-                var taskTA = RestClient.InferAccessTokenScope();
+                var taskTA = RestClient.InferAccessTokenScope(token);
                 taskTA.Wait();
                 return taskTA.Result;
             }
@@ -292,12 +292,12 @@ namespace OnedataDrive
             }
         }
 
-        public static void InitSpaceFolders()
+        public static void InitSpaceFolders(CancellationToken token)
         {
             logger.Info("CREATING SPACE FOLDERS");
             using (PlaceholderCreateInfo info = new())
             {
-                TokenAccess tokenAccess = InferTokenAccess();
+                TokenAccess tokenAccess = InferTokenAccess(token);
                 logger.Info("Available spaces: " 
                     + String.Join(" | " ,tokenAccess.dataAccessScope.spaces.Values.Select(o => o.name)));
 
@@ -313,6 +313,10 @@ namespace OnedataDrive
                     // KEY is providerId
                     foreach (KeyValuePair<string, Support> support in space.Value.supports)
                     {
+                        if (token.IsCancellationRequested)
+                        {
+                            throw new OperationCanceledException(token);
+                        }
                         string providerDomain = tokenAccess.dataAccessScope.providers[support.Key].domain;
                         string providerId = support.Key;
                         bool online = tokenAccess.dataAccessScope.providers[support.Key].online;
@@ -328,7 +332,7 @@ namespace OnedataDrive
                             {
                                 string dirId = space.Key;
 
-                                var task5 = RestClient.GetFileAttribute(dirId, providerDomain);
+                                var task5 = RestClient.GetFileAttribute(dirId, providerDomain, token);
                                 task5.Wait();
                                 FileAttribute fileInfo = task5.Result;
 
