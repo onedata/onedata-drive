@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
+using System.Threading.Tasks;
 using Vanara.PInvoke;
 using Windows.Security.Cryptography;
 using Windows.Storage;
@@ -20,7 +21,7 @@ namespace OnedataDrive
         private static LoggerFormater loggerFormater = new(logger);
         public const string ID = @"TestStorageProvider";
         public const string ACCOUNT = @"TestAccount";
-        public static List<Task> fetchDataTasks = new();
+        public static List<(Task fetchTask, CancellationTokenSource cancellation)> fetchDataTasks = new();
 
         public static void RegisterWithShell(string folderPath)
         {
@@ -353,11 +354,14 @@ namespace OnedataDrive
         public static void OnFetchData(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
             FetchDataCallback localCallback = new(CallbackInfo, CallbackParameters);
-            fetchDataTasks.Add(Task.Run(() => FetchDataAsync(localCallback)));
+            CancellationTokenSource cts = new();
+            Task fetchTask = Task.Run(() => FetchDataAsync(localCallback, cts.Token));
+            (Task, CancellationTokenSource) taskCtsPair = (fetchTask, cts);
+            fetchDataTasks.Add(taskCtsPair);
             Debug.Print("FETCH CALLBACK EXITED");
         }
 
-        public static void FetchDataAsync(FetchDataCallback callback)
+        public static async Task FetchDataAsync(FetchDataCallback callback, CancellationToken token)
         {
             PrintInfo(callback, LogLevel.Info, "FETCH DATA", "START");
 
@@ -393,59 +397,63 @@ namespace OnedataDrive
                     );
                 taskData.Wait();
 
-                Stream stream = taskData.Result;
-
-                const int CHUNK = 4096 * 4;
-                unmanagedPointer = Marshal.AllocHGlobal(CHUNK);
-                byte[] buffer = new byte[CHUNK];
-                int read;
-                int offset = 0;
-
-                td = new()
+                using (Stream stream = taskData.Result)
                 {
-                    CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_SUCCESS),
-                    Buffer = unmanagedPointer,
-                    Offset = 0,
-                    Length = 0,
-                    Flags = CF_OPERATION_TRANSFER_DATA_FLAGS.CF_OPERATION_TRANSFER_DATA_FLAG_NONE
-                };
+                    const int CHUNK = 4096 * 4;
+                    unmanagedPointer = Marshal.AllocHGlobal(CHUNK);
+                    byte[] buffer = new byte[CHUNK];
+                    int read;
+                    int offset = 0;
 
-                do
-                {
-                    read = stream.Read(buffer, 0, CHUNK);
-
-                    while (read != CHUNK && read + offset < callback.fileSize)
+                    td = new()
                     {
-                        read += stream.Read(buffer, read, CHUNK - read);
-                    }
+                        CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_SUCCESS),
+                        Buffer = unmanagedPointer,
+                        Offset = 0,
+                        Length = 0,
+                        Flags = CF_OPERATION_TRANSFER_DATA_FLAGS.CF_OPERATION_TRANSFER_DATA_FLAG_NONE
+                    };
 
-                    Marshal.Copy(buffer, 0, unmanagedPointer, read);
+                    CancellationTokenSource cts = new();
 
-                    td.Length = read;
-                    td.Offset = offset;
-
-                    offset += read;
-
-                    op = CF_OPERATION_PARAMETERS.Create(td);
-
-                    CfReportProviderProgress(callback.connectionKey, callback.transferKey, callback.fileSize, offset);
-
-                    HRESULT hres = CfExecute(oi, ref op);
-                    if (hres != HRESULT.S_OK)
+                    do
                     {
-                        throw new Exception($"Fetch data CfExecute FAIL - HRES: {hres}");
-                    }
-                } while (read == CHUNK);
-                PrintInfo(callback, LogLevel.Info, "FETCH DATA", "OK");
+                        read = await stream.ReadAsync(buffer, 0, CHUNK, cts.Token);
+                        if (read == 0)
+                        {
+                            Debug.Print("Fetch Data - End of stream");
+                        }
 
-            }
-            catch (AggregateException e)
-            {
-                if (e.InnerException is not NoSuchCloudFile)
-                {
-                    throw;
+                        while (read < CHUNK && (read + offset) < callback.fileSize)
+                        {
+                            Debug.Print("Fetch Data - not enough has been read - read some more");
+                            read += await stream.ReadAsync(buffer, read, CHUNK - read);
+                        }
+
+                        Marshal.Copy(buffer, 0, unmanagedPointer, read);
+
+                        td.Length = read;
+                        td.Offset = offset;
+
+                        offset += read;
+
+                        op = CF_OPERATION_PARAMETERS.Create(td);
+
+                        CfReportProviderProgress(callback.connectionKey, callback.transferKey, callback.fileSize, offset);
+
+                        HRESULT hres = CfExecute(oi, ref op);
+                        if (hres != HRESULT.S_OK)
+                        {
+                            cts.Cancel();
+                            throw new Exception($"Fetch data CfExecute FAIL - HRES: {hres}");
+                        }
+
+                    } while (read == CHUNK);
                 }
-
+                PrintInfo(callback, LogLevel.Info, "FETCH DATA", "OK");
+            }
+            catch (AggregateException e) when (e.InnerException is NoSuchCloudFile)
+            {
                 td = new()
                 {
                     CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_NOT_A_CLOUD_FILE),
@@ -501,7 +509,9 @@ namespace OnedataDrive
 
         public static void OnCancelFetchData(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            // (not needed)
+            // match it with running fetch tasks and cancel it
+            // either match using transferKey or custom connection context
+
             Debug.Print("OnCancelFetchData - not implemented (why do I see this?)");
             return;
         }
