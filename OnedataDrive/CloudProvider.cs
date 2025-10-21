@@ -22,6 +22,7 @@ namespace OnedataDrive
         public const string ID = @"TestStorageProvider";
         public const string ACCOUNT = @"TestAccount";
         public static List<(Task fetchTask, CancellationTokenSource cancellation)> fetchDataTasks = new();
+        public static PlaceholderDataFetcher placeholderDataFetcher = new PlaceholderDataFetcher();
 
         public static void RegisterWithShell(string folderPath)
         {
@@ -321,189 +322,15 @@ namespace OnedataDrive
             return;
         }
 
-        public class FetchDataCallback
-        {
-            public CF_CONNECTION_KEY connectionKey;
-            public CF_TRANSFER_KEY transferKey;
-            public string fileIdentity;
-            public uint fileIdentityLength;
-            public string volumeDosName;
-            public string normalizedPath;
-            public long fileSize;
-            public string filePath;
-            public FetchDataCallback(in CF_CALLBACK_INFO callbackInfo, in CF_CALLBACK_PARAMETERS callbackParameters)
-            {
-                this.connectionKey = callbackInfo.ConnectionKey;
-                this.transferKey = callbackInfo.TransferKey;
-                this.fileIdentityLength = callbackInfo.FileIdentityLength;
-                if (this.fileIdentityLength > 0)
-                {
-                    this.fileIdentity = Marshal.PtrToStringAuto(callbackInfo.FileIdentity, (int)callbackInfo.FileIdentityLength / 2) ?? "";
-                }
-                else
-                {
-                    this.fileIdentity = "";
-                }
-                this.volumeDosName = callbackInfo.VolumeDosName;
-                this.normalizedPath = callbackInfo.NormalizedPath;
-                this.fileSize = callbackInfo.FileSize;
-                this.filePath = this.volumeDosName + this.normalizedPath;
-            }
-        }
+        
 
         public static void OnFetchData(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
             FetchDataCallback localCallback = new(CallbackInfo, CallbackParameters);
-            CancellationTokenSource cts = new();
-            Task fetchTask = Task.Run(() => FetchDataAsync(localCallback, cts.Token));
-            (Task, CancellationTokenSource) taskCtsPair = (fetchTask, cts);
-            fetchDataTasks.Add(taskCtsPair);
-            Debug.Print("FETCH CALLBACK EXITED");
+            placeholderDataFetcher.FetchData(localCallback);
         }
 
-        public static async Task FetchDataAsync(FetchDataCallback callback, CancellationToken token)
-        {
-            PrintInfo(callback, LogLevel.Info, "FETCH DATA", "START");
-
-            CF_OPERATION_INFO oi = new()
-            {
-                Type = CF_OPERATION_TYPE.CF_OPERATION_TYPE_TRANSFER_DATA,
-                ConnectionKey = callback.connectionKey,
-                TransferKey = callback.transferKey
-            };
-            oi.StructSize = (uint)Marshal.SizeOf(oi);
-
-            IntPtr unmanagedPointer = IntPtr.Zero;
-            CF_OPERATION_PARAMETERS.TRANSFERDATA td;
-            CF_OPERATION_PARAMETERS op;
-
-            try
-            {
-                string fileIdentity = callback.fileIdentity;
-                SpaceFolder space = CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)];
-
-                var taskInfo = RestClient.GetFileAttribute(fileIdentity, space.providerInfos, token);
-                taskInfo.Wait();
-                FileAttribute fileInfo = taskInfo.Result;
-                if (fileInfo.size != callback.fileSize)
-                {
-                    throw new Exception("Size of cloud file does not match local file size. Try to refresh placeholders (R)");
-                    // TODO: update placeholder, so operation runs OK
-                }
-
-                Task<Stream> taskData = RestClient.GetStream(
-                    CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)].providerInfos,
-                    callback.fileIdentity
-                    );
-                taskData.Wait();
-
-                using (LivelinessChcecker livelinessChcecker = new(4000, turnOffWhenDead: false))
-                using (Stream stream = taskData.Result)
-                {
-                    const int CHUNK = 4096 * 4;
-                    unmanagedPointer = Marshal.AllocHGlobal(CHUNK);
-                    byte[] buffer = new byte[CHUNK];
-                    int read;
-                    int offset = 0;
-
-                    td = new()
-                    {
-                        CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_SUCCESS),
-                        Buffer = unmanagedPointer,
-                        Offset = 0,
-                        Length = 0,
-                        Flags = CF_OPERATION_TRANSFER_DATA_FLAGS.CF_OPERATION_TRANSFER_DATA_FLAG_NONE
-                    };
-
-                    livelinessChcecker.Start();
-                    do
-                    {
-                        read = 0;
-                        do
-                        {
-                            read += await stream.ReadAsync(buffer, read, CHUNK - read);
-                            if (read == 0)
-                            {
-                                Debug.Print("Fetch Data - End of stream");
-                            }
-                            livelinessChcecker.IamAlive();
-                        } while (read < CHUNK && (read + offset) < callback.fileSize);
-
-                            Marshal.Copy(buffer, 0, unmanagedPointer, read);
-
-                        td.Length = read;
-                        td.Offset = offset;
-
-                        offset += read;
-
-                        op = CF_OPERATION_PARAMETERS.Create(td);
-
-                        CfReportProviderProgress(callback.connectionKey, callback.transferKey, callback.fileSize, offset);
-
-                        HRESULT hres = CfExecute(oi, ref op);
-                        if (hres != HRESULT.S_OK)
-                        {
-                            throw new Exception($"Fetch data CfExecute FAIL - HRES: {hres}");
-                        }
-
-                    } while (read == CHUNK);
-                }
-                PrintInfo(callback, LogLevel.Info, "FETCH DATA", "OK");
-            }
-            catch (AggregateException e) when (e.InnerException is NoSuchCloudFile)
-            {
-                td = new()
-                {
-                    CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_NOT_A_CLOUD_FILE),
-                    Buffer = unmanagedPointer,
-                    Offset = 0,
-                    Length = 4096,
-                    Flags = CF_OPERATION_TRANSFER_DATA_FLAGS.CF_OPERATION_TRANSFER_DATA_FLAG_NONE
-                };
-
-                op = CF_OPERATION_PARAMETERS.Create(td);
-
-                HRESULT hres = CfExecute(oi, ref op);
-
-                Exception ex = e;
-                if (hres != HRESULT.S_OK)
-                {
-                    ex = new Exception($"CfExecute Stop operation HRES: {hres}", e);
-                }
-
-                PrintInfo(callback, LogLevel.Warn, "FETCH DATA", "FAIL - No such file", ex);
-
-                File.Delete(callback.filePath);
-            }
-            catch (Exception e)
-            {
-                // TODO: CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED) - seems to be wrong
-                // It does not terminate fetch request (copy window does not close)
-                // UPDATE: it seems that "Length" must contain n*4096, where n >= 1, otherwise CfExecute fails
-                td = new()
-                {
-                    CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_UNSUCCESSFUL),
-                    Buffer = 0,
-                    Offset = 0,
-                    Length = 4096,
-                    Flags = CF_OPERATION_TRANSFER_DATA_FLAGS.CF_OPERATION_TRANSFER_DATA_FLAG_NONE
-                };
-
-                op = CF_OPERATION_PARAMETERS.Create(td);
-
-                HRESULT hres = CfExecute(oi, ref op);
-                if (hres != HRESULT.S_OK)
-                {
-                    e = new Exception($"CfExecute Stop operation HRES: {hres}", e);
-                }
-
-                PrintInfo(callback, LogLevel.Error, "FETCH DATA", "FAIL", e);
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(unmanagedPointer);
-            }
-        }
+        
 
         public static void OnCancelFetchData(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
@@ -776,18 +603,18 @@ namespace OnedataDrive
             return;
         }
 
-        private static void PrintInfo(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
+        public static void PrintInfo(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
             FetchDataCallback callback = new(CallbackInfo, CallbackParameters);
             PrintInfo(callback, LogLevel.Debug);
         }
 
-        private static void PrintInfo(FetchDataCallback callback)
+        public static void PrintInfo(FetchDataCallback callback)
         {
             PrintInfo(callback, LogLevel.Debug);
         }
 
-        private static void PrintInfo(
+        public static void PrintInfo(
             in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters, LogLevel logLevel,
             string method = "unknown", string status = "", Exception? exception = null, List<string>? moreInfo = null, string opID = "")
         {
@@ -795,7 +622,7 @@ namespace OnedataDrive
             PrintInfo(callback, logLevel, method, status, exception, moreInfo, opID);
         }
 
-        private static void PrintInfo(
+        public static void PrintInfo(
             FetchDataCallback callback, LogLevel logLevel,
             string method = "unknown", string status = "", Exception? exception = null, List<string>? moreInfo = null, string opID = "")
         {
