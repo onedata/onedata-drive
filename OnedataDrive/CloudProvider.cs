@@ -382,7 +382,7 @@ namespace OnedataDrive
                 string fileIdentity = callback.fileIdentity;
                 SpaceFolder space = CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)];
 
-                var taskInfo = RestClient.GetFileAttribute(fileIdentity, space.providerInfos);
+                var taskInfo = RestClient.GetFileAttribute(fileIdentity, space.providerInfos, token);
                 taskInfo.Wait();
                 FileAttribute fileInfo = taskInfo.Result;
                 if (fileInfo.size != callback.fileSize)
@@ -397,6 +397,7 @@ namespace OnedataDrive
                     );
                 taskData.Wait();
 
+                using (LivelinessChcecker livelinessChcecker = new(4000, turnOffWhenDead: false))
                 using (Stream stream = taskData.Result)
                 {
                     const int CHUNK = 4096 * 4;
@@ -414,23 +415,21 @@ namespace OnedataDrive
                         Flags = CF_OPERATION_TRANSFER_DATA_FLAGS.CF_OPERATION_TRANSFER_DATA_FLAG_NONE
                     };
 
-                    CancellationTokenSource cts = new();
-
+                    livelinessChcecker.Start();
                     do
                     {
-                        read = await stream.ReadAsync(buffer, 0, CHUNK, cts.Token);
-                        if (read == 0)
+                        read = 0;
+                        do
                         {
-                            Debug.Print("Fetch Data - End of stream");
-                        }
-
-                        while (read < CHUNK && (read + offset) < callback.fileSize)
-                        {
-                            Debug.Print("Fetch Data - not enough has been read - read some more");
                             read += await stream.ReadAsync(buffer, read, CHUNK - read);
-                        }
+                            if (read == 0)
+                            {
+                                Debug.Print("Fetch Data - End of stream");
+                            }
+                            livelinessChcecker.IamAlive();
+                        } while (read < CHUNK && (read + offset) < callback.fileSize);
 
-                        Marshal.Copy(buffer, 0, unmanagedPointer, read);
+                            Marshal.Copy(buffer, 0, unmanagedPointer, read);
 
                         td.Length = read;
                         td.Offset = offset;
@@ -444,7 +443,6 @@ namespace OnedataDrive
                         HRESULT hres = CfExecute(oi, ref op);
                         if (hres != HRESULT.S_OK)
                         {
-                            cts.Cancel();
                             throw new Exception($"Fetch data CfExecute FAIL - HRES: {hres}");
                         }
 

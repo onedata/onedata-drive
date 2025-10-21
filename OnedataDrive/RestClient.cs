@@ -436,7 +436,7 @@ namespace OnedataDrive
             return encoded;
         }
 
-        public static async Task<FileAttribute> GetFileAttribute(string fileId, string providerDomain, CancellationToken token)
+        public static async Task<FileAttribute> GetFileAttribute(string fileId, string providerDomain, CancellationToken token = default)
         {
             string url = "https://"
                         + providerDomain
@@ -445,7 +445,7 @@ namespace OnedataDrive
             return await OnedataGet<FileAttribute>(url, token);
         }
 
-        public static async Task<FileAttribute> GetFileAttribute(string fileId, List<ProviderInfo> providerInfos)
+        public static async Task<FileAttribute> GetFileAttribute(string fileId, List<ProviderInfo> providerInfos, CancellationToken token = default)
         {
             foreach (ProviderInfo info in providerInfos)
             {
@@ -455,7 +455,7 @@ namespace OnedataDrive
                         + info.providerDomain
                         + "/api/v3/oneprovider/data/"
                         + fileId;
-                    return await OnedataGet<FileAttribute>(url);
+                    return await OnedataGet<FileAttribute>(url, token);
                 }
                 catch (NoSuchCloudFile)
                 {
