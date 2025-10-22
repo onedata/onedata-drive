@@ -105,9 +105,9 @@ namespace OnedataDrive
             return await response.Content.ReadAsByteArrayAsync();
         }
 
-        private static async Task<Stream> OnedataGetStream(string url)
+        private static async Task<Stream> OnedataGetStream(string url, CancellationToken token)
         {
-            var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
             HandleFailedStatucCode(response, url);
 
             response.EnsureSuccessStatusCode();
@@ -274,14 +274,14 @@ namespace OnedataDrive
             throw new Exception("Failed to get response");
         }
 
-        public static async Task<Stream> GetStream(List<ProviderInfo> providerInfos, string fileId)
+        public static async Task<Stream> GetStream(List<ProviderInfo> providerInfos, string fileId, CancellationToken token = default)
         {
             foreach (ProviderInfo info in providerInfos)
             {
                 try
                 {
                     string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId + "/content";
-                    return await OnedataGetStream(url);
+                    return await OnedataGetStream(url, token);
                 }
                 catch (NoSuchCloudFile)
                 {

@@ -69,6 +69,14 @@ namespace OnedataDrive
             }
         }
 
+        public bool Remove(T item)
+        {
+            lock (_lock)
+            {
+                return _list.Remove(item);
+            }
+        }
+
         public bool Any(Func<T, bool> predicate)
         {
             lock (_lock)
@@ -90,6 +98,14 @@ namespace OnedataDrive
             lock (_lock)
             {
                 return _list.First(predicate);
+            }
+        }
+
+        public List<T> FindAll(Func<T, bool> predicate)
+        {
+            lock (_lock)
+            {
+                return _list.FindAll(new Predicate<T>(predicate));
             }
         }
 

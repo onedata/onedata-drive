@@ -2,36 +2,32 @@
 using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
 
 namespace OnedataDrive
 {
-    public class PlaceholderDataFetcher
+    public class PlaceholderDataFetcher : IDisposable
     {
-        internal List<RunningTask> runningFetch;
+        private ThreadSafeList<RunningTask> runningTasks;
         private CancellationTokenSource masterTokenSource;
         public PlaceholderDataFetcher()
         {
-            this.runningFetch = new();
+            this.runningTasks = new();
             this.masterTokenSource = new();
         }
         public void FetchData(FetchDataCallback callback)
         {
-            CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(masterTokenSource.Token);
-            Task fetchTask = FetchDataAsync(callback, cts.Token);
-        }
-        private async Task FetchDataAsync(FetchDataCallback callback, CancellationToken token)
-        {
             string opID = IdGenerator.GenerateId8();
-
+            CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(masterTokenSource.Token);
+            RunningTask runningTask = new(FetchDataType.FETCH_DATA, callback, Task.CompletedTask, cts, opID);
+            runningTasks.Add(runningTask);
+            runningTask.task = FetchDataAsync(callback, cts.Token, runningTask, opID);
+        }
+        private async Task FetchDataAsync(FetchDataCallback callback, CancellationToken token, RunningTask thisTask, string opID)
+        {
             CloudProvider.PrintInfo(callback, LogLevel.Info, "FETCH DATA", "START", opID: opID);
 
             CF_OPERATION_INFO oi = new()
@@ -51,23 +47,17 @@ namespace OnedataDrive
                 string fileIdentity = callback.fileIdentity;
                 SpaceFolder space = CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)];
 
-                var taskInfo = RestClient.GetFileAttribute(fileIdentity, space.providerInfos, token);
-                taskInfo.Wait();
-                FileAttribute fileInfo = taskInfo.Result;
+                FileAttribute fileInfo = await RestClient.GetFileAttribute(fileIdentity, space.providerInfos, token);
                 if (fileInfo.size != callback.fileSize)
                 {
                     throw new Exception("Size of cloud file does not match local file size. Try to refresh placeholders (R)");
                     // TODO: update placeholder, so operation runs OK
                 }
-
-                Task<Stream> taskData = RestClient.GetStream(
-                    CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)].providerInfos,
-                    callback.fileIdentity
-                    );
-                taskData.Wait();
-                //////////////
                 using (LivelinessChcecker livelinessChcecker = new(10 * 1000, turnOffWhenDead: false))
-                using (Stream stream = taskData.Result)
+                using (Stream stream = await RestClient.GetStream(
+                    CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)].providerInfos,
+                    callback.fileIdentity,
+                    token))
                 {
                     const int CHUNK = 4096 * 4;
                     unmanagedPointer = Marshal.AllocHGlobal(CHUNK);
@@ -116,6 +106,10 @@ namespace OnedataDrive
                     } while (offset < (callback.offset + callback.length));
                 }
                 CloudProvider.PrintInfo(callback, LogLevel.Info, "FETCH DATA", "OK", opID:opID);
+            }
+            catch (Exception e) when (e is AggregateException && e.InnerException is OperationCanceledException || e is OperationCanceledException)
+            {
+
             }
             catch (AggregateException e) when (e.InnerException is NoSuchCloudFile)
             {
@@ -169,12 +163,40 @@ namespace OnedataDrive
             finally
             {
                 Marshal.FreeHGlobal(unmanagedPointer);
+                bool removed = runningTasks.Remove(thisTask);
+                Debug.Print("Task {0} removed from list: {1}", opID, removed);
             }
         }
 
         public void CancelFetchData(FetchDataCallback callback)
         {
+            string opID = IdGenerator.GenerateId8();
+            CancelFetchDataAsync(callback, opID);
+        }
 
+        private async void CancelFetchDataAsync(FetchDataCallback callback, string opID)
+        {
+            Debug.Print("Cancel fetch - START");
+            await Task.Run(() => { 
+                long cancelStart = callback.offset;
+                long cancelEnd = callback.offset + callback.length;
+
+                List<RunningTask> terminateList = runningTasks.FindAll(
+                    x => x.callback.normalizedPath == callback.normalizedPath
+                    && x.callback.offset >= cancelStart
+                    && (x.callback.offset + x.callback.length) <= cancelEnd);
+
+                foreach (RunningTask task in terminateList)
+                {
+                    task.Cancel();
+                }
+            });
+            Debug.Print("Cancel fetch - END");
+        }
+
+        public void Dispose()
+        {
+            masterTokenSource.Cancel();
         }
     }
 
@@ -190,17 +212,33 @@ namespace OnedataDrive
         }
     }
 
+    internal enum FetchDataType
+    {
+        FETCH_DATA,
+        CANCEL_FETCH_DATA
+    }
+
     internal class RunningTask
     {
+        internal FetchDataType type;
         internal FetchDataCallback callback;
         internal Task task;
         internal CancellationTokenSource taskCancelation;
+        internal string opID;
 
-        internal RunningTask(FetchDataCallback callback, Task task, CancellationTokenSource taskCancelation)
+        internal RunningTask(FetchDataType type, FetchDataCallback callback, Task task, CancellationTokenSource taskCancelation, string opID)
         {
+            this.type = type;
             this.callback = callback;
             this.task = task;
             this.taskCancelation = taskCancelation;
+            this.opID = opID;
+            this.opID = opID;
+        }
+
+        internal void Cancel()
+        {
+            taskCancelation.Cancel();
         }
     }
 }

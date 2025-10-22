@@ -1,12 +1,10 @@
 ﻿using NLog;
 using OnedataDrive.ErrorHandling;
-using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
-using System.Threading.Tasks;
 using Vanara.PInvoke;
 using Windows.Security.Cryptography;
 using Windows.Storage;
@@ -334,11 +332,8 @@ namespace OnedataDrive
 
         public static void OnCancelFetchData(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            // match it with running fetch tasks and cancel it
-            // either match using transferKey or custom connection context
-
-            Debug.Print("OnCancelFetchData - not implemented (why do I see this?)");
-            return;
+            FetchDataCallback callback = new(CallbackInfo, CallbackParameters);
+            placeholderDataFetcher.CancelFetchData(callback);
         }
 
         public static void OnDelete(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
