@@ -105,6 +105,28 @@ namespace OnedataDrive
             return await response.Content.ReadAsByteArrayAsync();
         }
 
+        private static async Task<Stream> OnedataGetStream(string url, CancellationToken token, long startByte, long endByte)
+        {
+            if (startByte < 0 || endByte < 0)
+            {
+                throw new ArgumentException("Start byte or End byte is negative");
+            }
+            if (startByte >= endByte)
+            {
+                throw new ArgumentException("Start byte is bigger than end byte");
+            }
+            string byteRange = $"bytes={startByte}-{endByte}";
+            HttpRequestMessage requestMsg = new(HttpMethod.Get, url);
+            requestMsg.Headers.Add("Range", byteRange);
+            
+            //var response = await client.SendAsync(requestMsg, token);
+            var response = await client.SendAsync(requestMsg, HttpCompletionOption.ResponseHeadersRead, token);
+            HandleFailedStatucCode(response, url);
+
+            response.EnsureSuccessStatusCode();
+            return response.Content.ReadAsStream();
+        }
+
         private static async Task<Stream> OnedataGetStream(string url, CancellationToken token)
         {
             var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
@@ -274,14 +296,22 @@ namespace OnedataDrive
             throw new Exception("Failed to get response");
         }
 
-        public static async Task<Stream> GetStream(List<ProviderInfo> providerInfos, string fileId, CancellationToken token = default)
+        public static async Task<Stream> GetStream(List<ProviderInfo> providerInfos, string fileId,
+            CancellationToken token = default, long? startByte = null, long? endByte = null)
         {
             foreach (ProviderInfo info in providerInfos)
             {
                 try
                 {
                     string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId + "/content";
-                    return await OnedataGetStream(url, token);
+                    if (startByte is null || endByte is null)
+                    {
+                        return await OnedataGetStream(url, token);
+                    }
+                    else
+                    {
+                        return await OnedataGetStream(url, token, startByte ?? -1, endByte ?? -1);
+                    }  
                 }
                 catch (NoSuchCloudFile)
                 {

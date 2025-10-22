@@ -137,7 +137,7 @@ namespace OnedataDrive
         public static List<Step> CreateStartupSteps()
         {
             List<Step> steps = new();
-
+            
             steps.Add(new Step
             {
                 Name = "InitRootDir",
@@ -147,7 +147,7 @@ namespace OnedataDrive
                 }),
                 Undo = () => Task.CompletedTask
             });
-
+            
             steps.Add(new Step
             {
                 Name = "AddFolderToSearchIndexer",

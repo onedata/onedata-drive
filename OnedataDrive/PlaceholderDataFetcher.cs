@@ -57,7 +57,9 @@ namespace OnedataDrive
                 using (Stream stream = await RestClient.GetStream(
                     CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)].providerInfos,
                     callback.fileIdentity,
-                    token))
+                    token,
+                    callback.offset,
+                    callback.offset + callback.length - 1))
                 {
                     const int CHUNK = 4096 * 4;
                     unmanagedPointer = Marshal.AllocHGlobal(CHUNK);
@@ -85,7 +87,7 @@ namespace OnedataDrive
                                 throw new Exception("Fetch Data - End of stream");
                             }
                             livelinessChcecker.IamAlive();
-                        } while (read < CHUNK && (read + offset) < (callback.offset + callback.length));
+                        } while (read < CHUNK && (read + offset) < (callback.offset + callback.length) && !token.IsCancellationRequested);
 
                         Marshal.Copy(buffer, 0, unmanagedPointer, read);
 
@@ -103,13 +105,14 @@ namespace OnedataDrive
                         {
                             throw new Exception($"Fetch data CfExecute FAIL - HRES: {hres}");
                         }
-                    } while (offset < (callback.offset + callback.length));
+                        callback.alreadyFetchedOffset = offset;
+                    } while (offset < (callback.offset + callback.length) && !token.IsCancellationRequested);
+                }
+                if (token.IsCancellationRequested)
+                {
+                    throw new OperationCanceledException();
                 }
                 CloudProvider.PrintInfo(callback, LogLevel.Info, "FETCH DATA", "OK", opID:opID);
-            }
-            catch (Exception e) when (e is AggregateException && e.InnerException is OperationCanceledException || e is OperationCanceledException)
-            {
-
             }
             catch (AggregateException e) when (e.InnerException is NoSuchCloudFile)
             {
@@ -138,6 +141,10 @@ namespace OnedataDrive
             }
             catch (Exception e)
             {
+                if (e is OperationCanceledException)
+                {
+                    Debug.Print("OperationCanceledException - opID: {0}", opID);
+                }
                 // TODO: CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED) - seems to be wrong
                 // It does not terminate fetch request (copy window does not close)
                 // UPDATE: it seems that "Length" must contain n*4096, where n >= 1, otherwise CfExecute fails
@@ -183,11 +190,12 @@ namespace OnedataDrive
 
                 List<RunningTask> terminateList = runningTasks.FindAll(
                     x => x.callback.normalizedPath == callback.normalizedPath
-                    && x.callback.offset >= cancelStart
+                    && x.callback.alreadyFetchedOffset >= cancelStart
                     && (x.callback.offset + x.callback.length) <= cancelEnd);
 
                 foreach (RunningTask task in terminateList)
                 {
+                    Debug.Print("Task canceled - opID: {0}", task.opID);
                     task.Cancel();
                 }
             });
@@ -204,11 +212,13 @@ namespace OnedataDrive
     {
         public long offset;
         public long length;
+        public long alreadyFetchedOffset;
         public FetchDataCallback(in CF_CALLBACK_INFO callbackInfo, in CF_CALLBACK_PARAMETERS callbackParameters) 
             : base(callbackInfo, callbackParameters)
         {
             this.offset = callbackParameters.FetchData.RequiredFileOffset;
             this.length = callbackParameters.FetchData.RequiredLength;
+            this.alreadyFetchedOffset = 0;
         }
     }
 
