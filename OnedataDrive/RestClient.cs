@@ -14,7 +14,6 @@ namespace OnedataDrive
         public static string ZONE_HOST = "";
         public static string ZONE_PROTOCOL = "";
         private static HttpClient client = new();
-        private static HttpClient clientNoHeaders = new();
         private static HttpClient clientNoTimeout = new();
         private const string HTTP = "http://";
         private const string HTTPS = "https://";
@@ -40,17 +39,11 @@ namespace OnedataDrive
             }
 
             client = new();
-            clientNoHeaders = new();
-            clientNoTimeout = new();
-
             client.DefaultRequestHeaders.Clear();
-            client.DefaultRequestHeaders.Add("x-auth-token", PROVIDER_TOKEN);
 
+            clientNoTimeout = new();
             clientNoTimeout.DefaultRequestHeaders.Clear();
-            clientNoTimeout.DefaultRequestHeaders.Add("x-auth-token", PROVIDER_TOKEN);
             clientNoTimeout.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
-
-            clientNoHeaders.DefaultRequestHeaders.Clear();
 
             initialized = true;
         }
@@ -58,12 +51,15 @@ namespace OnedataDrive
         public static void Stop()
         {
             client.CancelPendingRequests();
-            clientNoHeaders.CancelPendingRequests();
             clientNoTimeout.CancelPendingRequests();
             client.Dispose();
-            clientNoHeaders.Dispose();
             clientNoTimeout.Dispose();
             initialized = false;
+        }
+
+        private static void AddDefaultHeaders(HttpRequestMessage msg)
+        {
+            msg.Headers.Add("x-auth-token", PROVIDER_TOKEN);
         }
 
         private static void HandleFailedStatucCode(HttpResponseMessage response, string url)
@@ -79,15 +75,16 @@ namespace OnedataDrive
                 }
                 throw hre;
             }
+            response.EnsureSuccessStatusCode();
         }
 
         private static async Task<T> OnedataGet<T>(string url, CancellationToken token = default)
         {
-            var response = await client.GetAsync(url, token);
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+            AddDefaultHeaders(request);
 
+            var response = await client.SendAsync(request, token);
             HandleFailedStatucCode(response, url);
-
-            response.EnsureSuccessStatusCode();
 
             T? data = JsonSerializer.Deserialize<T>(response.Content.ReadAsStream());
             response.Dispose();
@@ -95,96 +92,94 @@ namespace OnedataDrive
                 throw new JsonReturnedNullException("URL: " + url);
         }
 
-        private static async Task<byte[]> OnedataGetByteArr(string url)
+        private static async Task<byte[]> OnedataGetByteArr(string url, CancellationToken token = default)
         {
-            var response = await client.GetAsync(url);
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+            AddDefaultHeaders(request);
 
+            var response = await client.SendAsync(request, token);
             HandleFailedStatucCode(response, url);
 
-            response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsByteArrayAsync();
         }
 
-        private static async Task<Stream> OnedataGetStream(string url, CancellationToken token, long startByte, long endByte)
+        private static async Task<Stream> OnedataGetStream(string url, long startByte, long endByte, CancellationToken token = default)
         {
             if (startByte < 0 || endByte < 0)
             {
                 throw new ArgumentException("Start byte or End byte is negative");
             }
-            if (startByte >= endByte)
+            if (startByte > endByte)
             {
                 throw new ArgumentException("Start byte is bigger than end byte");
             }
             string byteRange = $"bytes={startByte}-{endByte}";
-            HttpRequestMessage requestMsg = new(HttpMethod.Get, url);
-            requestMsg.Headers.Add("Range", byteRange);
+            HttpRequestMessage request = new(HttpMethod.Get, url);
+            AddDefaultHeaders(request);
+            request.Headers.Add("Range", byteRange);
             
-            //var response = await client.SendAsync(requestMsg, token);
-            var response = await client.SendAsync(requestMsg, HttpCompletionOption.ResponseHeadersRead, token);
+            var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
             HandleFailedStatucCode(response, url);
 
             response.EnsureSuccessStatusCode();
             return response.Content.ReadAsStream();
         }
 
-        private static async Task<Stream> OnedataGetStream(string url, CancellationToken token)
+        private static async Task<Stream> OnedataGetStream(string url, CancellationToken token = default)
         {
-            var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+            AddDefaultHeaders(request);
+
+            var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
             HandleFailedStatucCode(response, url);
 
             response.EnsureSuccessStatusCode();
             return response.Content.ReadAsStream();
         }
 
-        private static async Task OnedataDelete(string url)
+        private static async Task OnedataDelete(string url, CancellationToken token = default)
         {
-            var response = await client.DeleteAsync(url);
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, url);
+            AddDefaultHeaders(request);
+
+            var response = await client.SendAsync(request, token);
             HandleFailedStatucCode(response, url);
 
             response.EnsureSuccessStatusCode();
             return;
         }
 
-        private static async Task<T> OnedataPost<T>(string url, HttpContent? content)
+        private static async Task<T> OnedataPost<T>(string url, HttpContent? content, CancellationToken token = default)
         {
-            HttpRequestMessage RequestMsg = new(HttpMethod.Post, url)
+            HttpRequestMessage request = new(HttpMethod.Post, url)
             {
                 Content = content
             };
+            AddDefaultHeaders(request);
 
-            var response = await client.SendAsync(RequestMsg);
+            var response = await client.SendAsync(request, token);
             HandleFailedStatucCode(response, url);
 
-            response.EnsureSuccessStatusCode();
             return JsonSerializer.Deserialize<T>(response.Content.ReadAsStream()) ??
              throw new JsonReturnedNullException();
         }
 
-        private static async Task OnedataPut(string url, HttpContent content)
+        private static async Task OnedataPut(string url, HttpContent content, CancellationToken token = default)
         {
-            HttpRequestMessage RequestMsg = new(HttpMethod.Put, url)
+            HttpRequestMessage request = new(HttpMethod.Put, url)
             {
                 Content = content
             };
+            AddDefaultHeaders(request);
 
-            var response = await client.SendAsync(RequestMsg);
+            var response = await client.SendAsync(request, token);
             HandleFailedStatucCode(response, url);
 
-            response.EnsureSuccessStatusCode();
             return;
         }
 
-        private static async Task<string> OnedataGetString(string url)
-        {
-            var response = await client.GetAsync(url);
-            HandleFailedStatucCode(response, url);
-
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStringAsync();
-        }
-
         /////////////////////////////////////////////////////////////////////////////
-        /// No headers client
+        /// No auth token in headers
 
 
         public static async Task<TokenAccess> InferAccessTokenScope(CancellationToken token)
@@ -198,9 +193,8 @@ namespace OnedataDrive
             content.Headers.Clear();
             content.Headers.Add("Content-Type", "application/json");
 
-            var response = await clientNoHeaders.PostAsync(url, content, token);
-
-            response.EnsureSuccessStatusCode();
+            var response = await client.PostAsync(url, content, token);
+            HandleFailedStatucCode(response, url);
 
             return JsonSerializer.Deserialize<TokenAccess>(response.Content.ReadAsStream()) ??
              throw new JsonReturnedNullException();
@@ -217,12 +211,66 @@ namespace OnedataDrive
             content.Headers.Clear();
             content.Headers.Add("Content-Type", "application/json");
 
-            var response = await clientNoHeaders.PostAsync(url, content, token);
-
-            response.EnsureSuccessStatusCode();
+            var response = await client.PostAsync(url, content, token);
+            HandleFailedStatucCode(response, url);
 
             return JsonSerializer.Deserialize<TokenExamine>(response.Content.ReadAsStream()) ??
              throw new JsonReturnedNullException();
+        }
+
+        /////////////////////////////////////////////////////////////////////////////
+        /// No Timeout client
+
+        private static async Task<Stream> OnedataPostStream(string url, HttpContent? content, CancellationToken token = default)
+        {
+            HttpRequestMessage request = new(HttpMethod.Post, url)
+            {
+                Content = content
+            };
+            AddDefaultHeaders(request);
+            var response = await clientNoTimeout.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+            HandleFailedStatucCode(response, url);
+
+            return await response.Content.ReadAsStreamAsync();
+        }
+
+        public static async Task<Stream> GetFileEventStream(List<string> dirIDs, List<ProviderInfo> providerInfos, string spaceId, List<ObservedAttribute> obervedAttr, CancellationToken token = default)
+        {
+            List<Exception> exceptionList = new();
+            foreach (ProviderInfo info in providerInfos)
+            {
+                try
+                {
+                    string url = "https://"
+                        + info.providerDomain
+                        + "/api/v3/oneprovider/spaces/"
+                        + spaceId
+                        + "/events/files";
+
+                    List<string> observedAttr = obervedAttr.Distinct().Select(attr => attr.GetDescription()).ToList();
+                    string json = JsonSerializer.Serialize(
+                        new
+                        {
+                            observedDirectories = dirIDs,
+                            observedAttributes = observedAttr
+                        }
+                        );
+
+                    StringContent content = new StringContent(json, mediaType: new MediaTypeHeaderValue("application/json"));
+
+                    return await OnedataPostStream(url, content, token);
+                }
+                catch (NoSuchCloudFile)
+                {
+                    throw;
+                }
+                catch (HttpRequestException e)
+                {
+                    Debug.Print("HERE:", e.HttpRequestError.ToString());
+                    exceptionList.Add(e);
+                }
+            }
+            throw new AggregateException("Failed to Get File Event Stream.", exceptionList);
         }
 
         /////////////////////////////////////////////////////////////////////////////
@@ -310,7 +358,7 @@ namespace OnedataDrive
                     }
                     else
                     {
-                        return await OnedataGetStream(url, token, startByte ?? -1, endByte ?? -1);
+                        return await OnedataGetStream(url, startByte ?? -1, endByte ?? -1, token);
                     }  
                 }
                 catch (NoSuchCloudFile)
@@ -497,61 +545,6 @@ namespace OnedataDrive
                 }
             }
             throw new Exception("Failed to get FileInfo");
-        }
-
-        /////////////////////////////////////////////////////////////////////////////
-        /// No Timeout client
-
-        private static async Task<Stream> OnedataPostStream(string url, HttpContent? content)
-        {
-            HttpRequestMessage RequestMsg = new(HttpMethod.Post, url)
-            {
-                Content = content
-            };
-            var response = await clientNoTimeout.SendAsync(RequestMsg, HttpCompletionOption.ResponseHeadersRead);
-
-            HandleFailedStatucCode(response, url);
-
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStreamAsync();
-        }
-
-        public static async Task<Stream> GetFileEventStream(List<string> dirIDs, List<ProviderInfo> providerInfos, string spaceId, List<ObservedAttribute> obervedAttr)
-        {
-            List<Exception> exceptionList = new();
-            foreach (ProviderInfo info in providerInfos)
-            {
-                try
-                {
-                    string url = "https://"
-                        + info.providerDomain
-                        + "/api/v3/oneprovider/spaces/"
-                        + spaceId
-                        + "/events/files";
-
-                    List<string> observedAttr = obervedAttr.Distinct().Select(attr => attr.GetDescription()).ToList();
-                    string json = JsonSerializer.Serialize(
-                        new {
-                            observedDirectories = dirIDs,
-                            observedAttributes = observedAttr
-                        }
-                        );
-
-                    StringContent content = new StringContent(json, mediaType: new MediaTypeHeaderValue("application/json"));
-
-                    return await OnedataPostStream(url, content);
-                }
-                catch (NoSuchCloudFile)
-                {
-                    throw;
-                }
-                catch (HttpRequestException e)
-                {
-                    Debug.Print("HERE:", e.HttpRequestError.ToString());
-                    exceptionList.Add(e);
-                }
-            }
-            throw new AggregateException("Failed to Get File Event Stream.", exceptionList);
         }
     }
 }
