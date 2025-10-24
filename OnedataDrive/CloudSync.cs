@@ -137,17 +137,18 @@ namespace OnedataDrive
         public static List<Step> CreateStartupSteps()
         {
             List<Step> steps = new();
-            
+
             steps.Add(new Step
             {
                 Name = "InitRootDir",
-                Run = (token) => Task.Run(() => {
+                Run = (token) => Task.Run(() =>
+                {
                     InitSyncRootDir(token);
                     logger.Info("SyncRootDir OK");
                 }),
                 Undo = () => Task.CompletedTask
             });
-            
+
             steps.Add(new Step
             {
                 Name = "AddFolderToSearchIndexer",

@@ -1,10 +1,12 @@
 ﻿using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Web;
+using Vanara.PInvoke;
 
 namespace OnedataDrive
 {
@@ -67,7 +69,8 @@ namespace OnedataDrive
             if (!response.IsSuccessStatusCode)
             {
                 string responseContent = response.Content.ReadAsStringAsync().Result;
-                string errorMsg = $"Status code: {((int)response.StatusCode)} - {response.StatusCode} | Url: {url} | Response: {responseContent}";
+                string errorMsg = $"Status code: {((int)response.StatusCode)} - {response.StatusCode} | " +
+                    $"Url: {url} | Response: {responseContent}";
                 HttpRequestException hre = new HttpRequestException(errorMsg, null, response.StatusCode);
                 if (responseContent.Contains("\"errno\":\"enoent\""))
                 {
@@ -77,6 +80,54 @@ namespace OnedataDrive
             }
             response.EnsureSuccessStatusCode();
         }
+
+        private static async Task MultiProviderWorker(List<ProviderInfo> providerInfos, Func<ProviderInfo, Task> function)
+        {
+            List<Exception> exceptionList = new();
+            foreach (ProviderInfo info in providerInfos)
+            {
+                try
+                {
+                    await function.Invoke(info);
+                    return;
+                }
+                catch (NoSuchCloudFile)
+                {
+                    throw;
+                }
+                catch (HttpRequestException e)
+                {
+                    exceptionList.Add(e);
+                    Debug.Print(e.Message);
+                }
+            }
+            throw new AggregateException("Failed to put file.", exceptionList);
+        }
+
+        private static async Task<T> MultiProviderWorker<T>(List<ProviderInfo> providerInfos, Func<ProviderInfo, Task<T>> function)
+        {
+            List<Exception> exceptionList = new();
+            foreach (ProviderInfo info in providerInfos)
+            {
+                try
+                {
+                    return await function.Invoke(info);
+                }
+                catch (NoSuchCloudFile)
+                {
+                    throw;
+                }
+                catch (HttpRequestException e)
+                {
+                    exceptionList.Add(e);
+                    Debug.Print(e.Message);
+                }
+            }
+            throw new AggregateException("Failed to put file.", exceptionList);
+        }
+
+        ////////////////////////////////////////////////////////////////
+        /// Http methods
 
         private static async Task<T> OnedataGet<T>(string url, CancellationToken token = default)
         {
@@ -221,7 +272,7 @@ namespace OnedataDrive
         /////////////////////////////////////////////////////////////////////////////
         /// No Timeout client
 
-        private static async Task<Stream> OnedataPostStream(string url, HttpContent? content, CancellationToken token = default)
+        private static async Task<Stream> OnedataPostStreamNH(string url, HttpContent? content, CancellationToken token = default)
         {
             HttpRequestMessage request = new(HttpMethod.Post, url)
             {
@@ -234,43 +285,31 @@ namespace OnedataDrive
             return await response.Content.ReadAsStreamAsync();
         }
 
-        public static async Task<Stream> GetFileEventStream(List<string> dirIDs, List<ProviderInfo> providerInfos, string spaceId, List<ObservedAttribute> obervedAttr, CancellationToken token = default)
+        public static async Task<Stream> GetFileEventStream(List<string> dirIDs, List<ProviderInfo> providerInfos, string spaceId, 
+            List<ObservedAttribute> obervedAttr, CancellationToken token = default)
         {
-            List<Exception> exceptionList = new();
-            foreach (ProviderInfo info in providerInfos)
-            {
-                try
-                {
-                    string url = "https://"
+            Func<ProviderInfo, Task<Stream>> func = async (info) => {
+                string url = "https://"
                         + info.providerDomain
                         + "/api/v3/oneprovider/spaces/"
                         + spaceId
                         + "/events/files";
 
-                    List<string> observedAttr = obervedAttr.Distinct().Select(attr => attr.GetDescription()).ToList();
-                    string json = JsonSerializer.Serialize(
-                        new
-                        {
-                            observedDirectories = dirIDs,
-                            observedAttributes = observedAttr
-                        }
-                        );
+                List<string> observedAttr = obervedAttr.Distinct().Select(attr => attr.GetDescription()).ToList();
+                string json = JsonSerializer.Serialize(
+                    new
+                    {
+                        observedDirectories = dirIDs,
+                        observedAttributes = observedAttr
+                    }
+                    );
 
-                    StringContent content = new StringContent(json, mediaType: new MediaTypeHeaderValue("application/json"));
+                StringContent content = new StringContent(json, mediaType: new MediaTypeHeaderValue("application/json"));
 
-                    return await OnedataPostStream(url, content, token);
-                }
-                catch (NoSuchCloudFile)
-                {
-                    throw;
-                }
-                catch (HttpRequestException e)
-                {
-                    Debug.Print("HERE:", e.HttpRequestError.ToString());
-                    exceptionList.Add(e);
-                }
-            }
-            throw new AggregateException("Failed to Get File Event Stream.", exceptionList);
+                return await OnedataPostStreamNH(url, content, token);
+            };
+
+            return await MultiProviderWorker(providerInfos, func);
         }
 
         /////////////////////////////////////////////////////////////////////////////
@@ -288,33 +327,25 @@ namespace OnedataDrive
                 + providerDomain
                 + "/api/v3/oneprovider/data/"
                 + dirId
-                + "/children?attribute=size&attribute=name&attribute=type&attribute=atime&attribute=mtime&attribute=ctime&attribute=file_id&limit=1000";
+                + "/children?attribute=size&attribute=name&attribute=type&attribute=atime&attribute=mtime&attribute=" +
+                "ctime&attribute=file_id&limit=1000";
             return await OnedataGet<DirChildren>(url);
         }
 
         public static async Task<DirChildren> GetFilesAndSubdirs(string dirId, List<ProviderInfo> providerInfos)
         {
-            foreach (ProviderInfo info in providerInfos)
+            Func<ProviderInfo, Task<DirChildren>> func = async (info) =>
             {
-                try
-                {
-                    string url = "https://"
+                string url = "https://"
                         + info.providerDomain
                         + "/api/v3/oneprovider/data/"
                         + dirId
-                        + "/children?attribute=size&attribute=name&attribute=type&attribute=atime&attribute=mtime&attribute=ctime&attribute=file_id&limit=1000";
-                    return await OnedataGet<DirChildren>(url);
-                }
-                catch (NoSuchCloudFile)
-                {
-                    throw;
-                }
-                catch (HttpRequestException e)
-                {
-                    Debug.Print(e.Message);
-                }
-            }
-            throw new Exception("Failed to get response");
+                        + "/children?attribute=size&attribute=name&attribute=type&attribute=atime&attribute=mtime&attribute=" +
+                        "ctime&attribute=file_id&limit=1000";
+                return await OnedataGet<DirChildren>(url);
+            };
+
+            return await MultiProviderWorker<DirChildren>(providerInfos, func);
         }
 
         public static async Task<byte[]> GetData(string provider_domain, string fileId)
@@ -347,151 +378,97 @@ namespace OnedataDrive
         public static async Task<Stream> GetStream(List<ProviderInfo> providerInfos, string fileId,
             CancellationToken token = default, long? startByte = null, long? endByte = null)
         {
-            foreach (ProviderInfo info in providerInfos)
-            {
-                try
+            Func<ProviderInfo, Task<Stream>> func = async (info) => {
+                string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId + "/content";
+                if (startByte is null || endByte is null)
                 {
-                    string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId + "/content";
-                    if (startByte is null || endByte is null)
-                    {
-                        return await OnedataGetStream(url, token);
-                    }
-                    else
-                    {
-                        return await OnedataGetStream(url, startByte ?? -1, endByte ?? -1, token);
-                    }  
+                    return await OnedataGetStream(url, token);
                 }
-                catch (NoSuchCloudFile)
+                else
                 {
-                    throw;
+                    return await OnedataGetStream(url, startByte ?? -1, endByte ?? -1, token);
                 }
-                catch (HttpRequestException e)
-                {
-                    Debug.Print(e.Message);
-                }
-            }
-            throw new Exception("Failed to get response");
+            };
+
+            return await MultiProviderWorker(providerInfos, func);
         }
 
         public static async Task Delete(List<ProviderInfo> providerInfos, string fileId)
         {
-            foreach (ProviderInfo info in providerInfos)
-            {
-                try
-                {
-                    string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId;
-                    await OnedataDelete(url);
-                    return;
-                }
-                catch (NoSuchCloudFile)
-                {
-                    throw;
-                }
-                catch (HttpRequestException e)
-                {
-                    Debug.Print(e.Message);
-                }
-            }
-            throw new Exception("Failed to get response");
+            Func<ProviderInfo, Task> func = async (info) => {
+                string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + fileId;
+                await OnedataDelete(url);
+                return;
+            };
+
+            await MultiProviderWorker(providerInfos, func);
+            return;
         }
 
-        public static async Task<FileId> CreateFileInDir(List<ProviderInfo> providerInfos, string parentId, string name, FileStream? stream = null, bool directory = false)
+        public static async Task<FileId> CreateFileInDir(List<ProviderInfo> providerInfos, string parentId, string name, 
+            FileStream? stream = null, bool directory = false)
         {
-            foreach (ProviderInfo info in providerInfos)
-            {
+            Func<ProviderInfo, Task<FileId>> func = async (info) => {
                 string url = "https://" + info.providerDomain + ":443/api/v3/oneprovider/data/" + parentId + "/children?name=" + name;
-                try
+                if (directory)
                 {
-                    if (directory)
+                    string urlDir = url + "&type=DIR";
+                    return await OnedataPost<FileId>(urlDir, null);
+                }
+                else
+                {
+                    StreamContent? content = null;
+                    if (stream != null)
                     {
-                        string urlDir = url + "&type=DIR";
-                        return await OnedataPost<FileId>(urlDir, null);
+                        content = new StreamContent(stream);
+                        content.Headers.Add("Content-Type", "application/octet-stream");
                     }
-                    else
-                    {
-                        StreamContent? content = null;
-                        if (stream != null)
-                        {
-                            content = new StreamContent(stream);
-                            content.Headers.Add("Content-Type", "application/octet-stream");
-                        }
-                        return await OnedataPost<FileId>(url, content);
-                    }
+                    return await OnedataPost<FileId>(url, content);
                 }
-                catch (NoSuchCloudFile)
-                {
-                    throw;
-                }
-                catch (HttpRequestException e)
-                {
-                    Debug.Print(e.Message);
-                }
-            }
-            throw new Exception("Failed to post file");
+            };
+
+            return await MultiProviderWorker(providerInfos, func);
         }
 
         public static async Task PostFileContent(List<ProviderInfo> providerInfos, string id, FileStream stream)
         {
-            List<Exception> exceptionList = new();
-            foreach (ProviderInfo info in providerInfos)
-            {
-                try
-                {
-                    string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + id + "/content";
+            Func<ProviderInfo, Task> func = async (info) => {
+                string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + id + "/content";
 
-                    StreamContent content = new StreamContent(stream);
-                    content.Headers.Add("Content-Type", "application/octet-stream");
+                StreamContent content = new StreamContent(stream);
+                content.Headers.Add("Content-Type", "application/octet-stream");
 
-                    await OnedataPut(url, content);
-                    return;
-                }
-                catch (NoSuchCloudFile)
-                {
-                    throw;
-                }
-                catch (HttpRequestException e)
-                {
-                    exceptionList.Add(e);
-                    Debug.Print(e.Message);
-                }
-            }
-            throw new AggregateException("Failed to put file.", exceptionList);
+                await OnedataPut(url, content);
+                return;
+            };
+
+            await MultiProviderWorker(providerInfos, func);
         }
 
         public static async Task Move(List<ProviderInfo> providerInfos, string source, string target)
         {
-            foreach (ProviderInfo info in providerInfos)
-            {
-                try
-                {
-                    string escapedTarget = HttpEncodePath(target);
-                    string url = $"https://{info.providerDomain}/cdmi/{escapedTarget}";
+            Func<ProviderInfo, Task> func = async (info) => {
+                string escapedTarget = HttpEncodePath(target);
+                string url = $"https://{info.providerDomain}/cdmi/{escapedTarget}";
 
-                    // backslash(\) and double quotes(") are special characters in JSON,
-                    // so they must be escaped with \
-                    string escapedSource = source.Replace("\\", "\\\\").Replace("\"", "\\\"");
-                    string json = "{\"move\":\"" + escapedSource + "\"}";
-                    StringContent content = new StringContent(json);
-                    content.Headers.Clear();
-                    content.Headers.Add("X-CDMI-Specification-Version", "1.1.1");
-                    content.Headers.Add("Content-type", "application/cdmi-object");
+                // backslash(\) and double quotes(") are special characters in JSON,
+                // so they must be escaped with \
+                string escapedSource = source.Replace("\\", "\\\\").Replace("\"", "\\\"");
+                string json = "{\"move\":\"" + escapedSource + "\"}";
+                StringContent content = new StringContent(json);
+                content.Headers.Clear();
+                content.Headers.Add("X-CDMI-Specification-Version", "1.1.1");
+                content.Headers.Add("Content-type", "application/cdmi-object");
 
-                    Debug.Print("URL: {0}", url);
-                    Debug.Print("JSON: {0}", json);
+                Debug.Print("URL: {0}", url);
+                Debug.Print("JSON: {0}", json);
 
-                    await OnedataPut(url, content);
-                    return;
-                }
-                catch (NoSuchCloudFile)
-                {
-                    throw;
-                }
-                catch (HttpRequestException e)
-                {
-                    Debug.Print(e.Message);
-                }
-            }
-            throw new Exception("Failed to put file");
+                await OnedataPut(url, content);
+                return;
+            };
+
+            await MultiProviderWorker(providerInfos, func);
+            return;
         }
 
         /// <summary>
@@ -523,28 +500,18 @@ namespace OnedataDrive
             return await OnedataGet<FileAttribute>(url, token);
         }
 
-        public static async Task<FileAttribute> GetFileAttribute(string fileId, List<ProviderInfo> providerInfos, CancellationToken token = default)
+        public static async Task<FileAttribute> GetFileAttribute(string fileId, List<ProviderInfo> providerInfos, 
+            CancellationToken token = default)
         {
-            foreach (ProviderInfo info in providerInfos)
-            {
-                try
-                {
-                    string url = "https://"
+            Func<ProviderInfo, Task<FileAttribute>> func = async (info) => {
+                string url = "https://"
                         + info.providerDomain
                         + "/api/v3/oneprovider/data/"
                         + fileId;
-                    return await OnedataGet<FileAttribute>(url, token);
-                }
-                catch (NoSuchCloudFile)
-                {
-                    throw;
-                }
-                catch (HttpRequestException e)
-                {
-                    Debug.Print(e.Message);
-                }
-            }
-            throw new Exception("Failed to get FileInfo");
+                return await OnedataGet<FileAttribute>(url, token);
+            };
+
+            return await MultiProviderWorker(providerInfos, func);
         }
     }
 }
