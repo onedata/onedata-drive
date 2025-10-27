@@ -100,15 +100,10 @@
         }
     }
 
-    public class RefreshStartConditions : Exception
+    public class PlaceholderSizeException : Exception
     {
-        public RefreshStartConditions() : base() { }
-        public RefreshStartConditions(string message) : base(message) { }
-        public RefreshStartConditions(string message, Exception innerException) : base(message, innerException) { }
-
-        public override string ToString()
-        {
-            return "RefreshStartConditions: " + base.ToString();
-        }
+        public PlaceholderSizeException() : base() { }
+        public PlaceholderSizeException(string message) : base(message) { }
+        public PlaceholderSizeException(string message, Exception innerException) : base(message, innerException) { }
     }
 }

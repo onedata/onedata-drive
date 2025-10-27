@@ -13,10 +13,14 @@ namespace OnedataDrive
     {
         private ThreadSafeList<RunningTask> runningTasks;
         private CancellationTokenSource masterTokenSource;
-        public PlaceholderDataFetcher()
+        private Logger logger;
+        private LoggerFormater loggerFormater;
+        public PlaceholderDataFetcher(Logger logger)
         {
             this.runningTasks = new();
             this.masterTokenSource = new();
+            this.logger = logger;
+            this.loggerFormater = new(logger);
         }
         public void FetchData(FetchDataCallback callback)
         {
@@ -28,7 +32,11 @@ namespace OnedataDrive
         }
         private async Task FetchDataAsync(FetchDataCallback callback, CancellationToken token, RunningTask thisTask, string opID)
         {
-            CloudProvider.PrintInfo(callback, LogLevel.Info, "FETCH DATA", "START", opID: opID);
+            List<string> moreInfo = new() {
+                $"Path: {callback.filePath}", 
+                $"Offset: {callback.offset}",
+                $"OffsetLength: {callback.length}"};
+            loggerFormater.LogFileOP(LogLevel.Info, "FETCH DATA", "START", moreInfo, callback.filePath, opID);
 
             CF_OPERATION_INFO oi = new()
             {
@@ -50,7 +58,7 @@ namespace OnedataDrive
                 FileAttribute fileInfo = await RestClient.GetFileAttribute(fileIdentity, space.providerInfos, token);
                 if (fileInfo.size != callback.fileSize)
                 {
-                    throw new Exception("Size of cloud file does not match local file size. Try to refresh placeholders (R)");
+                    throw new PlaceholderSizeException("Size of cloud file does not match local file size.");
                     // TODO: update placeholder, so operation runs OK
                 }
                 using (LivelinessChcecker livelinessChcecker = new(10 * 1000, turnOffWhenDead: false))
@@ -112,7 +120,7 @@ namespace OnedataDrive
                 {
                     throw new OperationCanceledException();
                 }
-                CloudProvider.PrintInfo(callback, LogLevel.Info, "FETCH DATA", "OK", opID:opID);
+                loggerFormater.LogFileOP(LogLevel.Info, "FETCH DATA", "OK", opID);
             }
             catch (AggregateException e) when (e.InnerException is NoSuchCloudFile)
             {
@@ -135,7 +143,7 @@ namespace OnedataDrive
                     ex = new Exception($"CfExecute Stop operation HRES: {hres}", e);
                 }
 
-                CloudProvider.PrintInfo(callback, LogLevel.Warn, "FETCH DATA", "FAIL - No such file", ex, opID:opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "FETCH DATA", "FAIL - No such file", e, opID);
 
                 File.Delete(callback.filePath);
             }
@@ -164,8 +172,7 @@ namespace OnedataDrive
                 {
                     e = new Exception($"CfExecute Stop operation HRES: {hres}", e);
                 }
-
-                CloudProvider.PrintInfo(callback, LogLevel.Error, "FETCH DATA", "FAIL", e, opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "FETCH DATA", "FAIL", e, opID);
             }
             finally
             {
@@ -242,7 +249,6 @@ namespace OnedataDrive
             this.callback = callback;
             this.task = task;
             this.taskCancelation = taskCancelation;
-            this.opID = opID;
             this.opID = opID;
         }
 

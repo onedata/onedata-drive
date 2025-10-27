@@ -20,7 +20,7 @@ namespace OnedataDrive
         public const string ID = @"TestStorageProvider";
         public const string ACCOUNT = @"TestAccount";
         public static List<(Task fetchTask, CancellationTokenSource cancellation)> fetchDataTasks = new();
-        public static PlaceholderDataFetcher placeholderDataFetcher = new PlaceholderDataFetcher();
+        public static PlaceholderDataFetcher placeholderDataFetcher = new PlaceholderDataFetcher(logger);
 
         public static void RegisterWithShell(string folderPath)
         {
