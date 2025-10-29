@@ -1,11 +1,9 @@
 ﻿using NLog;
+using OnedataDrive.ErrorHandling;
 using OnedataDrive.Interfaces;
-using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using static OnedataDrive.BufferedEventMerger<T>.EventExpirable<S>;
-using static Vanara.PInvoke.ComCtl32;
 
 namespace OnedataDrive
 {
@@ -107,12 +105,6 @@ namespace OnedataDrive
 
         internal class EventExpirable<S> where S : IEvent<S>
         {
-            internal class EventExpiredException : Exception
-            {
-                public EventExpiredException(string message) : base(message) { }
-                public EventExpiredException(string message, Exception inner) : base(message, inner) { }
-            }
-
             public S @event { get; private set; }
             public DateTime expirationUtc { get; private set; }
             private readonly object _lock = new();

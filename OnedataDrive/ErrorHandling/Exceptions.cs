@@ -106,4 +106,10 @@
         public PlaceholderSizeException(string message) : base(message) { }
         public PlaceholderSizeException(string message, Exception innerException) : base(message, innerException) { }
     }
+
+    internal class EventExpiredException : Exception
+    {
+        public EventExpiredException(string message) : base(message) { }
+        public EventExpiredException(string message, Exception inner) : base(message, inner) { }
+    }
 }
