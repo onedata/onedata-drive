@@ -1,5 +1,6 @@
 ﻿using Microsoft.VisualBasic.FileIO;
 using NLog;
+using OnedataDrive.ErrorHandling;
 using OnedataDrive.Interfaces;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
@@ -274,6 +275,12 @@ namespace OnedataDrive
                         eventCompleted = true;
                         break;
                 }
+            }
+            catch (NoSuchCloudFile e)
+            {
+                eventCompleted = true;
+                logFormatter.LogFileOP(LogLevel.Warn, "EVENT MANAGER", "File does not exist on cloud anymore",
+                    e, moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
             }
             catch (ThreadSafeMonitored.DirectoryNotMonitoredException e)
             {

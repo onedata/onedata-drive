@@ -4,6 +4,7 @@ using OnedataDrive.Interfaces;
 using OnedataDrive.Utils;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using static Vanara.PInvoke.ComCtl32;
 
 namespace OnedataDrive
 {
@@ -35,6 +36,8 @@ namespace OnedataDrive
             bufferFlusherTask = Task.Run(() => BufferFlusher(tokenSource.Token));
 
             isRunning = true;
+
+            loggerFormater.LogFileOP(LogLevel.Info, "BUFFERED EVENT MERGER", $"START - eventLifespan: {eventLifespan}");
         }
 
         public void AddEvent(T newEvent)
@@ -83,14 +86,28 @@ namespace OnedataDrive
         {
             while (!token.IsCancellationRequested)
             {
-                EventExpirable<T>? eventExpirable = bufferExpirable.PopOldestExpired();
-                if (eventExpirable is not null)
+                EventExpirable<T>? eventExpirable = null;
+                try
                 {
-                    output.AddEvent(eventExpirable.@event);
+                    eventExpirable = bufferExpirable.PopOldestExpired();
+                    if (eventExpirable is not null)
+                    {
+                        output.AddEvent(eventExpirable.@event);
+                    }
+                    else
+                    {
+                        token.WaitHandle.WaitOne(cyclePeriod);
+                    }
                 }
-                else
+                catch (Exception e)
                 {
-                    token.WaitHandle.WaitOne(cyclePeriod);
+                    List<string> moreInfo = new();
+                    if (eventExpirable is not null)
+                    {
+                        moreInfo.Add($"Event key: {eventExpirable.@event.RelationKey()}");
+                    }
+                    loggerFormater.LogFileOP(LogLevel.Error, "BUFFERED EVENT MERGER", "Queue reader - FAILED " +
+                            "to add event to BufferExpirable - NOT PROCESSING this event", e, moreInfo: moreInfo);
                 }
             }
         }
@@ -154,7 +171,6 @@ namespace OnedataDrive
 
             public bool IsExpired()
             {
-                Debug.Print($"Expiration time: {expirationUtc}, now: {DateTime.UtcNow}");
                 return expirationUtc <= DateTime.UtcNow;
             }
         }
