@@ -1,5 +1,6 @@
 ﻿using Microsoft.VisualBasic.FileIO;
 using NLog;
+using OnedataDrive.Interfaces;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
@@ -41,7 +42,7 @@ namespace OnedataDrive
         }
     }
 
-    internal class EventManager
+    internal class FileEventManager : IAddable<FileEvent>
     {
         internal static Logger logger = LogManager.GetCurrentClassLogger();
         internal static LoggerFormater logFormatter = new(logger);
@@ -51,7 +52,7 @@ namespace OnedataDrive
         private AutoRefresh autoRefresh;
         private Task processingTask;
 
-        public EventManager(AutoRefresh autoRefresh)
+        public FileEventManager(AutoRefresh autoRefresh)
         {
             this.processingTokenSource = new();
             this.autoRefresh = autoRefresh;

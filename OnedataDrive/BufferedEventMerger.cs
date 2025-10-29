@@ -1,20 +1,119 @@
-﻿using OnedataDrive.JSON_Object;
+﻿using NLog;
+using OnedataDrive.Interfaces;
+using OnedataDrive.JSON_Object;
+using OnedataDrive.Utils;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using static OnedataDrive.BufferedEventMerger<T>.EventExpirable<S>;
+using static Vanara.PInvoke.ComCtl32;
 
 namespace OnedataDrive
 {
-    internal class BufferedEventMerger
+    internal class BufferedEventMerger<T> where T : IEvent<T>
     {
-        internal class FileEventExpirable
+        private ConcurrentQueue<T> input;
+        private BufferExpirable<T> bufferExpirable;
+        private CancellationTokenSource tokenSource;
+        private IAddable<T> output;
+        private Task queueReaderTask;
+        private Task bufferFlusherTask;
+        internal LoggerFormater loggerFormater;
+
+        public bool isRunning;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="output"></param>
+        /// <param name="eventLifespan">In seconds</param>
+        public BufferedEventMerger(IAddable<T> output, uint eventLifespan, Logger logger)
         {
-            internal class FileEventExpiredException : Exception
+            this.loggerFormater = new (logger);
+            this.tokenSource = new();
+            this.input = new();
+            this.bufferExpirable = new BufferExpirable<T>(eventLifespan, loggerFormater);
+            this.output = output;
+            queueReaderTask = Task.Run(() => QueueReader(tokenSource.Token));
+            bufferFlusherTask = Task.Run(() => BufferFlusher(tokenSource.Token));
+
+            isRunning = true;
+        }
+
+        public void AddEvent(T newEvent)
+        {
+            if (!isRunning)
             {
-                public FileEventExpiredException(string message) : base(message) { }
-                public FileEventExpiredException(string message, Exception inner) : base(message, inner) { }
+                throw new InvalidOperationException("BufferedEventMerger is not running.");
+            }
+            input.Enqueue(newEvent);
+        }
+
+        private void QueueReader(CancellationToken token, int cyclePeriod = 1000)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                if (input.TryPeek(out T? newEvent))
+                {
+                    List<string> moreInfo = new List<string>() { "FAILED to create more info" };
+                    try
+                    {
+                        moreInfo = new List<string>() { $"Event key: {newEvent.RelationKey()}" };
+                        bufferExpirable.Add(newEvent);
+                        input.TryDequeue(out _);
+                    }
+                    catch (Exception ex) when (ex is TimeoutException || ex is EventExpiredException)
+                    {
+                        loggerFormater.LogFileOP(LogLevel.Warn, "BUFFERED EVENT MERGER", "Queue reader - " +
+                            "FAILED to add event to BufferExpirable - trying again", ex, moreInfo: moreInfo);
+                        token.WaitHandle.WaitOne(cyclePeriod);
+                    }
+                    catch (Exception ex)
+                    {
+                        loggerFormater.LogFileOP(LogLevel.Error, "BUFFERED EVENT MERGER", "Queue reader - FAILED " +
+                            "to add event to BufferExpirable - NOT PROCESSING this event", ex, moreInfo: moreInfo);
+                        input.TryDequeue(out _);
+                    }
+                }
+                else
+                {
+                    token.WaitHandle.WaitOne(cyclePeriod);
+                }
+            }
+        }
+
+        private void BufferFlusher(CancellationToken token, int cyclePeriod = 1000)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                EventExpirable<T>? eventExpirable = bufferExpirable.PopOldestExpired();
+                if (eventExpirable is not null)
+                {
+                    output.AddEvent(eventExpirable.@event);
+                }
+                else
+                {
+                    token.WaitHandle.WaitOne(cyclePeriod);
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            tokenSource.Cancel();
+            queueReaderTask.Wait();
+            bufferFlusherTask.Wait();
+            isRunning = false;
+        }
+
+        internal class EventExpirable<S> where S : IEvent<S>
+        {
+            internal class EventExpiredException : Exception
+            {
+                public EventExpiredException(string message) : base(message) { }
+                public EventExpiredException(string message, Exception inner) : base(message, inner) { }
             }
 
-            public FileEvent fileEvent { get; private set; }
+            public S @event { get; private set; }
             public DateTime expirationUtc { get; private set; }
             private readonly object _lock = new();
 
@@ -22,15 +121,14 @@ namespace OnedataDrive
             /// 
             /// </summary>
             /// <param name="fileEvent"></param>
-            /// <param name="lifespanLength">Lifespan length in seconds</param>
-            public FileEventExpirable(FileEvent fileEvent, uint lifespanLength)
+            /// <param name="lifespan">Lifespan length in seconds</param>
+            public EventExpirable(S fileEvent, uint lifespan)
             {
-                this.fileEvent = fileEvent;
-                this.expirationUtc = DateTime.UtcNow + new TimeSpan(0, 0, (int)lifespanLength);
-                Debug.Print($"New expirable event: expiration {expirationUtc}, now {DateTime.UtcNow}");
+                this.@event = fileEvent;
+                this.expirationUtc = DateTime.UtcNow + new TimeSpan(0, 0, (int)lifespan);
             }
 
-            public void MergeEvent(FileEvent newEvent)
+            public void MergeEvent(S newEvent)
             {
                 if (!this.IsExpired())
                 {
@@ -38,8 +136,7 @@ namespace OnedataDrive
                     {
                         try
                         {
-                            fileEvent.Merge(newEvent);
-                            Debug.Print("Event merged");
+                            @event.Merge(newEvent);
                             return;
                         }
                         finally
@@ -54,7 +151,7 @@ namespace OnedataDrive
                 }
                 else
                 {
-                    throw new FileEventExpiredException("Event has expired");
+                    throw new EventExpiredException("Event has expired");
                 }
             }
 
@@ -70,49 +167,56 @@ namespace OnedataDrive
             }
         }
 
-        internal class BufferExpirable
+        internal class BufferExpirable<U> where U : IEvent<U>
         {
-            private ConcurrentDictionary<string, FileEventExpirable> buffer;
+            private ConcurrentDictionary<string, EventExpirable<U>> buffer;
             private ConcurrentQueue<string> expirationQueue;
+            internal LoggerFormater loggFormater;
             public uint eventLifespan { get; private set; }
 
-            public BufferExpirable(uint eventLifespan)
+            public BufferExpirable(uint eventLifespan, LoggerFormater loggerFormater)
             {
                 buffer = new();
                 expirationQueue = new();
                 this.eventLifespan = eventLifespan;
+                this.loggFormater = loggerFormater;
             }
 
-            public void Add(FileEvent fileEvent)
+            public void Add(U newEvent)
             {
-                if (buffer.TryGetValue(fileEvent.fileId, out FileEventExpirable? fileEventExpirable))
+                List<string> moreInfo = new() { $"Relation Key: {newEvent.RelationKey()}" };
+                if (buffer.TryGetValue(newEvent.RelationKey(), out EventExpirable<U>? fileEventExpirable))
                 {
-                    fileEventExpirable.MergeEvent(fileEvent);
+                    fileEventExpirable.MergeEvent(newEvent);
+                    loggFormater.LogFileOP(LogLevel.Debug, "BUFFERED EVENT MERGER", "Event added - merged",
+                        moreInfo: moreInfo);
                 }
                 else
                 {
-                    string fileId = fileEvent.fileId;
-                    buffer[fileId] = new FileEventExpirable(fileEvent, eventLifespan);
-                    expirationQueue.Enqueue(fileId);
+                    string key = newEvent.RelationKey();
+                    buffer[key] = new EventExpirable<U>(newEvent, eventLifespan);
+                    expirationQueue.Enqueue(key);
+                    loggFormater.LogFileOP(LogLevel.Debug, "BUFFERED EVENT MERGER", "Event added",
+                        moreInfo: moreInfo);
                 }
             }
 
-            public FileEventExpirable? PopOldestExpired()
+            public EventExpirable<U>? PopOldestExpired()
             {
-                FileEventExpirable? fileEventExpirable = null;
+                EventExpirable<U>? eventExpirable = null;
 
                 if (expirationQueue.TryPeek(out string? fileId))
-                {   
-                    if (buffer.TryGetValue(fileId, out fileEventExpirable))
+                {
+                    if (buffer.TryGetValue(fileId, out eventExpirable))
                     {
-                        if (fileEventExpirable.IsExpired() && !fileEventExpirable.IsLocked())
+                        if (eventExpirable.IsExpired() && !eventExpirable.IsLocked())
                         {
                             expirationQueue.TryDequeue(out _);
-                            buffer.TryRemove(fileId, out fileEventExpirable);
+                            buffer.TryRemove(fileId, out eventExpirable);
                         }
                         else
                         {
-                            fileEventExpirable = null;
+                            eventExpirable = null;
                         }
                     }
                     else
@@ -120,95 +224,8 @@ namespace OnedataDrive
                         expirationQueue.TryDequeue(out _);
                     }
                 }
-                return fileEventExpirable;
+                return eventExpirable;
             }
-        }
-
-        private ConcurrentQueue<FileEvent> input;
-        private BufferExpirable bufferExpirable;
-        private readonly uint eventLifespan;
-        private CancellationTokenSource tokenSource;
-        private EventManager output;
-        private Task queueReaderTask;
-        private Task bufferFlusherTask;
-
-        public bool isRunning;
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="output"></param>
-        /// <param name="eventLifespan">In seconds</param>
-        public BufferedEventMerger(EventManager output, uint eventLifespan)
-        {
-            this.tokenSource = new();
-            this.input = new();
-            this.bufferExpirable = new BufferExpirable(eventLifespan);
-            this.output = output;
-            this.eventLifespan = eventLifespan;
-            queueReaderTask = Task.Run(() => QueueReader(tokenSource.Token));
-            bufferFlusherTask = Task.Run(() => BufferFlusher(tokenSource.Token));
-
-            isRunning = true;
-            
-        }
-
-        public void AddEvent(FileEvent fileEvent)
-        {
-            if (!isRunning)
-            {
-                throw new InvalidOperationException("BufferedEventMerger is not running.");
-            }
-            input.Enqueue(fileEvent);
-        }
-
-        private void QueueReader(CancellationToken token, int cyclePeriod = 1000)
-        {
-            while (!token.IsCancellationRequested)
-            {
-                if (input.TryPeek(out FileEvent? fileEvent))
-                {
-                    try
-                    {
-                        bufferExpirable.Add(fileEvent);
-                        input.TryDequeue(out _);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Log the exception
-                        Debug.Print($"Error processing event: {ex.Message}");
-                        token.WaitHandle.WaitOne(cyclePeriod);
-                    }
-                }
-                else
-                {
-                    token.WaitHandle.WaitOne(cyclePeriod);
-                }
-            }
-        }
-
-        private void BufferFlusher(CancellationToken token, int cyclePeriod = 1000)
-        {
-            while (!token.IsCancellationRequested)
-            {
-                FileEventExpirable? fileEventExpirable = bufferExpirable.PopOldestExpired();
-                if (fileEventExpirable is not null)
-                {
-                    output.AddEvent(fileEventExpirable.fileEvent);
-                }
-                else
-                {
-                    token.WaitHandle.WaitOne(cyclePeriod);
-                }
-            }
-        }
-
-        public void Dispose()
-        {
-            tokenSource.Cancel();
-            queueReaderTask.Wait();
-            bufferFlusherTask.Wait();
-            isRunning = false;
         }
     }
 }

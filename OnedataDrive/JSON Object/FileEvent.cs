@@ -1,11 +1,12 @@
-﻿using System.ComponentModel;
+﻿using OnedataDrive.Interfaces;
+using System.ComponentModel;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace OnedataDrive.JSON_Object
 {
-    public class FileEvent
+    public class FileEvent : IEvent<FileEvent>
     {
         [JsonIgnore]
         public const string EVENT_CHANGED = "changedOrCreated";
@@ -73,6 +74,11 @@ namespace OnedataDrive.JSON_Object
             if (!string.IsNullOrWhiteSpace(updateFrom.data.type)) data.type = updateFrom.data.type;
 
             isMerged = true;
+        }
+
+        public string RelationKey()
+        {
+            return fileId;
         }
     }
 

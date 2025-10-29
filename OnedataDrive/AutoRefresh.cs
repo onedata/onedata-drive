@@ -27,8 +27,8 @@ namespace OnedataDrive
         internal ThreadSafeMonitored monitored;
         private CancellationTokenSource masterTokenSource;
         private CancellationTokenSource monitorTokenSource;
-        private EventManager eventManager;
-        private BufferedEventMerger eventMerger;
+        private FileEventManager eventManager;
+        private BufferedEventMerger<FileEvent> eventMerger;
         private bool restartNeeded;
         private Task monitoringTask;
         private Task restartCheckerTask;
@@ -40,8 +40,8 @@ namespace OnedataDrive
             this.spaceFolder = spaceFolder;
             this.monitored = new();
             this.restartNeeded = false;
-            this.eventManager = new EventManager(this);
-            this.eventMerger = new BufferedEventMerger(eventManager, 15);
+            this.eventManager = new FileEventManager(this);
+            this.eventMerger = new BufferedEventMerger<FileEvent>(eventManager, 15, logger);
 
             this.monitoringTask = Task.Run(() => MonitorFileEvents(monitorTokenSource.Token, out _));
             this.restartCheckerTask = Task.Run(() => RestartChecker());
