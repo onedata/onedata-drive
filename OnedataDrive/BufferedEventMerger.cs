@@ -8,7 +8,7 @@ using static Vanara.PInvoke.ComCtl32;
 
 namespace OnedataDrive
 {
-    internal class BufferedEventMerger<T> where T : IEvent<T>
+    internal class BufferedEventMerger<T> : IDisposable where T : IEvent<T>
     {
         private ConcurrentQueue<T> input;
         private BufferExpirable<T> bufferExpirable;

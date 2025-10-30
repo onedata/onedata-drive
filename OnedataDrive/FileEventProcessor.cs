@@ -43,7 +43,7 @@ namespace OnedataDrive
         }
     }
 
-    internal class FileEventManager : IAddable<FileEvent>
+    internal class FileEventProcessor : IAddable<FileEvent>
     {
         internal static Logger logger = LogManager.GetCurrentClassLogger();
         internal static LoggerFormater logFormatter = new(logger);
@@ -53,25 +53,25 @@ namespace OnedataDrive
         private AutoRefresh autoRefresh;
         private Task processingTask;
 
-        public FileEventManager(AutoRefresh autoRefresh)
+        public FileEventProcessor(AutoRefresh autoRefresh)
         {
             this.processingTokenSource = new();
             this.autoRefresh = autoRefresh;
             this.events = new ThreadSafeList<Event>();
             this.processingTask = Task.Run(() => ProcessEvents(processingTokenSource.Token, autoRefresh.spaceFolder.name));
-            logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "CREATED",
+            logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "CREATED",
                 filePath: autoRefresh.spaceFolder.name);
         }
 
         public bool StopProcessing()
         {
-            logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Stop processing",
+            logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Stop processing",
                 filePath: autoRefresh.spaceFolder.name);
             processingTokenSource.Cancel();
             try
             {
                 processingTask.Wait();
-                logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "STOP OK",
+                logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "STOP OK",
                     filePath: autoRefresh.spaceFolder.name);
                 return true;
             }
@@ -81,12 +81,12 @@ namespace OnedataDrive
                 {
                     if (e is TaskCanceledException)
                     {
-                        logFormatter.LogFileOP(LogLevel.Warn, "EVENT MANAGER", "stopped/canceled OK",
+                        logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "stopped/canceled OK",
                             e, filePath: autoRefresh.spaceFolder.name);
                     }
                     else
                     {
-                        logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "STOP FAIL",
+                        logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR", "STOP FAIL",
                             e, filePath: autoRefresh.spaceFolder.name);
                         return false;
                     }
@@ -180,14 +180,14 @@ namespace OnedataDrive
                         int penalizeMultiplier = processedEvent.penalizedCount / 3 + 1;
                         int penaltyTime = 5 * penalizeMultiplier;
                         processedEvent.Penalize(penaltyTime);
-                        logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER",
+                        logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR",
                             $"Event not processed - re-adding to the queue with penalty of {penaltyTime}s",
                             filePath: autoRefresh.spaceFolder.name, opID: opID);
                     }
                     else
                     {
                         events.RemoveAt(index);
-                        logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Event processed",
+                        logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Event processed",
                             filePath: autoRefresh.spaceFolder.name, opID: opID);
                     }
                 }
@@ -196,7 +196,7 @@ namespace OnedataDrive
                     cancellationToken.WaitHandle.WaitOne(SLEEP_INTERVAL);
                 }
             }
-            logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Process event stopped",
+            logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Process event stopped",
                         filePath: autoRefresh.spaceFolder.name);
         }
 
@@ -220,7 +220,7 @@ namespace OnedataDrive
                         // create
                         if (string.IsNullOrWhiteSpace(processedEvent.localFileName))
                         {
-                            logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Processing event - Create new",
+                            logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Processing event - Create new",
                                 moreInfo: moreInfo, opID: opID);
                             List<ProviderInfo> providerInfos = autoRefresh.spaceFolder.providerInfos;
                             FileAttribute attribute = RestClient.GetFileAttribute(processedEvent.fileEvent.fileId, providerInfos).Result;
@@ -241,7 +241,7 @@ namespace OnedataDrive
                         // update
                         else
                         {
-                            logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Processing event - Update",
+                            logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Processing event - Update",
                                 moreInfo: moreInfo, opID: opID);
                             UpdatePlaceholderMetadata(processedEvent, filePath, directory, opID);
                             eventCompleted = true;
@@ -249,7 +249,7 @@ namespace OnedataDrive
                         break;
                     case FileEvent.EVENT_DELETED:
                         // delete
-                        logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Processing event - Delete",
+                        logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Processing event - Delete",
                                 moreInfo: moreInfo,opID: opID);
                         if (string.IsNullOrWhiteSpace(processedEvent.localFileName))
                         {
@@ -269,7 +269,7 @@ namespace OnedataDrive
                         }
                         break;
                     default:
-                        logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER",
+                        logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR",
                             $"Unknown event type - Discarding event: {processedEvent.fileEvent.eventType}",
                             moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
                         eventCompleted = true;
@@ -279,18 +279,18 @@ namespace OnedataDrive
             catch (NoSuchCloudFile e)
             {
                 eventCompleted = true;
-                logFormatter.LogFileOP(LogLevel.Warn, "EVENT MANAGER", "File does not exist on cloud anymore",
+                logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "File does not exist on cloud anymore",
                     e, moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
             }
             catch (ThreadSafeMonitored.DirectoryNotMonitoredException e)
             {
                 eventCompleted = true;
-                logFormatter.LogFileOP(LogLevel.Warn, "EVENT MANAGER", "Parent folder not monitored - Unknown parent id - discarding event",
+                logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "Parent folder not monitored - Unknown parent id - discarding event",
                     e, moreInfo: moreInfo, filePath: autoRefresh.spaceFolder.name, opID: opID);
             }
             catch (Exception e)
             {
-                logFormatter.LogFileOP(LogLevel.Error, "EVENT MANAGER", "Process event error", e,
+                logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR", "Process event error", e,
                     filePath: autoRefresh.spaceFolder.name, opID: opID);
             }
             return eventCompleted;
@@ -356,7 +356,7 @@ namespace OnedataDrive
                                 $"\n HRES text: {inSyncHres}");
                         }
                         List<string> moreInfo = new List<string>() { $"{oldName} -> {newName}" };
-                        logFormatter.LogFileOP(LogLevel.Info, "EVENT MANAGER", "Placeholder renamed", moreInfo: moreInfo,
+                        logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Placeholder renamed", moreInfo: moreInfo,
                             opID: opID);
                     }
                 }

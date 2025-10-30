@@ -14,6 +14,8 @@ namespace OnedataDrive
         private bool disposed = true;
         private Logger logger;
         private LoggerFormater loggerFormater;
+        private BufferedEventMerger<WatcherEvent> bufferedEventMerger;
+        private WatcherEventProcessor eventManager;
 
         public FileWatcher()
         {
@@ -21,6 +23,8 @@ namespace OnedataDrive
             this.disposed = false;
             this.logger = LogManager.GetCurrentClassLogger();
             this.loggerFormater = new(logger);
+            this.eventManager = new WatcherEventProcessor();
+            this.bufferedEventMerger = new(eventManager, 5, logger);
         }
 
         public FileWatcher(string rootDir)
@@ -31,8 +35,6 @@ namespace OnedataDrive
 
             this.watcher.NotifyFilter = NotifyFilters.Attributes
                                      | NotifyFilters.CreationTime
-                                     | NotifyFilters.DirectoryName
-                                     | NotifyFilters.FileName
                                      | NotifyFilters.LastWrite;
 
 
