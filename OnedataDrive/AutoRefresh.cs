@@ -20,8 +20,8 @@ namespace OnedataDrive
             }
         }
 
-        internal static Logger logger = LogManager.GetCurrentClassLogger();
-        internal static LoggerFormater logFormatter = new(logger);
+        public Logger logger;
+        internal LoggerFormater logFormatter;
 
         internal SpaceFolder spaceFolder;
         internal ThreadSafeMonitored monitored;
@@ -34,6 +34,9 @@ namespace OnedataDrive
         private Task restartCheckerTask;
         public AutoRefresh(SpaceFolder spaceFolder)
         {
+            this.logger = LogManager.GetCurrentClassLogger();
+            this.logFormatter = new(logger);
+
             this.masterTokenSource = new();
             this.monitorTokenSource = CancellationTokenSource.CreateLinkedTokenSource(masterTokenSource.Token);
 
