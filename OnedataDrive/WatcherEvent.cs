@@ -5,10 +5,12 @@ namespace OnedataDrive
 {
     public class WatcherEvent : IEvent<WatcherEvent>
     {
-        FileSystemEventArgs eventArgs;
+        public FileSystemEventArgs eventArgs;
+        public object sender;
         public bool merged { get; private set; }
-        public WatcherEvent(FileSystemEventArgs eventArgs)
+        public WatcherEvent(object sender, FileSystemEventArgs eventArgs)
         {
+            this.sender = sender;
             this.eventArgs = eventArgs;
             this.merged = false;
         }

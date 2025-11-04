@@ -14,7 +14,7 @@ namespace OnedataDrive
     {
         private AutoRefresh autoRefresh;
 
-        public FileEventProcessor(AutoRefresh autoRefresh) : base(autoRefresh.logger, autoRefresh.spaceFolder.name)
+        public FileEventProcessor(AutoRefresh autoRefresh) : base(autoRefresh.logger, spaceName: autoRefresh.spaceFolder.name)
         {
             this.autoRefresh = autoRefresh;
         }

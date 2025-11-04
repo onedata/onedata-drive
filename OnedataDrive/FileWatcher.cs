@@ -23,7 +23,7 @@ namespace OnedataDrive
             this.disposed = false;
             this.logger = LogManager.GetCurrentClassLogger();
             this.loggerFormater = new(logger);
-            this.eventManager = new WatcherEventProcessor();
+            this.eventManager = new WatcherEventProcessor(logger);
             this.bufferedEventMerger = new(eventManager, 5, logger);
         }
 
@@ -33,10 +33,12 @@ namespace OnedataDrive
             this.logger = LogManager.GetCurrentClassLogger();
             this.loggerFormater = new(logger);
 
+            this.eventManager = new WatcherEventProcessor(logger);
+            this.bufferedEventMerger = new(eventManager, 5, logger);
+
             this.watcher.NotifyFilter = NotifyFilters.Attributes
                                      | NotifyFilters.CreationTime
                                      | NotifyFilters.LastWrite;
-
 
             this.watcher.Created += new FileSystemEventHandler(OnCreated);
             this.watcher.Changed += new FileSystemEventHandler(OnChanged);
@@ -50,7 +52,7 @@ namespace OnedataDrive
 
         public void OnError(object sender, ErrorEventArgs e)
         {
-            logger.Error("Filewatcher FAILED", e.GetException());
+            loggerFormater.LogFileOP(LogLevel.Error, "FILE WATCHER", "ERROR event", e.GetException());
         }
 
         public void OnCreated(object sender, FileSystemEventArgs e)

@@ -58,11 +58,13 @@ namespace OnedataDrive.Interfaces
         protected ThreadSafeList<Event<T>> events;
         private CancellationTokenSource processingTokenSource;
         protected Task processingTask { get; private set; }
+        protected int sleepInterval { get; private set; }
 
-        public EventProcessor(Logger logger, string spaceName)
+        public EventProcessor(Logger logger, string spaceName = "", int sleepInterval = 2000)
         {
             this.spaceName = spaceName;
             this.logFormatter = new(logger); 
+            this.sleepInterval = sleepInterval;
             this.processingTokenSource = new();
             this.events = new ThreadSafeList<Event<T>>();
             this.processingTask = Task.Run(() => ProcessEvents(processingTokenSource.Token));
@@ -116,7 +118,7 @@ namespace OnedataDrive.Interfaces
         }
 
 
-        protected void ProcessEvents(CancellationToken cancellationToken, int sleepInterval = 2000)
+        protected void ProcessEvents(CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -162,6 +164,12 @@ namespace OnedataDrive.Interfaces
                     if (!eventCompleted)
                     {
                         int penaltyTime = PenaltyTimeCreator(processedEvent.penalizedCount);
+                        if (penaltyTime < 0)
+                        {
+                            logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR", 
+                                "Event not processed - giving up", filePath: spaceName, opID: opID);
+                            events.RemoveAt(index);
+                        }
                         processedEvent.Penalize(penaltyTime);
                         logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR",
                             $"Event not processed - re-adding to the queue with penalty of {penaltyTime}s",
