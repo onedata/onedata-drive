@@ -13,7 +13,7 @@ namespace OnedataDrive
     {
         public static Config configuration = new();
         public static Dictionary<string, SpaceFolder> spaces = new(); // spaces: KEY is space name
-        public static FileWatcher watcher = new();
+        public static FileWatcher? watcher = default;
         public static bool running { get; private set; } = false;
         private static CancellationTokenSource cts = new();
         private static Task startupTask = Task.CompletedTask;
@@ -118,14 +118,14 @@ namespace OnedataDrive
         {
             if (running)
             {
-                watcher.Pause();
+                watcher?.Pause();
                 CloudProvider.DisconectCallbacks();
                 logger.Info("Callbacks disconected");
                 CloudProvider.UnregisterSafely();
                 logger.Info("SyncRoot unregistered");
                 RestClient.Stop();
                 logger.Info("Rest client stopped");
-                watcher.Dispose();
+                watcher?.Dispose();
                 logger.Info("FileWatcher stopped");
                 foreach (var space in spaces.Values)
                 {

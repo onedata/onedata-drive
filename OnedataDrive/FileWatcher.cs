@@ -15,17 +15,7 @@ namespace OnedataDrive
         private Logger logger;
         private LoggerFormater loggerFormater;
         private BufferedEventMerger<WatcherEvent> bufferedEventMerger;
-        private WatcherEventProcessor eventManager;
-
-        public FileWatcher()
-        {
-            this.watcher = new();
-            this.disposed = false;
-            this.logger = LogManager.GetCurrentClassLogger();
-            this.loggerFormater = new(logger);
-            this.eventManager = new WatcherEventProcessor(logger);
-            this.bufferedEventMerger = new(eventManager, 5, logger);
-        }
+        private WatcherEventProcessor eventProcessor;
 
         public FileWatcher(string rootDir)
         {
@@ -33,15 +23,15 @@ namespace OnedataDrive
             this.logger = LogManager.GetCurrentClassLogger();
             this.loggerFormater = new(logger);
 
-            this.eventManager = new WatcherEventProcessor(logger);
-            this.bufferedEventMerger = new(eventManager, 5, logger);
+            this.eventProcessor = new WatcherEventProcessor(logger);
+            this.bufferedEventMerger = new(eventProcessor, 5, logger);
 
             this.watcher.NotifyFilter = NotifyFilters.Attributes
                                      | NotifyFilters.CreationTime
                                      | NotifyFilters.LastWrite;
 
-            this.watcher.Created += new FileSystemEventHandler(OnCreated);
-            this.watcher.Changed += new FileSystemEventHandler(OnChanged);
+            this.watcher.Created += new FileSystemEventHandler(OnEvent);
+            this.watcher.Changed += new FileSystemEventHandler(OnEvent);
             this.watcher.Error += new ErrorEventHandler(OnError);
 
             this.watcher.IncludeSubdirectories = true;
@@ -55,327 +45,10 @@ namespace OnedataDrive
             loggerFormater.LogFileOP(LogLevel.Error, "FILE WATCHER", "ERROR event", e.GetException());
         }
 
-        public void OnCreated(object sender, FileSystemEventArgs e)
+        public void OnEvent(object sender, FileSystemEventArgs e)
         {
-            string opID = e.GetHashCode().ToString();
-            if (!PathUtils.IsSpacePath(e.FullPath))
-            {
-                loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "IGNORED - spaces directory", filePath: e.FullPath, opID: opID);
-                return;
-            }
-            loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "START", filePath: e.FullPath, opID: opID);
-
-            // sleep is needed
-            Thread.Sleep(1000);
-
-            try
-            {
-                RegisterFile(e.FullPath, opID);
-                loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "FINISHED", filePath: e.FullPath, opID: opID);
-            }
-            catch (Exception ex)
-            {
-                loggerFormater.LogFileOP(LogLevel.Error, "FILE CREATED", "FAILED", ex, filePath: e.FullPath, opID: opID);
-            }
-            
-        }
-
-        private void RegisterFile(string fullPath, string opID = "")
-        {
-            if (!File.Exists(fullPath) && !Directory.Exists(fullPath))
-            {
-                throw new FileNotFoundException($"path: {fullPath}");
-            }
-
-            FileId id;
-
-            FileAttributes attributes = File.GetAttributes(fullPath);
-            bool isDir = (attributes & FileAttributes.Directory) == FileAttributes.Directory;
-
-            if (isDir)
-            {
-                id = PushNewFolderToCloud(fullPath);
-                loggerFormater.LogFileOP(LogLevel.Info, "RegisterFile", "Dir pushed to cloud", opID: opID);
-            }
-            else
-            {
-                id = PushNewFileToCloud(fullPath);
-                loggerFormater.LogFileOP(LogLevel.Info, "RegisterFile", "File pushed to cloud", opID: opID);
-            }
-
-            try
-            {
-                ConvertToPlaceholder(fullPath, id, isDir);
-                loggerFormater.LogFileOP(LogLevel.Info, "RegisterFile", "Converted to placeholder", opID: opID);
-            }
-            catch (Exception)
-            {
-                loggerFormater.LogFileOP(LogLevel.Error, "RegisterFile", "File was pushed to cloud - local file is NOT LINKED with cloud", opID: opID);
-                throw;
-            }
-        }
-
-        public void OnChanged(object sender, FileSystemEventArgs e)
-        {
-            string opID = e.GetHashCode().ToString();
-            if (!PathUtils.IsSpacePath(e.FullPath))
-            {
-                loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "IGNORED - spaces directory", filePath: e.FullPath, opID: opID);
-                return;
-            }
-            try
-            {
-                loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "START", filePath: e.FullPath, opID: opID);
-
-                if (!File.Exists(e.FullPath) && !Directory.Exists(e.FullPath))
-                {
-                    loggerFormater.LogFileOP(LogLevel.Warn, "FILE CHANGED", "FINISHED - File not found", filePath: e.FullPath, opID: opID);
-                    return;
-                }
-
-                FileAttributes attributes = File.GetAttributes(e.FullPath);
-                if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
-                {
-                    loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED - File is DIR", filePath: e.FullPath, opID: opID);
-                    return;
-                }
-
-                CF_PLACEHOLDER_STANDARD_INFO info = CldApiUtils.GetStandardInfo(e.FullPath);
-
-                UpdateFile(e, info, opID);
-
-                if (info.PinState == CF_PIN_STATE.CF_PIN_STATE_UNPINNED)
-                {
-                    Dehydrate(e.FullPath, info, opID);
-                }
-                if (info.PinState == CF_PIN_STATE.CF_PIN_STATE_PINNED)
-                {
-                    Hydrate(e.FullPath, info, opID);
-                }
-            }
-            catch (Exception exception)
-            {
-                loggerFormater.LogFileOP(LogLevel.Error, "FILE CHANGED", "FAILED", exception, filePath: e.FullPath, opID: opID);
-            }
-
-            loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED", filePath: e.FullPath, opID: opID);
-        }
-
-        private void Hydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
-        {
-            SafeHCFFILE? protectedHandle = null;
-            try
-            {
-                HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out protectedHandle);
-                HRESULT hresHydrate = CfHydratePlaceholder(protectedHandle.DangerousGetHandle());
-
-                if (hresOpen != HRESULT.S_OK || hresHydrate != HRESULT.S_OK)
-                {
-                    throw new Exception("CfOpenFileWithOplock: " + hresOpen + ", CfHydratePlaceholder: " + hresHydrate);
-                }
-
-                loggerFormater.LogFileOP(LogLevel.Info, "Hydrate", "OK", opID: opID);
-            }
-            finally
-            {
-                if (protectedHandle != null && !protectedHandle.IsInvalid)
-                {
-                    protectedHandle.Dispose();
-                }
-            }
-            
-        }
-
-        private void Dehydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
-        {
-            SafeHCFFILE? protectedHandle = null;
-            try
-            {
-                HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out protectedHandle);
-                HRESULT hresDehydrate = CfDehydratePlaceholder(protectedHandle.DangerousGetHandle(), 0, info.OnDiskDataSize, CF_DEHYDRATE_FLAGS.CF_DEHYDRATE_FLAG_NONE);
-                HRESULT hresPinState = CfSetPinState(protectedHandle.DangerousGetHandle(), CF_PIN_STATE.CF_PIN_STATE_UNSPECIFIED, CF_SET_PIN_FLAGS.CF_SET_PIN_FLAG_NONE);
-
-                if (hresOpen != HRESULT.S_OK || hresDehydrate != HRESULT.S_OK || hresPinState != HRESULT.S_OK)
-                {
-                    throw new Exception("CfOpenFileWithOplock: " + hresOpen + ", CfDehydratePlaceholder: " + hresDehydrate + ", CfSetPinState: " + hresPinState);
-                }
-
-                loggerFormater.LogFileOP(LogLevel.Info, "Dehydrate", "OK", opID: opID);
-            }
-            finally
-            {
-                if (protectedHandle != null && !protectedHandle.IsInvalid)
-                {
-                    protectedHandle.Dispose();
-                }
-            }
-            
-        }
-
-        private void UpdateFile(FileSystemEventArgs e, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
-        {
-            // test if file/folder is in sync. If true -> finish
-            if (info.InSyncState == CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC)
-            {
-                loggerFormater.LogFileOP(LogLevel.Info, "UpdateFile", "File was already in sync", opID: opID);
-                return;
-            }
-
-            try
-            {
-                PushToCloudUpdate(e.FullPath, info);
-                loggerFormater.LogFileOP(LogLevel.Info, "PushToCloudUpdate", "OK", opID: opID);
-            }
-            catch (AggregateException ae) when (ae.InnerException is NoSuchCloudFile)
-            {
-                File.Delete(e.FullPath);
-                loggerFormater.LogFileOP(LogLevel.Info, "UpdateFile", "Coresponding cloud file does not exist. Local file was deleted", ae, opID: opID);
-                return;
-
-            }
-
-            SafeHCFFILE? protectedHandle = null;
-            try
-            {
-                HRESULT openHres = CfOpenFileWithOplock(e.FullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out protectedHandle);
-                if (openHres != HRESULT.S_OK)
-                {
-                    throw new Exception("CfOpenFileWithOplock HRES: " + openHres);
-                }
-                // SetInSyncState and set metadata
-                UpdatePlaceholderMetadata(info, protectedHandle, e.FullPath);
-                loggerFormater.LogFileOP(LogLevel.Info, "UpdatePlaceholderMetadata", "OK", opID: opID);
-            }
-            catch (Exception)
-            {
-                loggerFormater.LogFileOP(LogLevel.Error, "UpdateFile", "File was uploaded to cloud, however local file isn't linked with cloud", opID: opID);
-                throw;
-            }
-            finally
-            {
-                if (protectedHandle != null && !protectedHandle.IsInvalid)
-                {
-                    protectedHandle.Dispose();
-                }
-            }
-        }
-
-        private void UpdatePlaceholderMetadata(CF_PLACEHOLDER_STANDARD_INFO info, SafeHCFFILE handle, string path)
-        {
-            string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
-
-            var task = RestClient.GetFileAttribute(
-                id,
-                CloudSync.spaces[PathUtils.GetSpaceName(path)].providerInfos
-            );
-            task.Wait();
-            FileAttribute attribute = task.Result;
-
-            CF_FS_METADATA metadata = Placeholders.CreateFSMetadata(attribute);
-            //metadata.FileSize = info.PropertiesSize;
-
-            long updateUsn = 0;
-            HRESULT hres = CfUpdatePlaceholder(FileHandle: handle.DangerousGetHandle(),
-                                FsMetadata: metadata,
-                                FileIdentity: 0,
-                                FileIdentityLength: 0,
-                                DehydrateRangeCount: 0,
-                                UpdateFlags: CF_UPDATE_FLAGS.CF_UPDATE_FLAG_MARK_IN_SYNC,
-                                UpdateUsn: ref updateUsn
-                                );
-            if (hres != HRESULT.S_OK)
-            {
-                throw new Exception("CfUpdatePlaceholder HRES: " + hres);
-            }
-        }
-
-        private FileId PushNewFolderToCloud(string fullPath)
-        {
-            CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(PathUtils.GetParentPath(fullPath));
-
-            string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
-
-            var task = RestClient.CreateFileInDir(
-                    CloudSync.spaces[PathUtils.GetSpaceName(fullPath)].providerInfos,
-                    id,
-                    PathUtils.GetLastInPath(fullPath),
-                    directory: true
-                );
-            task.Wait();
-            return task.Result;
-        }
-
-        private FileId PushNewFileToCloud(string fullPath)
-        {
-            using (FileStream stream = File.OpenRead(fullPath))
-            {
-                CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(PathUtils.GetParentPath(fullPath));
-
-                string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
-
-                var task = RestClient.CreateFileInDir(
-                    CloudSync.spaces[PathUtils.GetSpaceName(fullPath)].providerInfos,
-                    id,
-                    PathUtils.GetLastInPath(fullPath),
-                    stream
-                );
-                task.Wait();
-                return task.Result;
-            }
-        }
-
-        private void PushToCloudUpdate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info)
-        {
-            string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
-
-            using (FileStream stream = File.OpenRead(fullPath))
-            {
-                var task = RestClient.PostFileContent(
-                    CloudSync.spaces[PathUtils.GetSpaceName(fullPath)].providerInfos,
-                    id,
-                    stream
-                );
-                task.Wait();
-            }
-        }
-
-        private void ConvertToPlaceholder(string fullPath, FileId id, bool isDir = false)
-        {
-            SafeHCFFILE? protectedHandle = null;
-            nint fileIdentity = IntPtr.Zero;
-            try
-            {
-                HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out protectedHandle);
-                if (hresOpen != HRESULT.S_OK)
-                {
-                    throw new Exception("CfOpenFileWithOplock HRES: " + hresOpen);
-                }
-
-                fileIdentity = Marshal.StringToCoTaskMemUni(id.fileId);
-                uint fileIdentityLength = (uint)id.fileId.Length * 2;
-
-                HRESULT hresConvert;
-                unsafe
-                {
-                    hresConvert = CfConvertToPlaceholder(protectedHandle.DangerousGetHandle(), fileIdentity, fileIdentityLength, CF_CONVERT_FLAGS.CF_CONVERT_FLAG_MARK_IN_SYNC);
-                }
-                if (hresConvert != HRESULT.S_OK)
-                {
-                    throw new Exception("CfConvertToPlaceholder HRES: " + hresConvert);
-                }
-            }
-            finally
-            {
-                if (protectedHandle != null && !protectedHandle.IsInvalid)
-                {
-                    protectedHandle.Dispose();
-                }
-                if (fileIdentity != IntPtr.Zero)
-                {
-                    Marshal.FreeCoTaskMem(fileIdentity);
-                }
-            }
-            
+            WatcherEvent watcherEvent = new(sender, e);
+            bufferedEventMerger.AddEvent(watcherEvent);
         }
 
         public void Dispose()
@@ -384,6 +57,8 @@ namespace OnedataDrive
             {
                 watcher.EnableRaisingEvents = false;
                 watcher.Dispose();
+                bufferedEventMerger.Dispose();
+                eventProcessor.StopProcessing();
                 disposed = true;
             }
         }
