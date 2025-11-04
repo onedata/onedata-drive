@@ -28,6 +28,8 @@ namespace OnedataDrive
 
             this.watcher.NotifyFilter = NotifyFilters.Attributes
                                      | NotifyFilters.CreationTime
+                                     | NotifyFilters.FileName
+                                     | NotifyFilters.DirectoryName
                                      | NotifyFilters.LastWrite;
 
             this.watcher.Created += new FileSystemEventHandler(OnEvent);
