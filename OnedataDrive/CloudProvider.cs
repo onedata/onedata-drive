@@ -374,6 +374,22 @@ namespace OnedataDrive
                 }
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "DELETE", "OK");
             }
+            catch (Exception e) when (e is NoSuchCloudFile || e.InnerException is NoSuchCloudFile)
+            {
+                CF_OPERATION_PARAMETERS.ACKDELETE del = new()
+                {
+                    CompletionStatus = new NTStatus((uint)NTStatus.STATUS_SUCCESS),
+                    Flags = CF_OPERATION_ACK_DELETE_FLAGS.CF_OPERATION_ACK_DELETE_FLAG_NONE
+                };
+                CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(del);
+
+                var hres = CfExecute(oi, ref op);
+                if (hres != HRESULT.S_OK)
+                {
+                    throw new Exception($"Delete CfExecute FAIL - HRES: {hres}");
+                }
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "DELETE", "OK - file was not present in cloud", e);
+            }
             catch (Exception e)
             {
                 CF_OPERATION_PARAMETERS.ACKDELETE del = new()

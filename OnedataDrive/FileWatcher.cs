@@ -2,6 +2,7 @@
 using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
@@ -32,8 +33,8 @@ namespace OnedataDrive
                                      | NotifyFilters.DirectoryName
                                      | NotifyFilters.LastWrite;
 
-            this.watcher.Created += new FileSystemEventHandler(OnEvent);
-            this.watcher.Changed += new FileSystemEventHandler(OnEvent);
+            this.watcher.Created += new FileSystemEventHandler(OnCreate);
+            this.watcher.Changed += new FileSystemEventHandler(OnChange);
             this.watcher.Error += new ErrorEventHandler(OnError);
 
             this.watcher.IncludeSubdirectories = true;
@@ -47,7 +48,13 @@ namespace OnedataDrive
             loggerFormater.LogFileOP(LogLevel.Error, "FILE WATCHER", "ERROR event", e.GetException());
         }
 
-        public void OnEvent(object sender, FileSystemEventArgs e)
+        public void OnCreate(object sender, FileSystemEventArgs e)
+        {
+            WatcherEvent watcherEvent = new(sender, e);
+            bufferedEventMerger.AddEvent(watcherEvent);
+        }
+
+        public void OnChange(object sender, FileSystemEventArgs e)
         {
             WatcherEvent watcherEvent = new(sender, e);
             bufferedEventMerger.AddEvent(watcherEvent);
