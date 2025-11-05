@@ -28,9 +28,9 @@ namespace OnedataDrive
             if (!string.IsNullOrEmpty(this.eventArgs.Name))
             {
                 name = this.eventArgs.Name;
-                path = PathUtils.GetParentPath(path);
+                path = this.eventArgs.FullPath[..^name.Length];
             }
-            this.eventArgs = new(changeTypes, this.eventArgs.FullPath, null);
+            this.eventArgs = new(changeTypes, path, name);
 
             this.merged = true;
         }
