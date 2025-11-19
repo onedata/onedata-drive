@@ -6,16 +6,18 @@ Onedata Drive is a graphical interface application allowing Windows users to wor
 
 ## Requirements
 - Supported Windows version: **Windows 10 (version 1803 +)** and **Windows 11**
-- **.NET Desktop Runtime 8** must be installed
-- Before the installation of the new version, **the old version has to be uninstalled**  (The installer will be improved later to make this step unnecessary)
+- **.NET Desktop Runtime 9** must be installed
+- Before the installation of the new version, **versions older than 0.5.x should be uninstalled**
 - You should not need to run as admin, as long you have access to the Root Folder
+- Compatible only with **Oneprovider event-sse-v3**
+- In order to install the application you have to install the certificate from the installer.
+  - `Properties -> Digital Signatures -> Details -> View Certificate -> Install Certificate -> Local Machine -> Place all certificates in the following store -> Trusted People.`
 
 ## Running the app
 - in order to access files Onedata Drive must be running
 - every time you restart computer/app and connect again new session is created
-- connecting to big spaces (with many folders) might take a long time (up to several minutes)
 - **Oneprovider Token** must have REST/CDMI access
-- If you want refresh folder (show changes perfomed on cloud): `Right Click (On empty space) -> Show more options -> Onedata Drive -> Refresh Current Folder`
+- changes performed on cloud side are synced usually within 60s
 
 ### Filling the connect form
 All options can be set in the graphicall user interface. You can fill the connect form manually or you can load existing configuration file (`Advanced` -> `Load configuration from file`). 
@@ -39,7 +41,7 @@ Selected configuration options:
 - **Oneprovider token**
     - must have REST/CDMI access,
     - must have access to Oneproviders (Onezone access is not required),
-    - limiting token access to specific paths (during token creation) might not work as expected with spaces of which you are not owner.
+    - limiting token access to specific paths (during token creation) might not work as expected.
 
 ## Logging
 Files with logs can be found at `C:\Users\Andrej\AppData\Local\Packages\<packageName>\LocalState\Logs`. 
@@ -50,7 +52,7 @@ Files with logs can be found at `C:\Users\Andrej\AppData\Local\Packages\<package
 
 ## Notes
 - Does not work in Windows Sandbox. In virtual machine (e.g. in Hyper-V) it works fine.
-- The application is not signed, so Windows Defender SmartScreen might block it. You can run it anyway by clicking `More info` and `Run anyway`.
+- The application is signed with certificate which is not trusted by default in Windows. 
 
 ## Acknowledgment
 <p align="left">
