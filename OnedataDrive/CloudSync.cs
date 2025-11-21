@@ -18,7 +18,7 @@ namespace OnedataDrive
         private static CancellationTokenSource cts = new();
         private static Task startupTask = Task.CompletedTask;
         public static Logger logger = LogManager.GetCurrentClassLogger();
-        public const string VERSION = "0.5.6";
+        public const string VERSION = "0.5.7";
         public const string APP_NAME = "Onedata Drive";
 
         /// <summary>
