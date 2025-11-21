@@ -10,8 +10,6 @@ Onedata Drive is a graphical interface application allowing Windows users to wor
 - Before the installation of the new version, **versions older than 0.5.x should be uninstalled**
 - You should not need to run as admin, as long you have access to the Root Folder
 - Compatible only with **Oneprovider event-sse-v3**
-- In order to install the application you have to install the certificate from the installer.
-  - `Properties -> Digital Signatures -> Details -> View Certificate -> Install Certificate -> Local Machine -> Place all certificates in the following store -> Trusted People.`
 
 ## Running the app
 - in order to access files Onedata Drive must be running
