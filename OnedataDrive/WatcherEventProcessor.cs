@@ -6,7 +6,6 @@ using OnedataDrive.Utils;
 using System.Runtime.InteropServices;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
-using static Vanara.PInvoke.Kernel32.PSS_HANDLE_ENTRY;
 
 namespace OnedataDrive
 {

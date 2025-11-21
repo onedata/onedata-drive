@@ -370,7 +370,7 @@ namespace OnedataDrive
                 var hres = CfExecute(oi, ref op);
                 if (hres != HRESULT.S_OK)
                 {
-                    throw new Exception($"Delete CfExecute FAIL - HRES: {hres}");
+                    throw new Exception($"Delete CfExecute FAIL - HRES: {hres} int value: {((int)hres)}");
                 }
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "DELETE", "OK");
             }
@@ -386,7 +386,9 @@ namespace OnedataDrive
                 var hres = CfExecute(oi, ref op);
                 if (hres != HRESULT.S_OK)
                 {
-                    throw new Exception($"Delete CfExecute FAIL - HRES: {hres}");
+                    Exception newEX = new Exception($"Delete CfExecute FAIL - HRES: {hres} int value: {((int)hres)}");
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Warn, "DELETE", "FAIL - file was not present in cloud", newEX);
+                    return;
                 }
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "DELETE", "OK - file was not present in cloud", e);
             }
@@ -414,7 +416,7 @@ namespace OnedataDrive
             try
             {
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "START");
-                CloudSync.watcher.Pause();
+                CloudSync.watcher?.Pause();
 
                 NTStatus status;
 
@@ -467,7 +469,7 @@ namespace OnedataDrive
             finally
             {
                 Thread.Sleep(250);
-                CloudSync.watcher.Resume();
+                CloudSync.watcher?.Resume();
             }
         }
 
@@ -606,11 +608,7 @@ namespace OnedataDrive
 
         public static void OnDeleteCompletion(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            // TODO
-            //Debug.Print("DELETE COMPLETITION");
-            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Debug, "DELETE COMPLETION");
-            // free memory (allocated during placeholder creation) - not needed
-            // Marshal.FreeCoTaskMem(CallbackInfo.FileIdentity);
+            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "DELETE COMPLETION");
             return;
         }
 
