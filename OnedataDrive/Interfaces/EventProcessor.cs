@@ -74,7 +74,7 @@ namespace OnedataDrive.Interfaces
 
         public bool StopProcessing()
         {
-            logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Stop processing",
+            logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Stop processing - request",
                 filePath: spaceName);
             processingTokenSource.Cancel();
             try
