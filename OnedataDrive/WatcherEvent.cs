@@ -15,7 +15,7 @@ namespace OnedataDrive
             this.merged = false;
         }
 
-        public void Merge(WatcherEvent mergeWith)
+        public override void Merge(WatcherEvent mergeWith)
         {
             if (this.eventArgs.FullPath != mergeWith.eventArgs.FullPath)
             {
@@ -35,9 +35,14 @@ namespace OnedataDrive
             this.merged = true;
         }
 
-        public string RelationKey()
+        public override string RelationKey()
         {
             return eventArgs.FullPath;
+        }
+
+        public override string ToString()
+        {
+            return $"[WatcherEvent: ChangeType={eventArgs.ChangeType}, FullPath={eventArgs.FullPath}, Name={eventArgs.Name}], Merged={merged}, EventID={eventId}";
         }
     }
 }

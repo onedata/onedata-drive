@@ -59,7 +59,7 @@ namespace OnedataDrive.JSON_Object
         /// </summary>
         /// <param name="updateFrom"></param>
         /// <exception cref="ArgumentException"></exception>
-        public void Merge(FileEvent updateFrom)
+        public override void Merge(FileEvent updateFrom)
         {
             if (this.fileId != updateFrom.fileId)
             {
@@ -76,7 +76,7 @@ namespace OnedataDrive.JSON_Object
             isMerged = true;
         }
 
-        public string RelationKey()
+        public override string RelationKey()
         {
             return fileId;
         }
