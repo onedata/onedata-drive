@@ -42,7 +42,7 @@ namespace OnedataDrive
 
         public override string ToString()
         {
-            return $"[WatcherEvent: ChangeType={eventArgs.ChangeType}, FullPath={eventArgs.FullPath}, Name={eventArgs.Name}], Merged={merged}, EventID={eventId}";
+            return $"[WatcherEvent: ChangeType={eventArgs.ChangeType}, FullPath={eventArgs.FullPath}, Name={eventArgs.Name}], Merged={merged}, EventID={AEventId}";
         }
     }
 }

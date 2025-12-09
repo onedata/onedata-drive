@@ -1,4 +1,5 @@
 ﻿using OnedataDrive.Interfaces;
+using System;
 using System.ComponentModel;
 using System.Reflection;
 using System.Text.Json;
@@ -79,6 +80,11 @@ namespace OnedataDrive.JSON_Object
         public override string RelationKey()
         {
             return fileId;
+        }
+
+        public override string ToString()
+        {
+            return $"[FileEvent: FileEventId={eventId}, EventType={eventType}, Name={data.name}], Merged={isMerged}, Size={data.size}, FileId={fileId}, ParentId={parentFileId}";
         }
     }
 

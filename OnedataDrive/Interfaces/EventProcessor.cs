@@ -4,7 +4,7 @@ using OnedataDrive.Utils;
 
 namespace OnedataDrive.Interfaces
 {
-    internal class Event<T>
+    internal class EventPenalizable<T> where T : IEvent<T>
     {
         internal T @event;
         internal DateTime penalizedUntil { get; private set; }
@@ -12,7 +12,7 @@ namespace OnedataDrive.Interfaces
 
         internal string? localFileName;
 
-        public Event(T @event)
+        public EventPenalizable(T @event)
         {
             this.@event = @event;
             this.penalizedUntil = DateTime.MinValue;
@@ -35,27 +35,14 @@ namespace OnedataDrive.Interfaces
             }
             return false;
         }
-
-        public string EventFileId()
-        {
-            FileEvent? fileEvent = @event as FileEvent;
-            if (fileEvent is not null)
-            {
-                return fileEvent.fileId;
-            }
-            else
-            {
-                return string.Empty;
-            }
-        }
     }
 
-    abstract class EventProcessor<T>
+    abstract class EventProcessor<T> where T : IEvent<T>
     {
         protected LoggerFormater logFormatter;
         protected string spaceName;
 
-        protected ThreadSafeList<Event<T>> events;
+        protected ThreadSafeList<EventPenalizable<T>> events;
         private CancellationTokenSource processingTokenSource;
         protected Task processingTask { get; private set; }
         protected int sleepInterval { get; private set; }
@@ -66,7 +53,7 @@ namespace OnedataDrive.Interfaces
             this.logFormatter = new(logger); 
             this.sleepInterval = sleepInterval;
             this.processingTokenSource = new();
-            this.events = new ThreadSafeList<Event<T>>();
+            this.events = new ThreadSafeList<EventPenalizable<T>>();
             this.processingTask = Task.Run(() => ProcessEvents(processingTokenSource.Token));
             logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "CREATED",
                 filePath: spaceName);
@@ -106,7 +93,7 @@ namespace OnedataDrive.Interfaces
 
         public void AddEvent(T fileEvent)
         {
-            Event<T> newEvent = new Event<T>(fileEvent);
+            EventPenalizable<T> newEvent = new EventPenalizable<T>(fileEvent);
             events.Add(newEvent);
         }
 
@@ -129,17 +116,17 @@ namespace OnedataDrive.Interfaces
                     List<string> penalizedIds = new();
                     for (index = 0; index < events.Count; index++)
                     {
-                        Event<T> investigatedEvent = events[index];
+                        EventPenalizable<T> investigatedEvent = events[index];
                         if (investigatedEvent.IsPenalized())
                         {
-                            string eventId = investigatedEvent.EventFileId();
+                            string eventId = investigatedEvent.@event.AEventId;
                             if (!string.IsNullOrEmpty(eventId))
                             {
                                 penalizedIds.Add(eventId);
                             }
                             continue;
                         }
-                        else if (penalizedIds.Contains(investigatedEvent.EventFileId()))
+                        else if (penalizedIds.Contains(investigatedEvent.@event.AEventId))
                         {
                             continue;
                         }
@@ -155,11 +142,12 @@ namespace OnedataDrive.Interfaces
                     }
 
                     // process event
-                    string opID = IdGenerator.GenerateId8();
+                    //string opID = IdGenerator.GenerateId8();
 
-                    Event<T> processedEvent = events[index];
+                    EventPenalizable<T> processedEvent = events[index];
+                    
 
-                    bool eventCompleted = ProcessEventWorker(processedEvent, opID);
+                    bool eventCompleted = ProcessEventWorker(processedEvent);
 
                     if (!eventCompleted)
                     {
@@ -167,19 +155,19 @@ namespace OnedataDrive.Interfaces
                         if (penaltyTime < 0)
                         {
                             logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR", 
-                                "Event not processed - giving up", filePath: spaceName, opID: opID);
+                                "Event not processed - giving up", filePath: spaceName, opID: processedEvent.@event.AEventId);
                             events.RemoveAt(index);
                         }
                         processedEvent.Penalize(penaltyTime);
                         logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR",
                             $"Event not processed - re-adding to the queue with penalty of {penaltyTime}s",
-                            filePath: spaceName, opID: opID);
+                            filePath: spaceName, opID: processedEvent.@event.AEventId);
                     }
                     else
                     {
                         events.RemoveAt(index);
                         logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Event processed",
-                            filePath: spaceName, opID: opID);
+                            filePath: spaceName, opID: processedEvent.@event.AEventId);
                     }
                 }
                 else
@@ -191,7 +179,7 @@ namespace OnedataDrive.Interfaces
                         filePath: spaceName);
         }
 
-        protected abstract bool ProcessEventWorker(Event<T> processedEvent, string opID);
+        protected abstract bool ProcessEventWorker(EventPenalizable<T> processedEvent);
        
     }
 }

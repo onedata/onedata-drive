@@ -21,7 +21,7 @@ namespace OnedataDrive
 
         public new void AddEvent(FileEvent fileEvent)
         {
-            Event<FileEvent> newEvent = new Event<FileEvent>(fileEvent);
+            EventPenalizable<FileEvent> newEvent = new EventPenalizable<FileEvent>(fileEvent);
             if (fileEvent.eventType == FileEvent.EVENT_DELETED)
             {
                 events.RemoveAll(e => e.@event.fileId == fileEvent.fileId);
@@ -67,7 +67,7 @@ namespace OnedataDrive
             return null;
         }
 
-        protected override bool ProcessEventWorker(Event<FileEvent> processedEvent, string opID)
+        protected override bool ProcessEventWorker(EventPenalizable<FileEvent> processedEvent)
         {
             bool eventCompleted = false;
             List<string> moreInfo = EventMoreInfo(processedEvent.@event);
@@ -88,7 +88,7 @@ namespace OnedataDrive
                         if (string.IsNullOrWhiteSpace(processedEvent.localFileName))
                         {
                             logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Processing event - Create new",
-                                moreInfo: moreInfo, opID: opID, filePath: spaceName);
+                                moreInfo: moreInfo, opID: processedEvent.@event.AEventId, filePath: spaceName);
                             List<ProviderInfo> providerInfos = autoRefresh.spaceFolder.providerInfos;
                             FileAttribute attribute = RestClient.GetFileAttribute(processedEvent.@event.fileId, providerInfos).Result;
                             using (PlaceholderCreateInfo createInfo = new())
@@ -109,15 +109,15 @@ namespace OnedataDrive
                         else
                         {
                             logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Processing event - Update",
-                                moreInfo: moreInfo, opID: opID, filePath: spaceName);
-                            UpdatePlaceholderMetadata(processedEvent, filePath, directory, opID);
+                                moreInfo: moreInfo, opID: processedEvent.@event.AEventId, filePath: spaceName);
+                            UpdatePlaceholderMetadata(processedEvent, filePath, directory, processedEvent.@event.AEventId);
                             eventCompleted = true;
                         }    
                         break;
                     case FileEvent.EVENT_DELETED:
                         // delete
                         logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Processing event - Delete",
-                                moreInfo: moreInfo,opID: opID, filePath: spaceName);
+                                moreInfo: moreInfo,opID: processedEvent.@event.AEventId, filePath: spaceName);
                         if (string.IsNullOrWhiteSpace(processedEvent.localFileName))
                         {
                             eventCompleted = true;
@@ -138,7 +138,7 @@ namespace OnedataDrive
                     default:
                         logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR",
                             $"Unknown event type - Discarding event: {processedEvent.@event.eventType}",
-                            moreInfo: moreInfo, filePath: spaceName, opID: opID);
+                            moreInfo: moreInfo, filePath: spaceName, opID: processedEvent.@event.AEventId);
                         eventCompleted = true;
                         break;
                 }
@@ -147,23 +147,23 @@ namespace OnedataDrive
             {
                 eventCompleted = true;
                 logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "File does not exist on cloud anymore",
-                    e, moreInfo: moreInfo, filePath: spaceName, opID: opID);
+                    e, moreInfo: moreInfo, filePath: spaceName, opID: processedEvent.@event.AEventId);
             }
             catch (ThreadSafeMonitored.DirectoryNotMonitoredException e)
             {
                 eventCompleted = true;
                 logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "Parent folder not monitored - Unknown parent id - discarding event",
-                    e, moreInfo: moreInfo, filePath: spaceName, opID: opID);
+                    e, moreInfo: moreInfo, filePath: spaceName, opID: processedEvent.@event.AEventId);
             }
             catch (Exception e)
             {
                 logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR", "Process event error", e,
-                    filePath: spaceName, opID: opID);
+                    filePath: spaceName, opID: processedEvent.@event.AEventId);
             }
             return eventCompleted;
         }
 
-        private void UpdatePlaceholderMetadata(Event<FileEvent> processedEvent, string placeholderPath, bool directory, string opID)
+        private void UpdatePlaceholderMetadata(EventPenalizable<FileEvent> processedEvent, string placeholderPath, bool directory, string opID)
         {
             CF_FS_METADATA metadata = new();
             if (processedEvent.@event.data.size is not null) metadata.FileSize = (long)processedEvent.@event.data.size;

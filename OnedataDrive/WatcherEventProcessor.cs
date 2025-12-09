@@ -19,18 +19,18 @@ namespace OnedataDrive
             this.loggerFormater = new(logger);
         }
 
-        protected override bool ProcessEventWorker(Event<WatcherEvent> processedEvent, string opID)
+        protected override bool ProcessEventWorker(EventPenalizable<WatcherEvent> processedEvent)
         {
             if (!PathUtils.IsSpacePath(processedEvent.@event.eventArgs.FullPath))
             {
                 loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", 
-                    "IGNORED - spaces directory", filePath: processedEvent.@event.eventArgs.FullPath, opID: opID);
+                    "IGNORED - spaces directory", filePath: processedEvent.@event.eventArgs.FullPath, opID: processedEvent.@event.AEventId);
                 return true;
             }
             // determine type
             if ((processedEvent.@event.eventArgs.ChangeType & WatcherChangeTypes.Created) is WatcherChangeTypes.Created)
             {
-                return Created(processedEvent.@event, opID);
+                return Created(processedEvent.@event);
                 // check if file is placeholder
                 // convert to placeholder
                 // push to cloud
@@ -38,7 +38,7 @@ namespace OnedataDrive
 
             if ((processedEvent.@event.eventArgs.ChangeType & WatcherChangeTypes.Changed) is WatcherChangeTypes.Changed)
             {
-                return Changed(processedEvent.@event, opID);
+                return Changed(processedEvent.@event);
                 // check if file is placeholder
                 // check if hydration is requested
                 // check if in sync
@@ -50,66 +50,66 @@ namespace OnedataDrive
         }
 
 
-        private bool Created(WatcherEvent @event, string opID)
+        private bool Created(WatcherEvent @event)
         {
-            loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "START", filePath: @event.eventArgs.FullPath, opID: opID);
+            loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "START", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
 
             try
             {
-                RegisterFile(@event, opID);
-                loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "FINISHED", filePath: @event.eventArgs.FullPath, opID: opID);
+                RegisterFile(@event, @event.AEventId);
+                loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "FINISHED", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
                 return true;
             }
             catch (FileNotFoundException ex)
             {
-                loggerFormater.LogFileOP(LogLevel.Error, "FILE CREATED", "FAILED - file not found", ex, filePath: @event.eventArgs.FullPath, opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "FILE CREATED", "FAILED - file not found", ex, filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
                 return true;
             }
             catch (Exception ex)
             {
-                loggerFormater.LogFileOP(LogLevel.Error, "FILE CREATED", "FAILED", ex, filePath: @event.eventArgs.FullPath, opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "FILE CREATED", "FAILED", ex, filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
                 return false;
             }
         }
 
-        private bool Changed(WatcherEvent @event, string opID)
+        private bool Changed(WatcherEvent @event)
         {
-            loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "START", filePath: @event.eventArgs.FullPath, opID: opID);
+            loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "START", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
             try
             {
                 if (!File.Exists(@event.eventArgs.FullPath) && !Directory.Exists(@event.eventArgs.FullPath))
                 {
-                    loggerFormater.LogFileOP(LogLevel.Warn, "FILE CHANGED", "FINISHED - File not found", filePath: @event.eventArgs.FullPath, opID: opID);
+                    loggerFormater.LogFileOP(LogLevel.Warn, "FILE CHANGED", "FINISHED - File not found", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
                     return true;
                 }
 
                 FileAttributes attributes = File.GetAttributes(@event.eventArgs.FullPath);
                 if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
                 {
-                    loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED - File is DIR", filePath: @event.eventArgs.FullPath, opID: opID);
+                    loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED - File is DIR", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
                     return true;
                 }
 
                 CF_PLACEHOLDER_STANDARD_INFO info = CldApiUtils.GetStandardInfo(@event.eventArgs.FullPath);
 
-                UpdateFile(@event.eventArgs, info, opID);
+                UpdateFile(@event.eventArgs, info, @event.AEventId);
 
                 if (info.PinState == CF_PIN_STATE.CF_PIN_STATE_UNPINNED)
                 {
-                    Dehydrate(@event.eventArgs.FullPath, info, opID);
+                    Dehydrate(@event.eventArgs.FullPath, info, @event.AEventId);
                 }
                 if (info.PinState == CF_PIN_STATE.CF_PIN_STATE_PINNED)
                 {
-                    Hydrate(@event.eventArgs.FullPath, info, opID);
+                    Hydrate(@event.eventArgs.FullPath, info, @event.AEventId);
                 }
             }
             catch (Exception exception)
             {
-                loggerFormater.LogFileOP(LogLevel.Error, "FILE CHANGED", "FAILED", exception, filePath: @event.eventArgs.FullPath, opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "FILE CHANGED", "FAILED", exception, filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
                 return false;
             }
 
-            loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED", filePath: @event.eventArgs.FullPath, opID: opID);
+            loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
             return true;
         }
 
