@@ -44,7 +44,7 @@ namespace OnedataDrive
             {
                 throw new InvalidOperationException("BufferedEventMerger is not running.");
             }
-            loggerFormater.LogFileOP(LogLevel.Info, "ADD EVENT", "", opID: newEvent.eventId, moreInfo: [newEvent.ToString() ?? ""]);
+            loggerFormater.LogFileOP(LogLevel.Info, "ADD EVENT", "", opID: newEvent.AEventId, moreInfo: [newEvent.ToString() ?? ""]);
             input.Enqueue(newEvent);
         }
 
@@ -57,7 +57,7 @@ namespace OnedataDrive
                     List<string> moreInfo = new List<string>() { "FAILED to create more info" };
                     try
                     {
-                        moreInfo = new List<string>() { $"Event key: {newEvent.RelationKey()}", $"EventId: {newEvent.eventId}"};
+                        moreInfo = new List<string>() { $"Event key: {newEvent.RelationKey()}", $"EventId: {newEvent.AEventId}"};
                         bufferExpirable.Add(newEvent);
                         input.TryDequeue(out _);
                     }
@@ -103,7 +103,7 @@ namespace OnedataDrive
                     List<string> moreInfo = new List<string>() { "FAILED to create more info" };
                     if (eventExpirable is not null)
                     {
-                        moreInfo = new() { $"Event key: {eventExpirable.@event.RelationKey()}", $"EventId: {eventExpirable.@event.eventId}" };
+                        moreInfo = new() { $"Event key: {eventExpirable.@event.RelationKey()}", $"EventId: {eventExpirable.@event.AEventId}" };
 
                     }
                     loggerFormater.LogFileOP(LogLevel.Error, "BUFFERED EVENT MERGER", "Queue reader - FAILED " +
@@ -146,7 +146,7 @@ namespace OnedataDrive
                         try
                         {
                             @event.Merge(newEvent);
-                            return @event.eventId;
+                            return @event.AEventId;
                         }
                         finally
                         {
@@ -155,12 +155,12 @@ namespace OnedataDrive
                     }
                     else
                     {
-                        throw new TimeoutException($"Event is locked, EventId: {@event.eventId}");
+                        throw new TimeoutException($"Event is locked, EventId: {@event.AEventId}");
                     }
                 }
                 else
                 {
-                    throw new EventExpiredException($"Event has expired, EventId: {@event.eventId}");
+                    throw new EventExpiredException($"Event has expired, EventId: {@event.AEventId}");
                 }
             }
 
@@ -192,12 +192,12 @@ namespace OnedataDrive
 
             public void Add(U newEvent)
             {
-                List<string> moreInfo = new() { $"Relation Key: {newEvent.RelationKey()}", $"EventId: {newEvent.eventId}" };
+                List<string> moreInfo = new() { $"Relation Key: {newEvent.RelationKey()}" };
                 if (buffer.TryGetValue(newEvent.RelationKey(), out EventExpirable<U>? fileEventExpirable))
                 {
                     string mergedToEventId = fileEventExpirable.MergeEvent(newEvent);
                     moreInfo.Add($"MergedToEventId: {mergedToEventId}");
-                    loggFormater.LogFileOP(LogLevel.Info, "BUFFERED EVENT MERGER", "Event added - merged",
+                    loggFormater.LogFileOP(LogLevel.Info, "BUFFERED EVENT MERGER", "Event added - merged", opID: newEvent.AEventId,
                         moreInfo: moreInfo);
                 }
                 else
@@ -205,7 +205,7 @@ namespace OnedataDrive
                     string key = newEvent.RelationKey();
                     buffer[key] = new EventExpirable<U>(newEvent, eventLifespan);
                     expirationQueue.Enqueue(key);
-                    loggFormater.LogFileOP(LogLevel.Debug, "BUFFERED EVENT MERGER", "Event added",
+                    loggFormater.LogFileOP(LogLevel.Debug, "BUFFERED EVENT MERGER", "Event added", opID: newEvent.AEventId,
                         moreInfo: moreInfo);
                 }
             }
