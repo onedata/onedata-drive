@@ -19,7 +19,7 @@ namespace OnedataDrive
         {
             if (this.eventArgs.FullPath != mergeWith.eventArgs.FullPath)
             {
-                throw new ArgumentException("Cannot merge UploadRequests with different file paths!");
+                throw new ArgumentException("Cannot merge WatcherEvents with different file paths!");
             }
             WatcherChangeTypes changeTypes = this.eventArgs.ChangeType | mergeWith.eventArgs.ChangeType;
 
@@ -43,7 +43,7 @@ namespace OnedataDrive
         public override string ToString()
         {
             List<string> list = MoreInfo();
-            return $"[{string.Join(", ", list)}]";
+            return $"[{string.Join("| ", list)}]";
         }
 
         public override List<string> MoreInfo()

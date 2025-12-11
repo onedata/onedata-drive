@@ -86,7 +86,7 @@ namespace OnedataDrive.JSON_Object
         public override string ToString()
         {
             List<string> list = MoreInfo();
-            return $"[{string.Join(", ", list)}]";
+            return $"[{string.Join("| ", list)}]";
         }
 
         public override List<string> MoreInfo()
