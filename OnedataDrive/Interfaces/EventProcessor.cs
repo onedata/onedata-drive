@@ -49,7 +49,7 @@ namespace OnedataDrive.Interfaces
 
         public EventProcessor(Logger logger, string spaceName = "", int sleepInterval = 2000)
         {
-            this.spaceName = spaceName;
+            this.spaceName = "Spc: " + spaceName;
             this.logFormatter = new(logger); 
             this.sleepInterval = sleepInterval;
             this.processingTokenSource = new();
@@ -119,14 +119,14 @@ namespace OnedataDrive.Interfaces
                         EventPenalizable<T> investigatedEvent = events[index];
                         if (investigatedEvent.IsPenalized())
                         {
-                            string eventId = investigatedEvent.@event.AEventId;
+                            string eventId = investigatedEvent.@event.RelationKey();
                             if (!string.IsNullOrEmpty(eventId))
                             {
                                 penalizedIds.Add(eventId);
                             }
                             continue;
                         }
-                        else if (penalizedIds.Contains(investigatedEvent.@event.AEventId))
+                        else if (penalizedIds.Contains(investigatedEvent.@event.RelationKey()))
                         {
                             continue;
                         }
@@ -142,8 +142,6 @@ namespace OnedataDrive.Interfaces
                     }
 
                     // process event
-                    //string opID = IdGenerator.GenerateId8();
-
                     EventPenalizable<T> processedEvent = events[index];
                     
 
@@ -157,6 +155,7 @@ namespace OnedataDrive.Interfaces
                             logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR", 
                                 "Event not processed - giving up", filePath: spaceName, opID: processedEvent.@event.AEventId);
                             events.RemoveAt(index);
+                            continue;
                         }
                         processedEvent.Penalize(penaltyTime);
                         logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR",
