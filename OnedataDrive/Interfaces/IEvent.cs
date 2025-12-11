@@ -7,6 +7,7 @@ namespace OnedataDrive.Interfaces
         public string AEventId { get; protected set; } = IdGenerator.GenerateId8();
         public abstract void Merge(T mergeWith);
         public abstract string RelationKey();
+        public abstract List<string> MoreInfo();
     }
 
     public class MergeException : Exception

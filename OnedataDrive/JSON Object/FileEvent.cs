@@ -1,6 +1,7 @@
 ﻿using OnedataDrive.Interfaces;
 using System;
 using System.ComponentModel;
+using System.Diagnostics.Tracing;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -84,7 +85,24 @@ namespace OnedataDrive.JSON_Object
 
         public override string ToString()
         {
-            return $"[FileEvent: FileEventId={eventId}, EventType={eventType}, Name={data.name}], Merged={isMerged}, Size={data.size}, FileId={fileId}, ParentId={parentFileId}";
+            List<string> list = MoreInfo();
+            return $"[{string.Join(", ", list)}]";
+        }
+
+        public override List<string> MoreInfo()
+        {
+            List<string> list = new()
+            {
+                "FileEvent: ",
+                $"FileEventId={eventId}",
+                $"EventType={eventType}",
+                $"Name={data.name}",
+                $"Merged={isMerged}",
+                $"Size={data.size}",
+                $"FileId={fileId}",
+                $"ParentId={parentFileId}"
+            };
+            return list;
         }
     }
 
