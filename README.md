@@ -2,11 +2,11 @@
 
 **The application is currently under development. Available installation packages are alpha versions. It is not intended for use with production data!**
 
-Onedata Drive is a graphical interface application allowing Windows users to work with data stored in Onedata system. 
+Onedata Drive is a GUI application allowing Windows users to work with data stored in Onedata system. 
 
 <img width="586" height="356" alt="Onedata Drive GUI" src="https://github.com/user-attachments/assets/a793e590-d901-4702-9a58-b9a8d3cd346a" />
 
-To log in, you need to fill in the desired instance of the Onezone service and enter the token. The spaces available to the user are then connected to the user's home directory.
+To log in, you need to fill in the desired instance of the Onezone service and the token. The spaces available to the user are then mounted to the user's home directory.
 
 <img width="647" height="423" alt="Mounted spaces from Onedata" src="https://github.com/user-attachments/assets/affdd129-77aa-4d66-9f73-6aacfc3d81f7" />
 
@@ -16,7 +16,7 @@ To log in, you need to fill in the desired instance of the Onezone service and e
 - Before the installation of the new version, **versions older than 0.5.x should be uninstalled**
 - You should not need to run as admin, as long you have access to the Root Folder
 - Compatible only with **Oneprovider event-sse-v3**
-- In order to install the application you have to install the certificate from the installer.
+- In order to install the unsigned version of the application you have to install the certificate from the installer.
   - `Properties -> Digital Signatures -> Details -> View Certificate -> Install Certificate -> Local Machine -> Place all certificates in the following store -> Trusted People.`
 
 ## Running the app
@@ -33,7 +33,7 @@ All options can be set in the graphicall user interface. You can fill the connec
 {
     "onezone" : "datahub.egi.eu",
     "provider_token" : "TOKEN",
-    "root_path" : "C:\\Users\\user\\Onedata\\"
+    "root_path" : "C:\\Users\\user\\Onedata Drive\\"
 }
 ```
 
@@ -42,7 +42,7 @@ All options can be set in the graphicall user interface. You can fill the connec
 Selected configuration options:
 
 - **Root Folder**
-    - path to the local folder where directories and files are synced.
+    - path to the local folder where directories and files are synced,
     - the original contents of the directory will be deleted when connecting.
 - **Oneprovider token**
     - must have REST/CDMI access,
@@ -54,11 +54,11 @@ Files with logs can be found at `C:\Users\Andrej\AppData\Local\Packages\<package
 
 ## In case of app failure
 - If the app crashes and you can not reconnect to the cloud restarting computer should fix the issue.
-- If the app is not running, but sync root (OneData) is still present you may try using `Advanced -> Remove SyncRoot`
+- If the app is not connected, but sync root (Onedata folder) is still present you may try using `Advanced -> Remove SyncRoot`
 
 ## Notes
 - Does not work in Windows Sandbox. In virtual machine (e.g. in Hyper-V) it works fine.
-- The application is signed with certificate which is not trusted by default in Windows. 
+- The develop versions of the application are signed with certificate which is not trusted by default in Windows. 
 
 ## Acknowledgment
 <p align="left">
