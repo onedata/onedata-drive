@@ -4,6 +4,12 @@
 
 Onedata Drive is a graphical interface application allowing Windows users to work with data stored in Onedata system. 
 
+<img width="586" height="356" alt="Onedata Drive GUI" src="https://github.com/user-attachments/assets/a793e590-d901-4702-9a58-b9a8d3cd346a" />
+
+To log in, you need to fill in the desired instance of the Onezone service and enter the token. The spaces available to the user are then connected to the user's home directory.
+
+<img width="647" height="423" alt="Mounted spaces from Onedata" src="https://github.com/user-attachments/assets/affdd129-77aa-4d66-9f73-6aacfc3d81f7" />
+
 ## Requirements
 - Supported Windows version: **Windows 10 (version 1803 +)** and **Windows 11**
 - **.NET Desktop Runtime 9** must be installed
