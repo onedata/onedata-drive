@@ -158,7 +158,7 @@ namespace OnedataDrive.Interfaces
                             continue;
                         }
                         processedEvent.Penalize(penaltyTime);
-                        logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR",
+                        logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR",
                             $"Event not processed - re-adding to the queue with penalty of {penaltyTime}s",
                             filePath: spaceName, opID: processedEvent.@event.AEventId);
                     }
