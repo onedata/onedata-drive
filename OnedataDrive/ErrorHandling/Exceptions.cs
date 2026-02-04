@@ -112,4 +112,16 @@
         public EventExpiredException(string message) : base(message) { }
         public EventExpiredException(string message, Exception inner) : base(message, inner) { }
     }
+
+    public class NotPlaceholder : Exception
+    {
+        public NotPlaceholder() : base() { }
+        public NotPlaceholder(string message) : base(message) { }
+        public NotPlaceholder(string message, Exception innerException) : base(message, innerException) { }
+
+        public override string ToString()
+        {
+            return "NotPlaceholder: " + base.ToString();
+        }
+    }
 }

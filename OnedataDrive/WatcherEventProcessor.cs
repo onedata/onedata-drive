@@ -21,32 +21,37 @@ namespace OnedataDrive
 
         protected override bool ProcessEventWorker(EventPenalizable<WatcherEvent> processedEvent)
         {
+            if (!Path.Exists(processedEvent.@event.eventArgs.FullPath))
+            {
+                loggerFormater.LogFileOP(LogLevel.Warn, "FILEWATCHER EVENT", 
+                    "IGNORED - file/dir does not exists", filePath: processedEvent.@event.eventArgs.FullPath, opID: processedEvent.@event.AEventId);
+                return true;
+            }
+
             if (!PathUtils.IsSpacePath(processedEvent.@event.eventArgs.FullPath))
             {
-                loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", 
+                loggerFormater.LogFileOP(LogLevel.Info, "FILEWATCHER EVENT", 
                     "IGNORED - spaces directory", filePath: processedEvent.@event.eventArgs.FullPath, opID: processedEvent.@event.AEventId);
                 return true;
             }
-            // determine type
-            if ((processedEvent.@event.eventArgs.ChangeType & WatcherChangeTypes.Created) is WatcherChangeTypes.Created)
+
+            CF_PLACEHOLDER_STANDARD_INFO info;
+            try
+            {
+                info = CldApiUtils.GetStandardInfo(processedEvent.@event.eventArgs.FullPath);
+            }
+            catch (OnedataDrive.ErrorHandling.NotPlaceholder)
             {
                 return Created(processedEvent.@event);
-                // check if file is placeholder
-                // convert to placeholder
-                // push to cloud
             }
-
-            if ((processedEvent.@event.eventArgs.ChangeType & WatcherChangeTypes.Changed) is WatcherChangeTypes.Changed)
+            catch (Exception e)
             {
-                return Changed(processedEvent.@event);
-                // check if file is placeholder
-                // check if hydration is requested
-                // check if in sync
-                // push to cloud
-                // set in sync
+                loggerFormater.LogFileOP(LogLevel.Error, "FILEWATCHER EVENT", 
+                    "FAILED to get placeholder info", e, filePath: processedEvent.@event.eventArgs.FullPath, opID: processedEvent.@event.AEventId);
+                return false;
             }
 
-            throw new NotImplementedException();
+            return Changed(processedEvent.@event, info);
         }
 
 
@@ -72,7 +77,7 @@ namespace OnedataDrive
             }
         }
 
-        private bool Changed(WatcherEvent @event)
+        private bool Changed(WatcherEvent @event, CF_PLACEHOLDER_STANDARD_INFO info)
         {
             loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "START", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
             try
@@ -89,8 +94,6 @@ namespace OnedataDrive
                     loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED - File is DIR", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
                     return true;
                 }
-
-                CF_PLACEHOLDER_STANDARD_INFO info = CldApiUtils.GetStandardInfo(@event.eventArgs.FullPath);
 
                 UpdateFile(@event.eventArgs, info, @event.AEventId);
 

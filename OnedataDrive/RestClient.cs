@@ -64,7 +64,7 @@ namespace OnedataDrive
             msg.Headers.Add("x-auth-token", PROVIDER_TOKEN);
         }
 
-        private static void HandleFailedStatucCode(HttpResponseMessage response, string url)
+        private static void HandleFailedStatusCode(HttpResponseMessage response, string url)
         {
             if (!response.IsSuccessStatusCode)
             {
@@ -135,7 +135,7 @@ namespace OnedataDrive
             AddDefaultHeaders(request);
 
             var response = await client.SendAsync(request, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             T? data = JsonSerializer.Deserialize<T>(response.Content.ReadAsStream());
             response.Dispose();
@@ -149,7 +149,7 @@ namespace OnedataDrive
             AddDefaultHeaders(request);
 
             var response = await client.SendAsync(request, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             return await response.Content.ReadAsByteArrayAsync();
         }
@@ -170,7 +170,7 @@ namespace OnedataDrive
             request.Headers.Add("Range", byteRange);
             
             var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             response.EnsureSuccessStatusCode();
             return response.Content.ReadAsStream();
@@ -182,7 +182,7 @@ namespace OnedataDrive
             AddDefaultHeaders(request);
 
             var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             response.EnsureSuccessStatusCode();
             return response.Content.ReadAsStream();
@@ -194,7 +194,7 @@ namespace OnedataDrive
             AddDefaultHeaders(request);
 
             var response = await client.SendAsync(request, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             response.EnsureSuccessStatusCode();
             return;
@@ -209,7 +209,7 @@ namespace OnedataDrive
             AddDefaultHeaders(request);
 
             var response = await client.SendAsync(request, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             return JsonSerializer.Deserialize<T>(response.Content.ReadAsStream()) ??
              throw new JsonReturnedNullException();
@@ -224,7 +224,7 @@ namespace OnedataDrive
             AddDefaultHeaders(request);
 
             var response = await client.SendAsync(request, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             return;
         }
@@ -245,7 +245,7 @@ namespace OnedataDrive
             content.Headers.Add("Content-Type", "application/json");
 
             var response = await client.PostAsync(url, content, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             return JsonSerializer.Deserialize<TokenAccess>(response.Content.ReadAsStream()) ??
              throw new JsonReturnedNullException();
@@ -263,7 +263,7 @@ namespace OnedataDrive
             content.Headers.Add("Content-Type", "application/json");
 
             var response = await client.PostAsync(url, content, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             return JsonSerializer.Deserialize<TokenExamine>(response.Content.ReadAsStream()) ??
              throw new JsonReturnedNullException();
@@ -280,7 +280,7 @@ namespace OnedataDrive
             };
             AddDefaultHeaders(request);
             var response = await clientNoTimeout.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             return await response.Content.ReadAsStreamAsync();
         }
