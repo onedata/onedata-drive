@@ -68,10 +68,7 @@ static class CldApiUtils
             handle = GetFileHnadle(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS);
 
             HRESULT hresSync = CfSetInSyncState(handle.DangerousGetHandle(), CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
-            if (hresSync != HRESULT.S_OK)
-            {
-                throw new Exception($"CfSetInSyncState PATH: {fullPath} \n {hresSync} int value: {((int)hresSync)}");
-            }
+            PlaceholderExceptionGen(hresSync, fullPath);
         }
         finally
         {
