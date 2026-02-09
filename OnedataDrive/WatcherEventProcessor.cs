@@ -40,7 +40,7 @@ namespace OnedataDrive
             {
                 info = CldApiUtils.GetStandardInfo(processedEvent.@event.eventArgs.FullPath);
             }
-            catch (OnedataDrive.ErrorHandling.NotPlaceholder)
+            catch (NotPlaceholder)
             {
                 return Created(processedEvent.@event);
             }
@@ -246,13 +246,19 @@ namespace OnedataDrive
 
         private void PushToCloudUpdate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info)
         {
-            string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
+            string fileId = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
+            List<ProviderInfo> providers = CloudSync.spaces[PathUtils.GetSpaceName(fullPath)].providerInfos;
 
-            using (FileStream stream = File.OpenRead(fullPath))
+            PushToCloudUpdate(fullPath, fileId, providers);
+        }
+
+        private void PushToCloudUpdate(string fullPath, string fileId, List<ProviderInfo> providers)
+        {
+            using (FileStream stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
             {
                 var task = RestClient.PostFileContent(
-                    CloudSync.spaces[PathUtils.GetSpaceName(fullPath)].providerInfos,
-                    id,
+                    providers,
+                    fileId,
                     stream
                 );
                 task.Wait();
@@ -268,70 +274,72 @@ namespace OnedataDrive
                 throw new FileNotFoundException($"path: {fullPath}");
             }
 
+            string parentPath = PathUtils.GetParentPath(fullPath);
+            CF_PLACEHOLDER_BASIC_INFO parentInfo = CldApiUtils.GetBasicInfo(parentPath);
+            string parentId = System.Text.Encoding.Unicode.GetString(parentInfo.FileIdentity);
+            List<ProviderInfo> providers = CloudSync.spaces[PathUtils.GetSpaceName(fullPath)].providerInfos;
+
             FileId id;
 
             FileAttributes attributes = File.GetAttributes(fullPath);
             bool isDir = (attributes & FileAttributes.Directory) == FileAttributes.Directory;
 
-            if (isDir)
-            {
-                id = PushNewFolderToCloud(fullPath);
-                loggerFormater.LogFileOP(LogLevel.Info, "RegisterFile", "Dir pushed to cloud", opID: opID);
-            }
-            else
-            {
-                id = PushNewFileToCloud(fullPath);
-                loggerFormater.LogFileOP(LogLevel.Info, "RegisterFile", "File pushed to cloud", opID: opID);
-            }
+            // push empty file/folder to cloud
+            id = CreateCloudEntry(fullPath, parentId, providers, directory: isDir);
+            loggerFormater.LogFileOP(LogLevel.Info, "RegisterFile", "Created empty cloud entry", opID: opID);
 
+            // register it as placeholder - not in sync
             try
             {
-                ConvertToPlaceholder(fullPath, id, isDir);
-                loggerFormater.LogFileOP(LogLevel.Info, "RegisterFile", "Converted to placeholder", opID: opID);
+                ConvertToPlaceholder(fullPath, id, isDir, setInSync: false);
+                loggerFormater.LogFileOP(LogLevel.Info, "RegisterFile", "Converted to empty placeholder", opID: opID);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                loggerFormater.LogFileOP(LogLevel.Error, "RegisterFile", "File was pushed to cloud - local file is NOT LINKED with cloud", opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "RegisterFile", "Can not convert to placeholder", e, opID: opID);
+                RestClient.Delete(providers, id.fileId).Wait();
+                throw;
+            }
+
+            // push data to cloud
+            if (!isDir)
+            {
+                try
+                {
+                    PushToCloudUpdate(fullPath, id.fileId, providers);
+                }
+                catch (Exception e)
+                {
+                    loggerFormater.LogFileOP(LogLevel.Error, "RegisterFile", "Can not push file content to cloud", e, opID: opID);
+                    throw;
+                }
+            }
+
+            // set in sync
+            try
+            {
+                CldApiUtils.SetInSyncState(fullPath);
+            }
+            catch (Exception e)
+            {
+                logFormatter.LogFileOP(LogLevel.Error, "RegisterFile", "Can not set file as in sync", e, opID: opID);
                 throw;
             }
         }
 
-        private FileId PushNewFolderToCloud(string fullPath)
+        private FileId CreateCloudEntry(string fullPath, string parentId, List<ProviderInfo> providers, bool directory)
         {
-            CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(PathUtils.GetParentPath(fullPath));
-
-            string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
-
             var task = RestClient.CreateFileInDir(
-                    CloudSync.spaces[PathUtils.GetSpaceName(fullPath)].providerInfos,
-                    id,
+                    providers,
+                    parentId,
                     PathUtils.GetLastInPath(fullPath),
-                    directory: true
+                    directory: directory
                 );
             task.Wait();
             return task.Result;
         }
 
-        private FileId PushNewFileToCloud(string fullPath)
-        {
-            using (FileStream stream = File.OpenRead(fullPath))
-            {
-                CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(PathUtils.GetParentPath(fullPath));
-
-                string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
-
-                var task = RestClient.CreateFileInDir(
-                    CloudSync.spaces[PathUtils.GetSpaceName(fullPath)].providerInfos,
-                    id,
-                    PathUtils.GetLastInPath(fullPath),
-                    stream
-                );
-                task.Wait();
-                return task.Result;
-            }
-        }
-
-        private void ConvertToPlaceholder(string fullPath, FileId id, bool isDir = false)
+        private void ConvertToPlaceholder(string fullPath, FileId id, bool isDir = false, bool setInSync = true)
         {
             SafeHCFFILE? protectedHandle = null;
             nint fileIdentity = IntPtr.Zero;
@@ -347,9 +355,12 @@ namespace OnedataDrive
                 uint fileIdentityLength = (uint)id.fileId.Length * 2;
 
                 HRESULT hresConvert;
+
+                CF_CONVERT_FLAGS inSyncFlags = setInSync ? CF_CONVERT_FLAGS.CF_CONVERT_FLAG_MARK_IN_SYNC : CF_CONVERT_FLAGS.CF_CONVERT_FLAG_NONE;
+
                 unsafe
                 {
-                    hresConvert = CfConvertToPlaceholder(protectedHandle.DangerousGetHandle(), fileIdentity, fileIdentityLength, CF_CONVERT_FLAGS.CF_CONVERT_FLAG_MARK_IN_SYNC);
+                    hresConvert = CfConvertToPlaceholder(protectedHandle.DangerousGetHandle(), fileIdentity, fileIdentityLength, inSyncFlags);
                 }
                 if (hresConvert != HRESULT.S_OK)
                 {
