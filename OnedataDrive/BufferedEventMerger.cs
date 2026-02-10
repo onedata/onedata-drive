@@ -44,7 +44,7 @@ namespace OnedataDrive
             {
                 throw new InvalidOperationException("BufferedEventMerger is not running.");
             }
-            loggerFormater.LogFileOP(LogLevel.Info, "ADD EVENT", "", opID: newEvent.AEventId, moreInfo: newEvent.MoreInfo());
+            loggerFormater.LogFileOP(LogLevel.Info, "ADD EVENT", "Event detected", opID: newEvent.AEventId, moreInfo: newEvent.MoreInfo());
             input.Enqueue(newEvent);
         }
 
@@ -196,7 +196,7 @@ namespace OnedataDrive
                 {
                     string mergedToEventId = fileEventExpirable.MergeEvent(newEvent);
                     moreInfo.Add($"MergedToEventId: {mergedToEventId}");
-                    loggFormater.LogFileOP(LogLevel.Info, "BUFFERED EVENT MERGER", "Event added - merged", opID: newEvent.AEventId,
+                    loggFormater.LogFileOP(LogLevel.Info, "BUFFERED EVENT MERGER", "Event merged", opID: newEvent.AEventId,
                         moreInfo: moreInfo);
                 }
                 else

@@ -98,10 +98,10 @@ namespace OnedataDrive
                 catch (HttpRequestException e)
                 {
                     exceptionList.Add(e);
-                    Debug.Print(e.Message);
+                    Debug.Print($"MultiProviderWorker exception: {e.Message}");
                 }
             }
-            throw new AggregateException("Failed to put file.", exceptionList);
+            throw new AggregateException("MultiProviderWorker FAILED.", exceptionList);
         }
 
         private static async Task<T> MultiProviderWorker<T>(List<ProviderInfo> providerInfos, Func<ProviderInfo, Task<T>> function)
@@ -120,10 +120,10 @@ namespace OnedataDrive
                 catch (HttpRequestException e)
                 {
                     exceptionList.Add(e);
-                    Debug.Print(e.Message);
+                    Debug.Print($"MultiProviderWorker exception: {e.Message}");
                 }
             }
-            throw new AggregateException("Failed to put file.", exceptionList);
+            throw new AggregateException("MultiProviderWorker FAILED.", exceptionList);
         }
 
         ////////////////////////////////////////////////////////////////
@@ -215,20 +215,6 @@ namespace OnedataDrive
              throw new JsonReturnedNullException();
         }
 
-        private static async Task OnedataPut(string url, HttpContent content, CancellationToken token = default)
-        {
-            HttpRequestMessage request = new(HttpMethod.Put, url)
-            {
-                Content = content
-            };
-            AddDefaultHeaders(request);
-
-            var response = await client.SendAsync(request, token);
-            HandleFailedStatusCode(response, url);
-
-            return;
-        }
-
         /////////////////////////////////////////////////////////////////////////////
         /// No auth token in headers
 
@@ -272,13 +258,28 @@ namespace OnedataDrive
         /////////////////////////////////////////////////////////////////////////////
         /// No Timeout client
 
-        private static async Task<Stream> OnedataPostStreamNH(string url, HttpContent? content, CancellationToken token = default)
+        private static async Task OnedataPut(string url, HttpContent content, CancellationToken token = default)
+        {
+            HttpRequestMessage request = new(HttpMethod.Put, url)
+            {
+                Content = content
+            };
+            AddDefaultHeaders(request);
+
+            var response = await clientNoTimeout.SendAsync(request, token);
+            HandleFailedStatusCode(response, url);
+
+            return;
+        }
+
+        private static async Task<Stream> OnedataPostStream(string url, HttpContent? content, CancellationToken token = default)
         {
             HttpRequestMessage request = new(HttpMethod.Post, url)
             {
                 Content = content
             };
             AddDefaultHeaders(request);
+
             var response = await clientNoTimeout.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
             HandleFailedStatusCode(response, url);
 
@@ -306,7 +307,7 @@ namespace OnedataDrive
 
                 StringContent content = new StringContent(json, mediaType: new MediaTypeHeaderValue("application/json"));
 
-                return await OnedataPostStreamNH(url, content, token);
+                return await OnedataPostStream(url, content, token);
             };
 
             return await MultiProviderWorker(providerInfos, func);

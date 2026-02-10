@@ -15,6 +15,13 @@ namespace OnedataDrive
             this.merged = false;
         }
 
+        public WatcherEvent(object sender, RenamedEventArgs eventArgs)
+        {
+            this.sender = sender;
+            this.eventArgs = eventArgs;
+            this.merged = false;
+        }
+
         public override void Merge(WatcherEvent mergeWith)
         {
             if (this.eventArgs.FullPath != mergeWith.eventArgs.FullPath)

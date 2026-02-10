@@ -65,11 +65,6 @@ namespace OnedataDrive
                 loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "FINISHED", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
                 return true;
             }
-            catch (FileNotFoundException ex)
-            {
-                loggerFormater.LogFileOP(LogLevel.Error, "FILE CREATED", "FAILED - file not found", ex, filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
-                return true;
-            }
             catch (Exception ex)
             {
                 loggerFormater.LogFileOP(LogLevel.Error, "FILE CREATED", "FAILED", ex, filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
@@ -82,12 +77,6 @@ namespace OnedataDrive
             loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "START", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
             try
             {
-                if (!File.Exists(@event.eventArgs.FullPath) && !Directory.Exists(@event.eventArgs.FullPath))
-                {
-                    loggerFormater.LogFileOP(LogLevel.Warn, "FILE CHANGED", "FINISHED - File not found", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
-                    return true;
-                }
-
                 FileAttributes attributes = File.GetAttributes(@event.eventArgs.FullPath);
                 if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
                 {
@@ -95,7 +84,10 @@ namespace OnedataDrive
                     return true;
                 }
 
-                UpdateFile(@event.eventArgs, info, @event.AEventId);
+                if (info.InSyncState == CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_NOT_IN_SYNC)
+                {
+                    UpdateCloudFile(@event.eventArgs, info, @event.AEventId);
+                }
 
                 if (info.PinState == CF_PIN_STATE.CF_PIN_STATE_UNPINNED)
                 {
@@ -167,15 +159,8 @@ namespace OnedataDrive
 
         }
 
-        private void UpdateFile(FileSystemEventArgs e, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
+        private void UpdateCloudFile(FileSystemEventArgs e, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
         {
-            // test if file/folder is in sync. If true -> finish
-            if (info.InSyncState == CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC)
-            {
-                loggerFormater.LogFileOP(LogLevel.Info, "UpdateFile", "File was already in sync", opID: opID);
-                return;
-            }
-
             try
             {
                 PushToCloudUpdate(e.FullPath, info);
@@ -183,8 +168,10 @@ namespace OnedataDrive
             }
             catch (AggregateException ae) when (ae.InnerException is NoSuchCloudFile)
             {
-                File.Delete(e.FullPath);
-                loggerFormater.LogFileOP(LogLevel.Info, "UpdateFile", "Coresponding cloud file does not exist. Local file was deleted", ae, opID: opID);
+                // upload file again
+                // convert to regular file
+                // File.Delete(e.FullPath);
+                loggerFormater.LogFileOP(LogLevel.Info, "UpdateFile", "Coresponding cloud file does not exist", ae, opID: opID);
                 return;
 
             }
@@ -268,11 +255,6 @@ namespace OnedataDrive
         private void RegisterFile(WatcherEvent @event, string opID = "")
         {
             string fullPath = @event.eventArgs.FullPath;
-
-            if (!File.Exists(fullPath) && !Directory.Exists(fullPath))
-            {
-                throw new FileNotFoundException($"path: {fullPath}");
-            }
 
             string parentPath = PathUtils.GetParentPath(fullPath);
             CF_PLACEHOLDER_BASIC_INFO parentInfo = CldApiUtils.GetBasicInfo(parentPath);

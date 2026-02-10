@@ -36,7 +36,7 @@ namespace OnedataDrive
                 $"Path: {callback.filePath}", 
                 $"Offset: {callback.offset}",
                 $"OffsetLength: {callback.length}"};
-            loggerFormater.LogFileOP(LogLevel.Info, "FETCH DATA", "START", moreInfo, callback.filePath, opID);
+            loggerFormater.LogFileOP(LogLevel.Info, "FETCH DATA", "START", moreInfo, callback.filePath, opID: opID);
 
             CF_OPERATION_INFO oi = new()
             {
@@ -120,7 +120,7 @@ namespace OnedataDrive
                 {
                     throw new OperationCanceledException();
                 }
-                loggerFormater.LogFileOP(LogLevel.Info, "FETCH DATA", "OK", opID);
+                loggerFormater.LogFileOP(LogLevel.Info, "FETCH DATA", "OK", opID: opID);
             }
             catch (AggregateException e) when (e.InnerException is NoSuchCloudFile)
             {
@@ -143,7 +143,7 @@ namespace OnedataDrive
                     ex = new Exception($"CfExecute Stop operation HRES: {hres}", e);
                 }
 
-                loggerFormater.LogFileOP(LogLevel.Error, "FETCH DATA", "FAIL - No such file", e, opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "FETCH DATA", "FAIL - No such file", e, opID: opID);
 
                 File.Delete(callback.filePath);
             }
