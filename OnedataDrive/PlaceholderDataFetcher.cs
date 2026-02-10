@@ -172,7 +172,7 @@ namespace OnedataDrive
                 {
                     e = new Exception($"CfExecute Stop operation HRES: {hres}", e);
                 }
-                loggerFormater.LogFileOP(LogLevel.Error, "FETCH DATA", "FAIL", e, opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "FETCH DATA", "FAIL", e, opID: opID);
             }
             finally
             {
