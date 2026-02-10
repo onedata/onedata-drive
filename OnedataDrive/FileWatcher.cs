@@ -29,6 +29,7 @@ namespace OnedataDrive
 
             this.watcher.Created += new FileSystemEventHandler(OnCreate);
             this.watcher.Changed += new FileSystemEventHandler(OnChange);
+            this.watcher.Renamed += new RenamedEventHandler(OnRename);
             this.watcher.Error += new ErrorEventHandler(OnError);
 
             this.watcher.IncludeSubdirectories = true;
@@ -49,6 +50,12 @@ namespace OnedataDrive
         }
 
         public void OnChange(object sender, FileSystemEventArgs e)
+        {
+            WatcherEvent watcherEvent = new(sender, e);
+            bufferedEventMerger.AddEvent(watcherEvent);
+        }
+
+        public void OnRename(object sender, RenamedEventArgs e)
         {
             WatcherEvent watcherEvent = new(sender, e);
             bufferedEventMerger.AddEvent(watcherEvent);
