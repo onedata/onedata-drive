@@ -67,17 +67,13 @@ namespace OnedataDrive
                     // TODO: update placeholder, so operation runs OK
                 }
 
-                long fileEndOffset = callback.offset + callback.length;
-                fileEndOffset = ((fileEndOffset + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT;
-                fileEndOffset = Math.Min(fileEndOffset, callback.fileSize) - 1;
-
                 using (LivelinessChcecker livelinessChcecker = new(10 * 1000, turnOffWhenDead: false))
                 using (Stream stream = await RestClient.GetStream(
                     CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)].providerInfos,
                     callback.fileIdentity,
                     token,
                     callback.offset,
-                    fileEndOffset))
+                    callback.fileSize - 1))
                 {
                     const int CHUNK = (int)ALIGNMENT * 4;
                     unmanagedPointer = Marshal.AllocHGlobal(CHUNK);
@@ -134,7 +130,7 @@ namespace OnedataDrive
                         {
                             throw new OperationCanceledException();
                         }
-                    } while (offset < (callback.offset + callback.length));
+                    } while (offset < callback.fileSize);
                 }
                 loggerFormater.LogFileOP(LogLevel.Info, "FETCH DATA", "OK", opID: opID);
             }
