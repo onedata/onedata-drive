@@ -33,10 +33,15 @@ namespace OnedataDrive
         private async Task FetchDataAsync(FetchDataCallback callback, CancellationToken token, RunningTask thisTask, string opID)
         {
             List<string> moreInfo = new() {
-                $"Path: {callback.filePath}", 
-                $"Offset: {callback.offset}",
-                $"OffsetLength: {callback.length}"};
+                $"Path:     {callback.filePath}", 
+                $"Offset:   {callback.offset}",
+                $"Length:   {callback.length}",
+                $"FileSize: {callback.fileSize}",
+                $"OptLen:   {callback.optionalLength}",
+                $"OptOfs:   {callback.optionalOffset}"};
             loggerFormater.LogFileOP(LogLevel.Info, "FETCH DATA", "START", moreInfo, callback.filePath, opID: opID);
+
+            const long ALIGNMENT = 4096;
 
             CF_OPERATION_INFO oi = new()
             {
@@ -61,15 +66,20 @@ namespace OnedataDrive
                     throw new PlaceholderSizeException("Size of cloud file does not match local file size.");
                     // TODO: update placeholder, so operation runs OK
                 }
+
+                long fileEndOffset = callback.offset + callback.length;
+                fileEndOffset = ((fileEndOffset + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT;
+                fileEndOffset = Math.Min(fileEndOffset, callback.fileSize) - 1;
+
                 using (LivelinessChcecker livelinessChcecker = new(10 * 1000, turnOffWhenDead: false))
                 using (Stream stream = await RestClient.GetStream(
                     CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)].providerInfos,
                     callback.fileIdentity,
                     token,
                     callback.offset,
-                    callback.offset + callback.length - 1))
+                    fileEndOffset))
                 {
-                    const int CHUNK = 4096 * 4;
+                    const int CHUNK = (int)ALIGNMENT * 4;
                     unmanagedPointer = Marshal.AllocHGlobal(CHUNK);
                     byte[] buffer = new byte[CHUNK];
                     int read;
@@ -92,14 +102,15 @@ namespace OnedataDrive
                             {
                                 throw new OperationCanceledException();
                             }
-                            read += await stream.ReadAsync(buffer, read, CHUNK - read, token);
-                            if (read == 0)
+                            int receivedBytes = await stream.ReadAsync(buffer, read, CHUNK - read, token);
+                            if (receivedBytes == 0)
                             {
                                 Debug.Print("Fetch Data - End of stream");
                                 throw new Exception("Fetch Data - End of stream");
                             }
+                            read += receivedBytes;
                             livelinessChcecker.IamAlive();
-                        } while (read < CHUNK && (read + offset) < (callback.offset + callback.length) && !token.IsCancellationRequested);
+                        } while (read < CHUNK && (read + offset) < (callback.fileSize));
 
                         Marshal.Copy(buffer, 0, unmanagedPointer, read);
 
@@ -110,15 +121,20 @@ namespace OnedataDrive
 
                         op = CF_OPERATION_PARAMETERS.Create(td);
 
-                        CfReportProviderProgress(callback.connectionKey, callback.transferKey, callback.fileSize, offset);
+                        //CfReportProviderProgress(callback.connectionKey, callback.transferKey, callback.fileSize, offset);
 
                         HRESULT hres = CfExecute(oi, ref op);
                         if (hres != HRESULT.S_OK)
                         {
-                            throw new Exception($"Fetch data CfExecute FAIL - HRES {((int)hres)}: {hres}");
+                            throw new Exception($"Fetch data CfExecute FAIL - HRES {((uint)hres):X}: {hres}");
                         }
                         callback.alreadyFetchedOffset = offset;
-                    } while (offset < (callback.offset + callback.length) && !token.IsCancellationRequested);
+
+                        if (token.IsCancellationRequested)
+                        {
+                            throw new OperationCanceledException();
+                        }
+                    } while (offset < (callback.offset + callback.length));
                 }
                 loggerFormater.LogFileOP(LogLevel.Info, "FETCH DATA", "OK", opID: opID);
             }
@@ -136,14 +152,13 @@ namespace OnedataDrive
                 op = CF_OPERATION_PARAMETERS.Create(td);
 
                 HRESULT hres = CfExecute(oi, ref op);
-
                 Exception ex = e;
                 if (hres != HRESULT.S_OK)
                 {
-                    ex = new Exception($"CfExecute Stop operation HRES: {hres}", e);
+                    ex = new Exception($"CfExecute Stop operation HRES {((uint)hres):X}: {hres}", e);
                 }
 
-                loggerFormater.LogFileOP(LogLevel.Error, "FETCH DATA", "FAIL - No such file", e, opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "FETCH DATA", "FAIL - No such file", ex, opID: opID);
 
                 File.Delete(callback.filePath);
             }
@@ -161,7 +176,7 @@ namespace OnedataDrive
                 HRESULT hres = CfExecute(oi, ref op);
                 if (hres != HRESULT.S_OK)
                 {
-                    Exception e = new Exception($"CfExecute Stop operation HRES {((int)hres)}: {hres}");
+                    Exception e = new Exception($"CfExecute Stop operation HRES {((uint)hres):X}: {hres}");
                     loggerFormater.LogFileOP(LogLevel.Error, "FETCH DATA", "FAIL - Operation canceled", e, opID: opID);
                 }
                 else
@@ -187,7 +202,7 @@ namespace OnedataDrive
                 HRESULT hres = CfExecute(oi, ref op);
                 if (hres != HRESULT.S_OK)
                 {
-                    e = new Exception($"CfExecute Stop operation HRES {((int)hres)}: {hres}", e);
+                    e = new Exception($"CfExecute Stop operation HRES {((uint)hres):X}: {hres}", e);
                 }
                 loggerFormater.LogFileOP(LogLevel.Error, "FETCH DATA", "FAIL", e, opID: opID);
             }
@@ -238,12 +253,16 @@ namespace OnedataDrive
     {
         public long offset;
         public long length;
+        public long optionalOffset;
+        public long optionalLength;
         public long alreadyFetchedOffset;
         public FetchDataCallback(in CF_CALLBACK_INFO callbackInfo, in CF_CALLBACK_PARAMETERS callbackParameters) 
             : base(callbackInfo, callbackParameters)
         {
             this.offset = callbackParameters.FetchData.RequiredFileOffset;
             this.length = callbackParameters.FetchData.RequiredLength;
+            this.optionalOffset = callbackParameters.FetchData.OptionalFileOffset;
+            this.optionalLength = callbackParameters.FetchData.OptionalLength;
             this.alreadyFetchedOffset = 0;
         }
     }
