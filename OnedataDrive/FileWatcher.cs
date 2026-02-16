@@ -15,6 +15,8 @@ namespace OnedataDrive
         public FileWatcher(string rootDir)
         {
             this.watcher = new(rootDir);
+            this.watcher.InternalBufferSize = 64 * 1024; // max recomended size
+
             this.logger = LogManager.GetCurrentClassLogger();
             this.loggerFormater = new(logger);
 
