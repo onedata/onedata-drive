@@ -327,7 +327,7 @@ namespace OnedataDrive
             nint fileIdentity = IntPtr.Zero;
             try
             {
-                HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out protectedHandle);
+                HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_FOREGROUND | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out protectedHandle);
                 if (hresOpen != HRESULT.S_OK)
                 {
                     throw new Exception("CfOpenFileWithOplock HRES: " + hresOpen);
