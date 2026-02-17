@@ -168,71 +168,55 @@ namespace OnedataDrive
             CF_FS_METADATA metadata = new();
             if (processedEvent.@event.data.size is not null) metadata.FileSize = (long)processedEvent.@event.data.size;
 
-            SafeHCFFILE? handle = null;
+            //SafeHCFFILE? handle = null;
             CF_OPEN_FILE_FLAGS flags = CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE;
             if (!directory)
             {
                 flags = CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE;
             }
-            try
-            {
-                HRESULT openHres = CfOpenFileWithOplock(placeholderPath,
-                    flags,
-                    out handle);
-                if (openHres != HRESULT.S_OK)
-                {
-                    throw new Exception($"CfOpenFileWithOplock HRES number: {((int)openHres)}" +
-                        $"\n HRES text: {openHres}");
-                }
-                long updateUsn = 0;
-                HRESULT updateHres = CfUpdatePlaceholder(FileHandle: handle.DangerousGetHandle(),
-                                    FsMetadata: metadata,
-                                    FileIdentity: 0,
-                                    FileIdentityLength: 0,
-                                    DehydrateRangeCount: 0,
-                                    UpdateFlags: CF_UPDATE_FLAGS.CF_UPDATE_FLAG_MARK_IN_SYNC,
-                                    UpdateUsn: ref updateUsn
-                                    );
-                if (updateHres != HRESULT.S_OK)
-                {
-                    throw new Exception($"CfUpdatePlaceholder HRES number: {((int)updateHres)}" +
-                        $"\n HRES text: {updateHres}");
-                }
 
-                // rename if needed
-                if (processedEvent.@event.data.name is not null)
-                {
-                    string oldName = PathUtils.GetLastInPath(placeholderPath);
-                    string newName = processedEvent.@event.data.name;
-                    if (oldName != newName)
-                    {
-                        if (directory)
-                        {
-                            FileSystem.RenameDirectory(placeholderPath, newName);
-                        }
-                        else
-                        {
-                            FileSystem.RenameFile(placeholderPath, newName);
-                        }
-                        processedEvent.localFileName = newName;
-                        HRESULT inSyncHres = CfSetInSyncState(handle.DangerousGetHandle(),
-                        CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
-                        if (inSyncHres != HRESULT.S_OK)
-                        {
-                            throw new Exception($"CfSetInSync HRES number: {((int)inSyncHres)}" +
-                                $"\n HRES text: {inSyncHres}");
-                        }
-                        List<string> moreInfo = new List<string>() { $"{oldName} -> {newName}" };
-                        logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Placeholder renamed", moreInfo: moreInfo,
-                            opID: opID, filePath: spaceName);
-                    }
-                }
-            }
-            finally
+            using CfHandle handle = new(placeholderPath, flags);
+            long updateUsn = 0;
+            HRESULT updateHres = CfUpdatePlaceholder(FileHandle: handle.GetDangerousHandle(),
+                                FsMetadata: metadata,
+                                FileIdentity: 0,
+                                FileIdentityLength: 0,
+                                DehydrateRangeCount: 0,
+                                UpdateFlags: CF_UPDATE_FLAGS.CF_UPDATE_FLAG_MARK_IN_SYNC,
+                                UpdateUsn: ref updateUsn
+                                );
+            if (updateHres != HRESULT.S_OK)
             {
-                if (handle != null && !handle.IsInvalid)
+                throw new Exception($"CfUpdatePlaceholder HRES number: {((uint)updateHres):X}" +
+                    $"\n HRES text: {updateHres}");
+            }
+
+            // rename if needed
+            if (processedEvent.@event.data.name is not null)
+            {
+                string oldName = PathUtils.GetLastInPath(placeholderPath);
+                string newName = processedEvent.@event.data.name;
+                if (oldName != newName)
                 {
-                    handle.Dispose();
+                    if (directory)
+                    {
+                        FileSystem.RenameDirectory(placeholderPath, newName);
+                    }
+                    else
+                    {
+                        FileSystem.RenameFile(placeholderPath, newName);
+                    }
+                    processedEvent.localFileName = newName;
+                    HRESULT inSyncHres = CfSetInSyncState(handle.GetDangerousHandle(),
+                    CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
+                    if (inSyncHres != HRESULT.S_OK)
+                    {
+                        throw new Exception($"CfSetInSync HRES number: {((int)inSyncHres)}" +
+                            $"\n HRES text: {inSyncHres}");
+                    }
+                    List<string> moreInfo = new List<string>() { $"{oldName} -> {newName}" };
+                    logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Placeholder renamed", moreInfo: moreInfo,
+                        opID: opID, filePath: spaceName);
                 }
             }
         }

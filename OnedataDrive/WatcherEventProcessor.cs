@@ -110,53 +110,29 @@ namespace OnedataDrive
 
         private void Hydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
         {
-            SafeHCFFILE? protectedHandle = null;
-            try
-            {
-                HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out protectedHandle);
-                HRESULT hresHydrate = CfHydratePlaceholder(protectedHandle.DangerousGetHandle());
+            using CfHandle handle = new(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS);
+            HRESULT hresHydrate = CfHydratePlaceholder(handle.GetDangerousHandle());
 
-                if (hresOpen != HRESULT.S_OK || hresHydrate != HRESULT.S_OK)
-                {
-                    throw new Exception("CfOpenFileWithOplock: " + hresOpen + ", CfHydratePlaceholder: " + hresHydrate);
-                }
-
-                loggerFormater.LogFileOP(LogLevel.Info, "Hydrate", "OK", opID: opID);
-            }
-            finally
+            if (hresHydrate != HRESULT.S_OK)
             {
-                if (protectedHandle != null && !protectedHandle.IsInvalid)
-                {
-                    protectedHandle.Dispose();
-                }
+                throw new Exception("CfHydratePlaceholder: " + hresHydrate);
             }
 
+            loggerFormater.LogFileOP(LogLevel.Info, "Hydrate", "OK", opID: opID);
         }
 
         private void Dehydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
         {
-            SafeHCFFILE? protectedHandle = null;
-            try
-            {
-                HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS, out protectedHandle);
-                HRESULT hresDehydrate = CfDehydratePlaceholder(protectedHandle.DangerousGetHandle(), 0, info.OnDiskDataSize, CF_DEHYDRATE_FLAGS.CF_DEHYDRATE_FLAG_NONE);
-                HRESULT hresPinState = CfSetPinState(protectedHandle.DangerousGetHandle(), CF_PIN_STATE.CF_PIN_STATE_UNSPECIFIED, CF_SET_PIN_FLAGS.CF_SET_PIN_FLAG_NONE);
+            using CfHandle handle = new(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS);
+            HRESULT hresDehydrate = CfDehydratePlaceholder(handle.GetDangerousHandle(), 0, info.OnDiskDataSize, CF_DEHYDRATE_FLAGS.CF_DEHYDRATE_FLAG_NONE);
+            HRESULT hresPinState = CfSetPinState(handle.GetDangerousHandle(), CF_PIN_STATE.CF_PIN_STATE_UNSPECIFIED, CF_SET_PIN_FLAGS.CF_SET_PIN_FLAG_NONE);
 
-                if (hresOpen != HRESULT.S_OK || hresDehydrate != HRESULT.S_OK || hresPinState != HRESULT.S_OK)
-                {
-                    throw new Exception("CfOpenFileWithOplock: " + hresOpen + ", CfDehydratePlaceholder: " + hresDehydrate + ", CfSetPinState: " + hresPinState);
-                }
-
-                loggerFormater.LogFileOP(LogLevel.Info, "Dehydrate", "OK", opID: opID);
-            }
-            finally
+            if (hresDehydrate != HRESULT.S_OK || hresPinState != HRESULT.S_OK)
             {
-                if (protectedHandle != null && !protectedHandle.IsInvalid)
-                {
-                    protectedHandle.Dispose();
-                }
+                throw new Exception("CfDehydratePlaceholder: " + hresDehydrate + ", CfSetPinState: " + hresPinState);
             }
 
+            loggerFormater.LogFileOP(LogLevel.Info, "Dehydrate", "OK", opID: opID);
         }
 
         private void UpdateCloudFile(FileSystemEventArgs e, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
@@ -176,29 +152,19 @@ namespace OnedataDrive
 
             }
 
-            SafeHCFFILE? protectedHandle = null;
             try
             {
-                HRESULT openHres = CfOpenFileWithOplock(e.FullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out protectedHandle);
-                if (openHres != HRESULT.S_OK)
-                {
-                    throw new Exception("CfOpenFileWithOplock HRES: " + openHres);
-                }
+                CF_OPEN_FILE_FLAGS openFlags = CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_WRITE_ACCESS | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE;
+                using CfHandle handle = new(e.FullPath, openFlags);
+                
                 // SetInSyncState and set metadata
-                UpdatePlaceholderMetadata(info, protectedHandle, e.FullPath);
+                UpdatePlaceholderMetadata(info, handle.GetSafeHandle(), e.FullPath);
                 loggerFormater.LogFileOP(LogLevel.Info, "UpdatePlaceholderMetadata", "OK", opID: opID);
             }
             catch (Exception)
             {
                 loggerFormater.LogFileOP(LogLevel.Error, "UpdateFile", "File was uploaded to cloud, however local file isn't linked with cloud", opID: opID);
                 throw;
-            }
-            finally
-            {
-                if (protectedHandle != null && !protectedHandle.IsInvalid)
-                {
-                    protectedHandle.Dispose();
-                }
             }
         }
 
@@ -323,26 +289,23 @@ namespace OnedataDrive
 
         private void ConvertToPlaceholder(string fullPath, FileId id, bool isDir = false, bool setInSync = true)
         {
-            SafeHCFFILE? protectedHandle = null;
             nint fileIdentity = IntPtr.Zero;
             try
             {
-                HRESULT hresOpen = CfOpenFileWithOplock(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_FOREGROUND | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE, out protectedHandle);
-                if (hresOpen != HRESULT.S_OK)
-                {
-                    throw new Exception("CfOpenFileWithOplock HRES: " + hresOpen);
-                }
+                CF_OPEN_FILE_FLAGS openFlags = CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_FOREGROUND
+                | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE;
+                using CfHandle handle = new(fullPath, openFlags);
 
                 fileIdentity = Marshal.StringToCoTaskMemUni(id.fileId);
                 uint fileIdentityLength = (uint)id.fileId.Length * 2;
 
                 HRESULT hresConvert;
-
-                CF_CONVERT_FLAGS inSyncFlags = setInSync ? CF_CONVERT_FLAGS.CF_CONVERT_FLAG_MARK_IN_SYNC : CF_CONVERT_FLAGS.CF_CONVERT_FLAG_NONE;
-
+                CF_CONVERT_FLAGS inSyncFlags =
+                    setInSync ? CF_CONVERT_FLAGS.CF_CONVERT_FLAG_MARK_IN_SYNC : CF_CONVERT_FLAGS.CF_CONVERT_FLAG_NONE;
                 unsafe
                 {
-                    hresConvert = CfConvertToPlaceholder(protectedHandle.DangerousGetHandle(), fileIdentity, fileIdentityLength, inSyncFlags);
+                    hresConvert = CfConvertToPlaceholder(handle.GetDangerousHandle(),
+                        fileIdentity, fileIdentityLength, inSyncFlags);
                 }
                 if (hresConvert != HRESULT.S_OK)
                 {
@@ -351,10 +314,6 @@ namespace OnedataDrive
             }
             finally
             {
-                if (protectedHandle != null && !protectedHandle.IsInvalid)
-                {
-                    protectedHandle.Dispose();
-                }
                 if (fileIdentity != IntPtr.Zero)
                 {
                     Marshal.FreeCoTaskMem(fileIdentity);
