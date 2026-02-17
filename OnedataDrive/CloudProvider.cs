@@ -199,7 +199,7 @@ namespace OnedataDrive
                 TransferKey = CallbackInfo.TransferKey
             };
             oi.StructSize = (uint)Marshal.SizeOf(oi);
-            nint placeholderArrayPointer = IntPtr.Zero;
+            using UnmanagedMem placeholderArrayMemory = new UnmanagedMem();
             PlaceholderCreateInfo placeholderCreateInfo = new();
             CF_PLACEHOLDER_CREATE_INFO[] infoArr = [];
 
@@ -236,10 +236,10 @@ namespace OnedataDrive
                         placeholderArrLen = placeholderCreateInfo.Get().Count;
 
                         // copy arr to unmanaged memory
-                        placeholderArrayPointer = Marshal.AllocCoTaskMem(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)) * placeholderArrLen);
+                        placeholderArrayMemory.Allocate((uint)(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)) * placeholderArrLen));
                         for (int i = 0; i < placeholderArrLen; i++)
                         {
-                            Marshal.StructureToPtr(placeholderArr[i], placeholderArrayPointer + (i * Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO))), false);
+                            Marshal.StructureToPtr(placeholderArr[i], placeholderArrayMemory.GetPointer() + (i * Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO))), false);
                         }
                     }
 
@@ -251,7 +251,7 @@ namespace OnedataDrive
                         PlaceholderTotalCount = placeholderArrLen,
                         EntriesProcessed = 0,
                         PlaceholderCount = (uint)placeholderArrLen,
-                        PlaceholderArray = placeholderArrayPointer
+                        PlaceholderArray = placeholderArrayMemory.GetPointer()
                     };
                     addToMonitored = true;
 
@@ -305,11 +305,6 @@ namespace OnedataDrive
             }
             finally
             {
-                if (placeholderArrayPointer != IntPtr.Zero)
-                {
-                    Marshal.FreeCoTaskMem(placeholderArrayPointer);
-                    placeholderArrayPointer = IntPtr.Zero;
-                }
                 placeholderCreateInfo.Dispose();
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "FINISHED", opID: opID);
             }

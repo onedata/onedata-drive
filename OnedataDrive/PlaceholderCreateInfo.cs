@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using static Vanara.PInvoke.CldApi;
 
@@ -16,9 +17,9 @@ namespace OnedataDrive
             infos.Add(info);
         }
 
-        public List<CF_PLACEHOLDER_CREATE_INFO> Get()
+        public ReadOnlyCollection<CF_PLACEHOLDER_CREATE_INFO> Get()
         {
-            return infos;
+            return infos.AsReadOnly();
         }
 
         public CF_PLACEHOLDER_CREATE_INFO[] GetArray()
