@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -33,7 +34,7 @@ namespace OnedataDrive.Utils
 
             this.path = path;
             this.handle = handle;
-            CfHandleList.handles.Add(this);
+            CfHandleList.Add(this);
         }
 
         public void Dispose()
@@ -44,7 +45,7 @@ namespace OnedataDrive.Utils
             }
             handle = null;
 
-            CfHandleList.handles.Remove(this);
+            CfHandleList.Remove(this);
         }
 
         public SafeHCFFILE GetSafeHandle()
@@ -73,7 +74,31 @@ namespace OnedataDrive.Utils
 
     public static class CfHandleList
     {
-        public static List<CfHandle> handles = new List<CfHandle>();
+        private static List<CfHandle> handles = new List<CfHandle>();
+
+        public static void Add(CfHandle handle)
+        {
+            try
+            {
+                handles.Add(handle);
+            }
+            catch (Exception e)
+            {
+                Debug.Print($"Error adding handle to CfHandleList {e}");
+            }
+        }
+
+        public static void Remove(CfHandle handle)
+        {
+            try
+            {
+                handles.Remove(handle);
+            }
+            catch (Exception e)
+            {
+                Debug.Print($"Error removing handle from CfHandleList {e}");
+            }
+        }
     }
 
     public class  FileHandleException : Exception
