@@ -12,7 +12,6 @@ namespace OnedataDrive.Utils
     public class CfHandle : IDisposable
     {
         public const uint FILE_NOT_FOUND = 0x80070002u; //-2147024894
-        public const uint NOT_A_CLOUD_FILE = 0x80070178u; //-2147024520
 
         private SafeHCFFILE? handle = null;
         public string path { get; private set; } = "";
@@ -20,19 +19,16 @@ namespace OnedataDrive.Utils
         
         public CfHandle(string path, CF_OPEN_FILE_FLAGS flags)
         {
-            HRESULT hresHandle = CfOpenFileWithOplock(path, flags, out SafeHCFFILE handle);
+            HRESULT hres = CfOpenFileWithOplock(path, flags, out SafeHCFFILE handle);
 
-            if (hresHandle == FILE_NOT_FOUND)
+            if (hres == FILE_NOT_FOUND)
             {
-                throw new FileNotFoundHandleException($"Path: {path}", hresult: hresHandle);
+                FileNotFoundHandleException innerEx = new FileNotFoundHandleException($"Path: {path}", hresult: hres);
+                throw new FileNotFoundException($"File not found: {path}", innerEx);
             }
-            else if (hresHandle == NOT_A_CLOUD_FILE)
+            else if (hres.Failed)
             {
-                throw new NotACloudFileHandleException($"Path: {path}", hresult: hresHandle);
-            }
-            else if (hresHandle.Failed)
-            {
-                throw new FileHandleException($"Failed to open file handle for {path}.", hresult: hresHandle);
+                throw new FileHandleException($"Failed to open file handle for {path}.", hresult: hres);
             }
 
             this.path = path;
@@ -127,20 +123,6 @@ namespace OnedataDrive.Utils
         public override string ToString()
         {
             return $"FileNotFoundHandleException, {HRESULT()} : " + base.ToString();
-        }
-    }
-
-    public class NotACloudFileHandleException : FileHandleException
-    {
-        public NotACloudFileHandleException(HRESULT? hresult = null) 
-            : base(hresult: hresult) { }
-        public NotACloudFileHandleException(string message, HRESULT? hresult = null) 
-            : base(message, hresult: hresult) { }
-        public NotACloudFileHandleException(string message, Exception innerException, HRESULT? hresult = null) 
-            : base(message, innerException, hresult: hresult) { }
-        public override string ToString()
-        {
-            return $"NotACloudFileHandleException, {HRESULT()} : " + base.ToString();
         }
     }
 }
