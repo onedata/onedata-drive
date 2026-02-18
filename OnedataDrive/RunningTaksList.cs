@@ -6,20 +6,44 @@ using System.Threading.Tasks;
 
 namespace OnedataDrive
 {
-    public class RunningTaksList
+    public class RunningTaksList : IDisposable
     {
-        public CancellationTokenSource masterCTS { get; private set; }
-        public List<RunningTask2> runningTasks { get; private set; }
+        private CancellationTokenSource masterCTS;
+        public ThreadSafeList<RunningTask2> runningTasks { get; private set; }
+        public Task listCleaner { get; private set; }
+        public const int CLEANER_PERIOD_SECONDS = 10;
 
         public RunningTaksList()
         {
             this.masterCTS = new CancellationTokenSource(); 
-            this.runningTasks = new List<RunningTask2>();
+            this.runningTasks = new ThreadSafeList<RunningTask2>();
+            this.listCleaner = CleanerTask(masterCTS.Token, CLEANER_PERIOD_SECONDS);
+        }
+
+        public RunningTask2 AddTask(Func<CancellationToken, Task> funcToStart, TaskType type, string opID)
+        {
+            CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(masterCTS.Token);
+            Task newTask = funcToStart.Invoke(cts.Token);
+            RunningTask2 runningTask = new RunningTask2(type, newTask, cts, opID);
+            this.runningTasks.Add(runningTask);
+            return runningTask;
         }
 
         public void Dispose() 
         {
-            
+            if (!masterCTS.IsCancellationRequested)
+            {
+                masterCTS.Cancel();
+            }
+        }
+
+        private async Task CleanerTask(CancellationToken token, int periodSeconds)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                runningTasks.RemoveAll(rt => rt.task.IsCompleted);
+                token.WaitHandle.WaitOne(periodSeconds * 1000);
+            }
         }
     }
 

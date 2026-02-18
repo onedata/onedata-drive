@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace OnedataDrive
 {
-    internal class ThreadSafeList<T>
+    public class ThreadSafeList<T>
     {
         protected readonly List<T> _list;
         protected readonly object _lock;
