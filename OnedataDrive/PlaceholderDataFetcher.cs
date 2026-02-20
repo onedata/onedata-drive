@@ -9,28 +9,26 @@ using static Vanara.PInvoke.CldApi;
 
 namespace OnedataDrive
 {
-    public class PlaceholderDataFetcher : IDisposable
+    public class PlaceholderDataFetcher
     {
-        private ThreadSafeList<RunningTask> runningTasks;
-        private CancellationTokenSource masterTokenSource;
         private Logger logger;
         private LoggerFormater loggerFormater;
         public PlaceholderDataFetcher(Logger logger)
         {
-            this.runningTasks = new();
-            this.masterTokenSource = new();
             this.logger = logger;
             this.loggerFormater = new(logger);
         }
         public void FetchData(FetchDataCallback callback)
         {
             string opID = IdGenerator.GenerateId8();
-            CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(masterTokenSource.Token);
-            RunningTask runningTask = new(FetchDataType.FETCH_DATA, callback, Task.CompletedTask, cts, opID);
-            runningTasks.Add(runningTask);
-            runningTask.task = FetchDataAsync(callback, cts.Token, runningTask, opID);
+            Func<CancellationToken, Task> func = (token) => FetchDataAsync(callback, token, opID);
+
+            CloudSync.runningTasks.AddTask(
+                func,
+                TaskType.FETCH_DATA,
+                opID);
         }
-        private async Task FetchDataAsync(FetchDataCallback callback, CancellationToken token, RunningTask thisTask, string opID)
+        private async Task FetchDataAsync(FetchDataCallback callback, CancellationToken token, string opID)
         {
             List<string> moreInfo = new() {
                 $"Path:     {callback.filePath}", 
@@ -94,10 +92,7 @@ namespace OnedataDrive
                         read = 0;
                         do
                         {
-                            if (token.IsCancellationRequested)
-                            {
-                                throw new OperationCanceledException();
-                            }
+                            token.ThrowIfCancellationRequested();
                             int receivedBytes = await stream.ReadAsync(buffer, read, CHUNK - read, token);
                             if (receivedBytes == 0)
                             {
@@ -122,14 +117,11 @@ namespace OnedataDrive
                         HRESULT hres = CfExecute(oi, ref op);
                         if (hres != HRESULT.S_OK)
                         {
-                            throw new Exception($"Fetch data CfExecute FAIL - HRES {((uint)hres):X}: {hres}");
+                            throw new Exception($"Fetch data CfExecute FAIL - HRES 0x{((uint)hres):X}: {hres}");
                         }
                         callback.alreadyFetchedOffset = offset;
 
-                        if (token.IsCancellationRequested)
-                        {
-                            throw new OperationCanceledException();
-                        }
+                        token.ThrowIfCancellationRequested();
                     } while (offset < callback.fileSize);
                 }
                 loggerFormater.LogFileOP(LogLevel.Info, "FETCH DATA", "OK", opID: opID);
@@ -151,7 +143,7 @@ namespace OnedataDrive
                 Exception ex = e;
                 if (hres != HRESULT.S_OK)
                 {
-                    ex = new Exception($"CfExecute Stop operation HRES {((uint)hres):X}: {hres}", e);
+                    ex = new Exception($"CfExecute Stop operation HRES 0x{((uint)hres):X}: {hres}", e);
                 }
 
                 loggerFormater.LogFileOP(LogLevel.Error, "FETCH DATA", "FAIL - No such file", ex, opID: opID);
@@ -172,7 +164,7 @@ namespace OnedataDrive
                 HRESULT hres = CfExecute(oi, ref op);
                 if (hres != HRESULT.S_OK)
                 {
-                    Exception e = new Exception($"CfExecute Stop operation HRES {((uint)hres):X}: {hres}");
+                    Exception e = new Exception($"CfExecute Stop operation HRES 0x{((uint)hres):X}: {hres}");
                     loggerFormater.LogFileOP(LogLevel.Error, "FETCH DATA", "FAIL - Operation canceled", e, opID: opID);
                 }
                 else
@@ -198,15 +190,13 @@ namespace OnedataDrive
                 HRESULT hres = CfExecute(oi, ref op);
                 if (hres != HRESULT.S_OK)
                 {
-                    e = new Exception($"CfExecute Stop operation HRES {((uint)hres):X}: {hres}", e);
+                    e = new Exception($"CfExecute Stop operation HRES 0x{((uint)hres):X}: {hres}", e);
                 }
                 loggerFormater.LogFileOP(LogLevel.Error, "FETCH DATA", "FAIL", e, opID: opID);
             }
             finally
             {
                 Marshal.FreeHGlobal(unmanagedPointer);
-                bool removed = runningTasks.Remove(thisTask);
-                Debug.Print("Task {0} removed from list: {1}", opID, removed);
             }
         }
 
@@ -223,8 +213,9 @@ namespace OnedataDrive
                 long cancelStart = callback.offset;
                 long cancelEnd = callback.offset + callback.length;
 
-                List<RunningTask> terminateList = runningTasks.FindAll(
-                    x => x.callback.normalizedPath == callback.normalizedPath
+                List<RunningTask> terminateList = CloudSync.runningTasks.list.FindAll(
+                    x => x.type == TaskType.FETCH_DATA
+                    && x.callback?.normalizedPath == callback.normalizedPath
                     && x.callback.alreadyFetchedOffset >= cancelStart
                     && (x.callback.offset + x.callback.length) <= cancelEnd);
 
@@ -237,11 +228,6 @@ namespace OnedataDrive
                 loggerFormater.LogFileOP(LogLevel.Info, "CANCEL FETCH DATA", "Canceled operations", opID: opID, moreInfo: moreInfo);
             });
             loggerFormater.LogFileOP(LogLevel.Info, "CANCEL FETCH DATA", "FINISHED", opID: opID);
-        }
-
-        public void Dispose()
-        {
-            masterTokenSource.Cancel();
         }
     }
 
@@ -260,35 +246,6 @@ namespace OnedataDrive
             this.optionalOffset = callbackParameters.FetchData.OptionalFileOffset;
             this.optionalLength = callbackParameters.FetchData.OptionalLength;
             this.alreadyFetchedOffset = 0;
-        }
-    }
-
-    internal enum FetchDataType
-    {
-        FETCH_DATA,
-        CANCEL_FETCH_DATA
-    }
-
-    internal class RunningTask
-    {
-        internal FetchDataType type;
-        internal FetchDataCallback callback;
-        internal Task task;
-        internal CancellationTokenSource taskCancelation;
-        internal string opID;
-
-        internal RunningTask(FetchDataType type, FetchDataCallback callback, Task task, CancellationTokenSource taskCancelation, string opID)
-        {
-            this.type = type;
-            this.callback = callback;
-            this.task = task;
-            this.taskCancelation = taskCancelation;
-            this.opID = opID;
-        }
-
-        internal void Cancel()
-        {
-            taskCancelation.Cancel();
         }
     }
 }

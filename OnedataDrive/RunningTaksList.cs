@@ -1,49 +1,72 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using NLog;
+using OnedataDrive.Utils;
+using System.Diagnostics;
 
 namespace OnedataDrive
 {
-    public class RunningTaksList : IDisposable
+    public class RunningTaksList
     {
-        private CancellationTokenSource masterCTS;
-        public ThreadSafeList<RunningTask2> runningTasks { get; private set; }
-        public Task listCleaner { get; private set; }
-        public const int CLEANER_PERIOD_SECONDS = 10;
+        private CancellationTokenSource? masterCTS;
+        private LoggerFormater loggerFormater;
 
-        public RunningTaksList()
+        public ThreadSafeList<RunningTask> list { get; private set; }
+        public Task? listCleaner { get; private set; }
+        public int cleanerPeriodSeconds { get; private set; }
+        public bool isInitialized { get; private set; } = false;
+
+        public RunningTaksList(uint cleanerPeriodSeconds)
         {
-            this.masterCTS = new CancellationTokenSource(); 
-            this.runningTasks = new ThreadSafeList<RunningTask2>();
-            this.listCleaner = CleanerTask(masterCTS.Token, CLEANER_PERIOD_SECONDS);
+            this.loggerFormater = new LoggerFormater(LogManager.GetCurrentClassLogger());
+            this.cleanerPeriodSeconds = (int)cleanerPeriodSeconds;
+            this.list = new ThreadSafeList<RunningTask>();
         }
 
-        public RunningTask2 AddTask(Func<CancellationToken, Task> funcToStart, TaskType type, string opID)
+        public void Initialize()
         {
-            CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(masterCTS.Token);
+            if (!isInitialized)
+            {
+                this.masterCTS = new CancellationTokenSource();
+                listCleaner = Task.Run(() => CleanerTask(masterCTS.Token, cleanerPeriodSeconds));
+                isInitialized = true;
+            }
+        }
+
+        /// <summary>
+        /// Stop list cleaner task and cancel all running tasks in the list. 
+        /// After calling this method, the RunningTaksList instance should not be used anymore.
+        /// If you want to use RunningTaksList again call Initialize()
+        /// </summary>
+        public void Dispose()
+        {
+            if (isInitialized)
+            {
+                masterCTS?.Cancel();
+                this.isInitialized = false;
+            }
+        }
+
+        public RunningTask AddTask(Func<CancellationToken, Task> funcToStart, TaskType type, string opID)
+        {
+            if (!isInitialized)
+            {
+                throw new InvalidOperationException("RunningTaksList is not initialized. Call Initialize() before adding tasks.");
+            }
+
+            CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(masterCTS!.Token);
             Task newTask = funcToStart.Invoke(cts.Token);
-            RunningTask2 runningTask = new RunningTask2(type, newTask, cts, opID);
-            this.runningTasks.Add(runningTask);
+            RunningTask runningTask = new RunningTask(type, newTask, cts, opID);
+            this.list.Add(runningTask);
             return runningTask;
         }
 
-        public void Dispose() 
-        {
-            if (!masterCTS.IsCancellationRequested)
-            {
-                masterCTS.Cancel();
-            }
-        }
-
-        private async Task CleanerTask(CancellationToken token, int periodSeconds)
+        private void CleanerTask(CancellationToken token, int periodSeconds)
         {
             while (!token.IsCancellationRequested)
             {
-                runningTasks.RemoveAll(rt => rt.task.IsCompleted);
+                list.RemoveAll(rt => rt.task.IsCompleted);
                 token.WaitHandle.WaitOne(periodSeconds * 1000);
             }
+            loggerFormater.LogFileOP(LogLevel.Debug, "LIST CLEANER", "STOP");
         }
     }
 
@@ -55,7 +78,7 @@ namespace OnedataDrive
         CANCEL_FETCH_PLACEHOLDERS,
     }
 
-    public class RunningTask2
+    public class RunningTask
     {
         public TaskType type;
         public FetchDataCallback? callback;
@@ -63,7 +86,7 @@ namespace OnedataDrive
         public CancellationTokenSource taskCancelation;
         public string opID;
 
-        public RunningTask2(TaskType type, Task task, CancellationTokenSource taskCancelation, string opID, FetchDataCallback? callback = null)
+        public RunningTask(TaskType type, Task task, CancellationTokenSource taskCancelation, string opID, FetchDataCallback? callback = null)
         {
             this.type = type;
             this.callback = callback;

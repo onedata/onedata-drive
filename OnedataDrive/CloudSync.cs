@@ -11,15 +11,18 @@ namespace OnedataDrive
 {
     public static class CloudSync
     {
+        public const string VERSION = "0.5.7";
+        public const string APP_NAME = "Onedata Drive";
+        public static Logger logger = LogManager.GetCurrentClassLogger();
         public static Config configuration = new();
         public static Dictionary<string, SpaceFolder> spaces = new(); // spaces: KEY is space name
         public static FileWatcher? watcher = default;
         public static bool running { get; private set; } = false;
+        public static RunningTaksList runningTasks = new(10);
+
         private static CancellationTokenSource cts = new();
         private static Task startupTask = Task.CompletedTask;
-        public static Logger logger = LogManager.GetCurrentClassLogger();
-        public const string VERSION = "0.5.7";
-        public const string APP_NAME = "Onedata Drive";
+
 
         /// <summary>
         /// Method to start CloudSync
@@ -131,13 +134,24 @@ namespace OnedataDrive
                 {
                     space.autoRefresh?.StopMonitoring();
                 }
+                runningTasks.Dispose();
             }
         }
 
         public static List<Step> CreateStartupSteps()
         {
             List<Step> steps = new();
-            
+
+            steps.Add(new Step 
+            { 
+                Name = "InitRunningTaskList",
+                Run = (token) => Task.Run(() => {
+                    runningTasks.Initialize();
+                    logger.Info("RunningTaskList OK");
+                }),
+                Undo = () => Task.Run(() => runningTasks.Dispose())
+            });
+
             steps.Add(new Step
             {
                 Name = "InitRootDir",
