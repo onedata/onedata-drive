@@ -53,7 +53,7 @@ namespace OnedataDrive
             }
 
             CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(masterCTS!.Token);
-            Task newTask = funcToStart.Invoke(cts.Token);
+            Task newTask = Task.Run(() => funcToStart(cts.Token));
             RunningTask runningTask = new RunningTask(type, newTask, cts, opID);
             this.list.Add(runningTask);
             return runningTask;

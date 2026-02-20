@@ -229,7 +229,7 @@ namespace OnedataDrive
                     watcher = new(configuration.root_path);
                     logger.Info("StartFileWatcher OK");
                 }),
-                Undo = () => Task.Run(() => { watcher.Dispose(); })
+                Undo = () => Task.Run(() => { watcher?.Dispose(); })
             });
 
             return steps;
