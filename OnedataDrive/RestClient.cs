@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Web;
 using Vanara.PInvoke;
 
@@ -129,9 +130,12 @@ namespace OnedataDrive
         ////////////////////////////////////////////////////////////////
         /// Http methods
 
-        private static async Task<T> OnedataGet<T>(string url, CancellationToken token = default)
+        private static async Task<T> OnedataGet<T>(string url, HttpContent? content = null, CancellationToken token = default)
         {
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url)
+            {
+                Content = content
+            };
             AddDefaultHeaders(request);
 
             var response = await client.SendAsync(request, token);
@@ -333,17 +337,26 @@ namespace OnedataDrive
             return await OnedataGet<DirChildren>(url);
         }
 
-        public static async Task<DirChildren> GetFilesAndSubdirs(string dirId, List<ProviderInfo> providerInfos)
+        public static async Task<DirChildren> GetFilesAndSubdirs(string dirId, List<ProviderInfo> providerInfos, 
+            string nextPageToken = "", CancellationToken token = default)
         {
+            JsonObject json = new JsonObject();
+            json["attributes"] = new JsonArray("size", "name", "type", "atime", "mtime", "ctime", "file_id");
+            json["limit"] = 1000;
+            if (!string.IsNullOrEmpty(nextPageToken))
+            {
+                json["nextPageToken"] = nextPageToken;
+            }
+            StringContent content = new StringContent(json.ToJsonString(), mediaType: new MediaTypeHeaderValue("application/json"));
+
             Func<ProviderInfo, Task<DirChildren>> func = async (info) =>
             {
                 string url = "https://"
                         + info.providerDomain
                         + "/api/v3/oneprovider/data/"
                         + dirId
-                        + "/children?attribute=size&attribute=name&attribute=type&attribute=atime&attribute=mtime&attribute=" +
-                        "ctime&attribute=file_id&limit=1000";
-                return await OnedataGet<DirChildren>(url);
+                        + "/children";
+                return await OnedataGet<DirChildren>(url, content: content, token: token);
             };
 
             return await MultiProviderWorker<DirChildren>(providerInfos, func);
@@ -498,7 +511,7 @@ namespace OnedataDrive
                         + providerDomain
                         + "/api/v3/oneprovider/data/"
                         + fileId;
-            return await OnedataGet<FileAttribute>(url, token);
+            return await OnedataGet<FileAttribute>(url, token: token);
         }
 
         public static async Task<FileAttribute> GetFileAttribute(string fileId, List<ProviderInfo> providerInfos, 
@@ -509,7 +522,7 @@ namespace OnedataDrive
                         + info.providerDomain
                         + "/api/v3/oneprovider/data/"
                         + fileId;
-                return await OnedataGet<FileAttribute>(url, token);
+                return await OnedataGet<FileAttribute>(url, token: token);
             };
 
             return await MultiProviderWorker(providerInfos, func);
