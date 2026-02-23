@@ -7,21 +7,29 @@ namespace OnedataDrive.Utils
 {
     public static class PathUtils
     {
-        public static string GetFullPath(CF_CALLBACK_INFO CallbackInfo)
+        public static string GetFullPath(string volumeDosName, string normalizedPath)
         {
-            string volumeName = CallbackInfo.VolumeDosName;
-            string normalizedPath = CallbackInfo.NormalizedPath;
-            if (volumeName == string.Empty || normalizedPath == string.Empty)
+            if (volumeDosName == string.Empty || normalizedPath == string.Empty)
             {
-                throw new ArgumentException($"Empty parameter -> volumeName: {volumeName == string.Empty}," +
-                    $"   normalizedPath: {normalizedPath == string.Empty}");
+                throw new ArgumentException($"Empty parameter -> volumeDosName: {string.IsNullOrEmpty(volumeDosName)}," +
+                    $"   normalizedPath: {string.IsNullOrEmpty(normalizedPath)}");
             }
-            string fullPath = volumeName + normalizedPath;
+            string fullPath = volumeDosName + normalizedPath;
             if (fullPath.Last() != '\\')
             {
                 fullPath += '\\';
             }
             return fullPath;
+        }
+
+        public static string GetFullPath(CF_CALLBACK_INFO CallbackInfo)
+        {
+            return GetFullPath(CallbackInfo.VolumeDosName, CallbackInfo.NormalizedPath);
+        }
+
+        public static string GetFullPath(Callback callback)
+        {
+            return GetFullPath(callback.volumeDosName, callback.normalizedPath);
         }
 
         public static string GetSpaceName(string fullPath)
