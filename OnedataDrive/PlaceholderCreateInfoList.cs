@@ -4,11 +4,21 @@ using static Vanara.PInvoke.CldApi;
 
 namespace OnedataDrive
 {
-    public class PlaceholderCreateInfo : IDisposable
+    public class PlaceholderCreateInfoList : IDisposable
     {
         private List<CF_PLACEHOLDER_CREATE_INFO> infos;
 
-        public PlaceholderCreateInfo()
+        public CF_PLACEHOLDER_CREATE_INFO this[int index]
+        {
+            get
+            {
+                if (index < 0 || index >= infos.Count)
+                    throw new IndexOutOfRangeException();
+                return infos[index];
+            }
+        }
+
+        public PlaceholderCreateInfoList()
         {
             infos = new();
         }

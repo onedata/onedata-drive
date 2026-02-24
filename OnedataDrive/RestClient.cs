@@ -337,12 +337,12 @@ namespace OnedataDrive
             return await OnedataGet<DirChildren>(url);
         }
 
-        public static async Task<DirChildren> GetFilesAndSubdirs(string dirId, List<ProviderInfo> providerInfos, 
+        public static async Task<DirChildren> GetFilesAndSubdirs(string dirId, List<ProviderInfo> providerInfos, uint limit = 1000,
             string nextPageToken = "", CancellationToken token = default)
         {
             JsonObject json = new JsonObject();
             json["attributes"] = new JsonArray("size", "name", "type", "atime", "mtime", "ctime", "file_id");
-            json["limit"] = 1000;
+            json["limit"] = limit;
             if (!string.IsNullOrEmpty(nextPageToken))
             {
                 json["nextPageToken"] = nextPageToken;

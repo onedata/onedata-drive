@@ -311,7 +311,7 @@ namespace OnedataDrive
         public static void InitSpaceFolders(CancellationToken token)
         {
             logger.Info("CREATING SPACE FOLDERS");
-            using (PlaceholderCreateInfo info = new())
+            using (PlaceholderCreateInfoList info = new())
             {
                 TokenAccess tokenAccess = InferTokenAccess(token);
                 logger.Info("Available spaces: " 
@@ -394,7 +394,7 @@ namespace OnedataDrive
             logger.Info("CREATING SPACE FOLDERS - FINISHED");
         }
 
-        public static void CreatePlaceholders(PlaceholderCreateInfo info, string path)
+        public static void CreatePlaceholders(PlaceholderCreateInfoList info, string path)
         {
             uint entriesProcessed = 0;
 

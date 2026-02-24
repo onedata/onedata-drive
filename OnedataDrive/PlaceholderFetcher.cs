@@ -38,6 +38,7 @@ namespace OnedataDrive
             };
             loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "START", moreInfo, callback.filePath, opID: opID);
 
+            const uint PLACEHOLDER_BATCH_SIZE = 1000;
             CF_OPERATION_INFO oi = new()
             {
                 Type = CF_OPERATION_TYPE.CF_OPERATION_TYPE_TRANSFER_PLACEHOLDERS,
@@ -46,14 +47,12 @@ namespace OnedataDrive
             };
             oi.StructSize = (uint)Marshal.SizeOf(oi);
 
-            //PlaceholderCreateInfo placeholderCreateInfo = new();
+            //PlaceholderCreateInfoList placeholderCreateInfo = new();
             CF_PLACEHOLDER_CREATE_INFO[] infoArr = [];
 
             try
             {
-                CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp;
                 string folderPath = PathUtils.GetFullPath(callback);
-                bool addToMonitored = false;
 
                 if (!Directory.Exists(folderPath))
                 {
@@ -70,87 +69,71 @@ namespace OnedataDrive
                 {
                     loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "standard directory", opID: opID);
 
-
-                    /*
-                    placeholderCreateInfo = Placeholders.FetchPlaceholdersInfo(folderPath);
-
-                    int placeholderArrLen = 0;
-                    if (placeholderCreateInfo.Count() > 0)
-                    {
-                        CF_PLACEHOLDER_CREATE_INFO[] placeholderArr = placeholderCreateInfo.GetArray();
-                        placeholderArrLen = placeholderCreateInfo.Get().Count;
-
-                        // copy arr to unmanaged memory
-                        placeholderArrayMemory.Allocate((uint)(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)) * placeholderArrLen));
-                        for (int i = 0; i < placeholderArrLen; i++)
-                        {
-                            Marshal.StructureToPtr(placeholderArr[i], placeholderArrayMemory.GetPointer() + (i * Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO))), false);
-                        }
-                    }
-
-                    
-                    CF_OPERATION_PARAMETERS op = RegularPlaceholdersParams(placeholderArrLen, placeholderArrayMemory, flags);
-
-                    CfExecuteWrapper(oi, ref op);
-                    */
-
-
-
-
-                    using UnmanagedMem placeholderArrayMemory = new UnmanagedMem();
+                    HashSet<string> placeholderNames = new HashSet<string>();
+                    using UnmanagedMem placeholderArrayMemory = new UnmanagedMem((uint)(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)) * PLACEHOLDER_BATCH_SIZE));
                     string parentId = PathUtils.GetPlaceholderId(folderPath);
                     SpaceFolder space = PathUtils.GetSpaceFolder(folderPath);
-
+                    int placeholderTotalCount = 0;
+                    int entriesProcessed = 0;
 
                     string nextPageToken = "";
                     do
                     {
                         CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR;
 
-                        DirChildren dirChildren = await RestClient.GetFilesAndSubdirs(parentId, space.providerInfos, nextPageToken, token);
+                        // fetch placeholders - done
+                        DirChildren dirChildren = await RestClient.GetFilesAndSubdirs(parentId, space.providerInfos, PLACEHOLDER_BATCH_SIZE,nextPageToken, token);
                         nextPageToken = dirChildren.nextPageToken;
 
-                        using PlaceholderCreateInfo placeholderCreateInfo = new();
+
+                        // create placeholder create infos and make names distinct
+                        using PlaceholderCreateInfoList placeholderCreateInfo = new();
                         foreach (Child child in dirChildren.children)
                         {
-                            string windowsCorrectName = NameConvertor.DistinctWindowsName(child, placeholderCreateInfo);
+                            string windowsCorrectName = NameConvertor.DistinctWindowsName(child, placeholderNames);
                             PlaceholderData data = new(child.file_id, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
                             placeholderCreateInfo.Add(Placeholders.CreateInfo(data));
+                            placeholderNames.Add(windowsCorrectName.ToLower());
+                        }
+                        placeholderTotalCount += placeholderCreateInfo.Count();
+
+                        // create placeholder array in unmanaged memory - done
+                        if (placeholderCreateInfo.Count() > PLACEHOLDER_BATCH_SIZE)
+                        {
+                            throw new Exception($"PlaceholderCreateInfoList contains more items ({placeholderCreateInfo.Count()}) than the defined batch size ({PLACEHOLDER_BATCH_SIZE}).");
+                        }
+                        for (int i = 0; i < placeholderCreateInfo.Count(); i++)
+                        {
+                            Marshal.StructureToPtr(placeholderCreateInfo[i], placeholderArrayMemory.GetPointer() + (i * Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO))), false);
                         }
 
-                        // fetch placeholders
-                        // create placeholder array in unmanaged memory
-                        // if there is no next page token, set flags ...
 
+                        // if there is no next page token, set flags ... - done
                         if (string.IsNullOrEmpty(nextPageToken))
                         {
                             flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION
                                 | CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR;
                         }
 
+                        CF_OPERATION_PARAMETERS op = RegularPlaceholdersParams(entriesProcessed, placeholderCreateInfo.Count(), placeholderArrayMemory, flags);
                         CfExecuteWrapper(oi, ref op);
+                        entriesProcessed += placeholderCreateInfo.Count();
                     }
                     while (!string.IsNullOrEmpty(nextPageToken));
 
-
-                    addToMonitored = true;
-                }
-                
-                loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "OK", opID: opID);
-
-                if (addToMonitored)
-                {
                     string spaceName = PathUtils.GetSpaceName(folderPath);
                     if (CloudSync.spaces.TryGetValue(spaceName, out SpaceFolder? spaceFolder))
                     {
                         spaceFolder.autoRefresh?.AddToMonitored(PathUtils.GetPlaceholderId(folderPath), folderPath);
-                        Debug.Print("Added to monitored: {0} - {1}", spaceName, folderPath);
+                        loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "Directory added to monitored", opID: opID);
                     }
                     else
                     {
-                        Debug.Print("Failed to find SPACE");
+                        loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "FAILED to add directory to monitored", opID: opID);
                     }
                 }
+                
+                loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "OK", opID: opID);
                 return;
             }
             catch (Exception e)
@@ -181,11 +164,6 @@ namespace OnedataDrive
                     loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL - last resort CfExecute", ex, opID: opID);
                 }
             }
-            finally
-            {
-                placeholderCreateInfo.Dispose();
-                loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "FINISHED", opID: opID);
-            }
         }
 
         private CF_OPERATION_PARAMETERS SpacePlaceholdersParams()
@@ -202,7 +180,7 @@ namespace OnedataDrive
             return CF_OPERATION_PARAMETERS.Create(tp);
         }
 
-        private CF_OPERATION_PARAMETERS RegularPlaceholdersParams(int placeholderArrLen, 
+        private CF_OPERATION_PARAMETERS RegularPlaceholdersParams(int entriesProcessed, int placeholderArrLen, 
             UnmanagedMem placeholderArrayMemory, CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS flags)
         {
             CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp = new()
@@ -210,7 +188,7 @@ namespace OnedataDrive
                 CompletionStatus = NTStatus.STATUS_SUCCESS,
                 Flags = flags,
                 PlaceholderTotalCount = placeholderArrLen,
-                EntriesProcessed = 0,
+                EntriesProcessed = (uint)entriesProcessed,
                 PlaceholderCount = (uint)placeholderArrLen,
                 PlaceholderArray = placeholderArrayMemory.GetPointer()
             };
