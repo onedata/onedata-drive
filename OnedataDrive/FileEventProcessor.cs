@@ -91,7 +91,7 @@ namespace OnedataDrive
                                 moreInfo: moreInfo, opID: processedEvent.@event.AEventId, filePath: spaceName);
                             List<ProviderInfo> providerInfos = autoRefresh.spaceFolder.providerInfos;
                             FileAttribute attribute = RestClient.GetFileAttribute(processedEvent.@event.fileId, providerInfos).Result;
-                            using (PlaceholderCreateInfo createInfo = new())
+                            using (PlaceholderCreateInfoList createInfo = new())
                             {
                                 PlaceholderData placeholderData = new(attribute);
                                 createInfo.Add(Placeholders.CreateInfo(placeholderData));

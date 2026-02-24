@@ -88,7 +88,7 @@ namespace OnedataDrive
             {
                 return CreateDirInfo(data);
             }
-            throw new ArgumentException("Unknown placeholder type: " + data.Type);
+            throw new ArgumentException($"Unknown placeholder type: {data.Type}, placeholder name: {data.Name}");
         }
 
         public static CF_FS_METADATA CreateFSMetadata(FileAttribute fileAttribute, bool directory = false)
@@ -133,7 +133,7 @@ namespace OnedataDrive
             };
         }
 
-        public static PlaceholderCreateInfo FetchPlaceholdersInfo(string folderPath)
+        public static PlaceholderCreateInfoList FetchPlaceholdersInfo(string folderPath)
         {
             // get folder id
             string id = PathUtils.GetPlaceholderId(folderPath);
@@ -144,12 +144,14 @@ namespace OnedataDrive
             task.Wait();
             DirChildren children = task.Result;
             // create array
-            PlaceholderCreateInfo placeholderCreateInfo = new();
+            PlaceholderCreateInfoList placeholderCreateInfo = new();
+            HashSet<string> placeholderNames = new();
             foreach (Child child in children.children)
             {
-                string windowsCorrectName = NameConvertor.DistinctWindowsName(child, placeholderCreateInfo);
+                string windowsCorrectName = NameConvertor.DistinctWindowsName(child, placeholderNames);
                 PlaceholderData data = new(child.file_id, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
                 placeholderCreateInfo.Add(CreateInfo(data));
+                placeholderNames.Add(windowsCorrectName.ToLower());
             }
             return placeholderCreateInfo;
         }

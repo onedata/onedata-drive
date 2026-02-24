@@ -199,7 +199,7 @@ namespace OnedataDrive
             };
             oi.StructSize = (uint)Marshal.SizeOf(oi);
             using UnmanagedMem placeholderArrayMemory = new UnmanagedMem();
-            PlaceholderCreateInfo placeholderCreateInfo = new();
+            PlaceholderCreateInfoList placeholderCreateInfo = new();
             CF_PLACEHOLDER_CREATE_INFO[] infoArr = [];
 
             try

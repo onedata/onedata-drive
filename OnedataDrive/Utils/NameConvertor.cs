@@ -58,18 +58,18 @@ namespace OnedataDrive.Utils
             }
         }
 
-        public string MakeWindowsCorrectDistinct(string name, string fileId, PlaceholderCreateInfo createInfo, char replaceChar = '_')
+        public string MakeWindowsCorrectDistinct(string name, string fileId, HashSet<string> placeholderNames, char replaceChar = '_')
         {
             bool idAttached;
             string newName = MakeWindowsCorrect(name, out idAttached, fileId);
 
-            if (!idAttached && createInfo.Get().Any(x => x.RelativeFileName.ToLower() == (newName).ToLower()))
+            if (!idAttached && placeholderNames.TryGetValue(newName.ToLower(), out _))
             {
                 newName = newName + IdSuffix(fileId);
             }
 
             string suffix = "";
-            for (int i = 2; createInfo.Get().Any(x => x.RelativeFileName.ToLower() == (newName + suffix).ToLower()); i++)
+            for (int i = 2; placeholderNames.TryGetValue((newName + suffix).ToLower(), out _); i++)
             {
                 suffix = "(" + i.ToString() + ")";
             }
@@ -141,11 +141,11 @@ namespace OnedataDrive.Utils
             }
         }
 
-        public static string DistinctWindowsName(Child child, PlaceholderCreateInfo info)
+        public static string DistinctWindowsName(Child child, HashSet<string> placeholderNames)
         {
             NameConvertor nameConvertor = new NameConvertor();
             string windowsCorrectName;
-            windowsCorrectName = nameConvertor.MakeWindowsCorrectDistinct(child.name, child.file_id, info);
+            windowsCorrectName = nameConvertor.MakeWindowsCorrectDistinct(child.name, child.file_id, placeholderNames);
             return windowsCorrectName;
         }
     }
