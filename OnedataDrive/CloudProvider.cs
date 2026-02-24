@@ -21,6 +21,7 @@ namespace OnedataDrive
         public const string ID = @"TestStorageProvider";
         public const string ACCOUNT = @"TestAccount";
         public static PlaceholderDataFetcher placeholderDataFetcher = new PlaceholderDataFetcher(logger);
+        public static PlaceholderFetcher placeholderFetcher = new PlaceholderFetcher(logger);
 
         public static void RegisterWithShell(string folderPath)
         {
@@ -188,6 +189,7 @@ namespace OnedataDrive
 
         public static void OnFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
+            /*
             string opID = IdGenerator.GenerateId8();
 
             PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "START", opID: opID);
@@ -307,6 +309,10 @@ namespace OnedataDrive
                 placeholderCreateInfo.Dispose();
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "FINISHED", opID: opID);
             }
+            */
+
+            Callback callback = new(CallbackInfo, CallbackParameters);
+            placeholderFetcher.FetchPlaceholders(callback);
         }
 
         public static void OnCancelFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
