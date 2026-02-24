@@ -341,7 +341,7 @@ namespace OnedataDrive
             string nextPageToken = "", CancellationToken token = default)
         {
             JsonObject json = new JsonObject();
-            json["attributes"] = new JsonArray("size", "name", "type", "atime", "mtime", "ctime", "file_id");
+            json["attributes"] = new JsonArray("size", "name", "type", "atime", "mtime", "ctime", "fileId");
             json["limit"] = limit;
             if (!string.IsNullOrEmpty(nextPageToken))
             {

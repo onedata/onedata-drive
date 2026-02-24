@@ -12,11 +12,9 @@ namespace OnedataDrive
 {
     public class PlaceholderFetcher
     {
-        private Logger logger;
         private LoggerFormater loggerFormater;
         public PlaceholderFetcher(Logger logger)
         {
-            this.logger = logger;
             this.loggerFormater = new(logger);
         }
 
@@ -138,7 +136,7 @@ namespace OnedataDrive
             }
             catch (Exception e)
             {
-                logger.Error(e, $"Error in FetchPlaceholdersAsync for path {callback.filePath}");
+                loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL", e, filePath: callback.filePath, opID: opID);
                 NTStatus status = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_UNSUCCESSFUL);
                 if (e.InnerException is NoSuchCloudFile)
                 {
