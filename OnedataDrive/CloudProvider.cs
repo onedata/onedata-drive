@@ -186,138 +186,17 @@ namespace OnedataDrive
         {
             CfDisconnectSyncRoot(connectionKey);
         }
-
+        
         public static void OnFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            /*
-            string opID = IdGenerator.GenerateId8();
-
-            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "START", opID: opID);
-            CF_OPERATION_INFO oi = new()
-            {
-                Type = CF_OPERATION_TYPE.CF_OPERATION_TYPE_TRANSFER_PLACEHOLDERS,
-                ConnectionKey = CallbackInfo.ConnectionKey,
-                TransferKey = CallbackInfo.TransferKey
-            };
-            oi.StructSize = (uint)Marshal.SizeOf(oi);
-            using UnmanagedMem placeholderArrayMemory = new UnmanagedMem();
-            PlaceholderCreateInfoList placeholderCreateInfo = new();
-            CF_PLACEHOLDER_CREATE_INFO[] infoArr = [];
-
-            try
-            {
-                CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp;
-                string folderPath = PathUtils.GetFullPath(CallbackInfo);
-                bool addToMonitored = false;
-                if (!Directory.Exists(folderPath))
-                {
-                    throw new Exception($"Directory does not exist: {folderPath}");
-                }
-                else if (PathUtils.IsRootPath(folderPath))
-                {
-                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "spaces", opID: opID);
-                    tp = new()
-                    {
-                        Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION
-                            | CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR,
-                        CompletionStatus = NTStatus.STATUS_SUCCESS,
-                        PlaceholderTotalCount = 0,
-                        EntriesProcessed = 0,
-                        PlaceholderCount = 0
-                    };
-                }
-                else
-                {
-                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "regular folder", opID: opID);
-                    placeholderCreateInfo = Placeholders.FetchPlaceholdersInfo(folderPath);
-                    int placeholderArrLen = 0;
-                    if (placeholderCreateInfo.Count() > 0)
-                    {
-                        CF_PLACEHOLDER_CREATE_INFO[] placeholderArr = placeholderCreateInfo.GetArray();
-                        placeholderArrLen = placeholderCreateInfo.Get().Count;
-
-                        // copy arr to unmanaged memory
-                        placeholderArrayMemory.Allocate((uint)(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)) * placeholderArrLen));
-                        for (int i = 0; i < placeholderArrLen; i++)
-                        {
-                            Marshal.StructureToPtr(placeholderArr[i], placeholderArrayMemory.GetPointer() + (i * Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO))), false);
-                        }
-                    }
-
-                    tp = new()
-                    {
-                        CompletionStatus = NTStatus.STATUS_SUCCESS,
-                        Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION
-                            | CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR,
-                        PlaceholderTotalCount = placeholderArrLen,
-                        EntriesProcessed = 0,
-                        PlaceholderCount = (uint)placeholderArrLen,
-                        PlaceholderArray = placeholderArrayMemory.GetPointer()
-                    };
-                    addToMonitored = true;
-
-                }
-                CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(tp);
-                HRESULT hres = CfExecute(oi, ref op);
-                if (hres != NTStatus.STATUS_SUCCESS)
-                {
-                    throw new Exception($"Fetch placeholders CfExecute FAIL - HRES: {hres}");
-                }
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "OK", opID: opID);
-                if (addToMonitored) 
-                {
-                    string spaceName = PathUtils.GetSpaceName(folderPath);
-                    if (CloudSync.spaces.TryGetValue(spaceName, out SpaceFolder? spaceFolder))
-                    {
-                        spaceFolder.autoRefresh?.AddToMonitored(PathUtils.GetPlaceholderId(folderPath), folderPath);
-                        Debug.Print("Added to monitored: {0} - {1}", spaceName, folderPath);
-                    }
-                    else
-                    {
-                        Debug.Print("Failed to find SPACE");
-                    }  
-                }
-                return;
-            }
-            catch (Exception e)
-            {
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL", exception: e, opID: opID);
-                NTStatus status = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_UNSUCCESSFUL);
-                if (e.InnerException is NoSuchCloudFile)
-                {
-                    status = new NTStatus((uint)CloudFilterEnum.STATUS_NOT_A_CLOUD_FILE);
-                }
-                CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp = new()
-                {
-                    Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR,
-                    CompletionStatus = status,
-                    PlaceholderTotalCount = 0,
-                    EntriesProcessed = 0,
-                    PlaceholderArray = IntPtr.Zero,
-                    PlaceholderCount = 0
-                };
-                CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(tp);
-                HRESULT hres = CfExecute(oi, ref op);
-                if (hres != HRESULT.S_OK)
-                {
-                    string errorMessage = $"Last resort Fetch placeholders CfExecute FAIL - HRES: {hres}";
-                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL", moreInfo: [errorMessage], opID: opID);
-                }
-            }
-            finally
-            {
-                placeholderCreateInfo.Dispose();
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "FINISHED", opID: opID);
-            }
-            */
-
             Callback callback = new(CallbackInfo, CallbackParameters);
             placeholderFetcher.FetchPlaceholders(callback);
         }
 
         public static void OnCancelFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            Debug.Print("CANCEL FETCH PLACEHOLDERS - not implemented");
+            Callback callback = new(CallbackInfo, CallbackParameters);
+            placeholderFetcher.CancelFetchPlaceholders(callback);
             return;
         }
 

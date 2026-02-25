@@ -54,7 +54,7 @@ namespace OnedataDrive
                 FileIdentity = Marshal.StringToCoTaskMemUni(data.FileIdentity),
                 FileIdentityLength = (uint)(data.FileIdentity.Length * Marshal.SizeOf(data.FileIdentity[0])) * ENCODING_SIZE,
                 RelativeFileName = data.Name,
-                Flags = CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_MARK_IN_SYNC,
+                Flags = CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_MARK_IN_SYNC | CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_SUPERSEDE,
                 FsMetadata = CreateFSMetadata(data)
             };
             return info;
@@ -67,7 +67,7 @@ namespace OnedataDrive
                 FileIdentity = Marshal.StringToCoTaskMemUni(data.FileIdentity),
                 FileIdentityLength = (uint)(data.FileIdentity.Length * Marshal.SizeOf(data.FileIdentity[0])) * ENCODING_SIZE,
                 RelativeFileName = data.Name,
-                Flags = CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_MARK_IN_SYNC,
+                Flags = CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_MARK_IN_SYNC | CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_SUPERSEDE,
                 FsMetadata = CreateFSMetadata(data, directory: true)
             };
             return info;

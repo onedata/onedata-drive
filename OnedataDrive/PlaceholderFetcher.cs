@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Vanara.PInvoke;
+using Windows.ApplicationModel.Contacts;
 using static Vanara.PInvoke.CldApi;
 
 namespace OnedataDrive
@@ -23,6 +24,12 @@ namespace OnedataDrive
             string opID = IdGenerator.GenerateId8();
             Func<CancellationToken, Task> func = (token) => FetchPlaceholdersAsync(callback, token, opID);
 
+            if (CloudSync.runningTasks.list.Any(x => x.type == TaskType.FETCH_PLACEHOLDERS && x.callback?.filePath == callback.filePath))
+            {
+                loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "Already running for this path, skipping", filePath: callback.filePath, opID: opID);
+                return;
+            }
+
             CloudSync.runningTasks.AddTask(
                 func,
                 TaskType.FETCH_DATA,
@@ -31,10 +38,7 @@ namespace OnedataDrive
 
         private async Task FetchPlaceholdersAsync(Callback callback, CancellationToken token, string opID)
         {
-            List<string> moreInfo = new() {
-                $"Path:     {callback.filePath}"
-            };
-            loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "START", moreInfo, callback.filePath, opID: opID);
+            loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "START", filePath: callback.filePath, opID: opID);
 
             const uint PLACEHOLDER_BATCH_SIZE = 1000;
             CF_OPERATION_INFO oi = new()
@@ -45,7 +49,6 @@ namespace OnedataDrive
             };
             oi.StructSize = (uint)Marshal.SizeOf(oi);
 
-            //PlaceholderCreateInfoList placeholderCreateInfo = new();
             CF_PLACEHOLDER_CREATE_INFO[] infoArr = [];
 
             try
@@ -78,13 +81,12 @@ namespace OnedataDrive
                     bool isLast = true;
                     do
                     {
-                        CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR;
+                        CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION;
 
                         // fetch placeholders - done
-                        DirChildren dirChildren = await RestClient.GetFilesAndSubdirs(parentId, space.providerInfos, PLACEHOLDER_BATCH_SIZE,nextPageToken, token);
+                        DirChildren dirChildren = await RestClient.GetFilesAndSubdirs(parentId, space.providerInfos, limit: PLACEHOLDER_BATCH_SIZE, nextPageToken: nextPageToken, cancelToken: token);
                         nextPageToken = dirChildren.nextPageToken;
                         isLast = dirChildren.isLast;
-
 
                         // create placeholder create infos and make names distinct
                         using PlaceholderCreateInfoList placeholderCreateInfo = new();
@@ -97,7 +99,7 @@ namespace OnedataDrive
                         }
                         placeholderTotalCount += placeholderCreateInfo.Count();
 
-                        // create placeholder array in unmanaged memory - done
+                        // create placeholder array in unmanaged memory
                         if (placeholderCreateInfo.Count() > PLACEHOLDER_BATCH_SIZE)
                         {
                             throw new Exception($"PlaceholderCreateInfoList contains more items ({placeholderCreateInfo.Count()}) than the defined batch size ({PLACEHOLDER_BATCH_SIZE}).");
@@ -107,8 +109,7 @@ namespace OnedataDrive
                             Marshal.StructureToPtr(placeholderCreateInfo[i], placeholderArrayMemory.GetPointer() + (i * Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO))), false);
                         }
 
-
-                        // if there is no next page token, set flags ... - done
+                        // if there is no next page cancelToken, set flags ...
                         if (dirChildren.isLast)
                         {
                             flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION
@@ -118,6 +119,8 @@ namespace OnedataDrive
                         CF_OPERATION_PARAMETERS op = RegularPlaceholdersParams(entriesProcessed, placeholderCreateInfo.Count(), placeholderArrayMemory, flags);
                         CfExecuteWrapper(oi, ref op);
                         entriesProcessed += placeholderCreateInfo.Count();
+                        
+                        token.ThrowIfCancellationRequested();
                     }
                     while (!isLast);
 
@@ -132,9 +135,16 @@ namespace OnedataDrive
                         loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "FAILED to add directory to monitored", opID: opID);
                     }
                 }
-                
+
                 loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "OK", opID: opID);
                 return;
+            }
+            catch (TaskCanceledException e)
+            {
+                loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "Canceled", e, opID: opID);
+
+                NTStatus status = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED);
+
             }
             catch (Exception e)
             {
@@ -159,7 +169,7 @@ namespace OnedataDrive
                 {
                     CfExecuteWrapper(oi, ref op);
                 }
-                catch (Exception ex) 
+                catch (Exception ex)
                 {
                     loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL - last resort CfExecute", ex, opID: opID);
                 }
@@ -180,14 +190,14 @@ namespace OnedataDrive
             return CF_OPERATION_PARAMETERS.Create(tp);
         }
 
-        private CF_OPERATION_PARAMETERS RegularPlaceholdersParams(int entriesProcessed, int placeholderArrLen, 
+        private CF_OPERATION_PARAMETERS RegularPlaceholdersParams(int entriesProcessed, int placeholderArrLen,
             UnmanagedMem placeholderArrayMemory, CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS flags)
         {
             CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp = new()
             {
                 CompletionStatus = NTStatus.STATUS_SUCCESS,
                 Flags = flags,
-                PlaceholderTotalCount = placeholderArrLen,
+                PlaceholderTotalCount = placeholderArrLen + entriesProcessed,
                 EntriesProcessed = (uint)entriesProcessed,
                 PlaceholderCount = (uint)placeholderArrLen,
                 PlaceholderArray = placeholderArrayMemory.GetPointer()
@@ -207,6 +217,24 @@ namespace OnedataDrive
             {
                 throw new Exception($"Fetch placeholders CfExecute FAIL - HRES 0x{((uint)hres):X}: {hres}");
             }
+        }
+
+        public void CancelFetchPlaceholders(Callback callback)
+        {
+            string opID = IdGenerator.GenerateId8();
+            loggerFormater.LogFileOP(LogLevel.Info, "CANCEL FETCH PLACEHOLDERS", "START", filePath: callback.filePath, opID: opID);
+            List<RunningTask> toCancel = CloudSync.runningTasks.list.FindAll(
+                x => x.type == TaskType.FETCH_PLACEHOLDERS
+                && x.callback?.filePath == callback.filePath
+                && !x.task.IsCompleted);
+            toCancel.ForEach(x => x.Cancel());
+            List<string> canceledIDs = toCancel.Select(x => x.opID).ToList();
+            List<string> moreInfo = new List<string>
+            {
+                "Canceled IDs:"
+            };
+            moreInfo.AddRange(canceledIDs);
+            loggerFormater.LogFileOP(LogLevel.Info, "CANCEL FETCH PLACEHOLDERS", $"Canceled count: {toCancel.Count}", opID: opID, moreInfo: canceledIDs);
         }
     }
 }
