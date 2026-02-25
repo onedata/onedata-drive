@@ -220,7 +220,7 @@ namespace OnedataDrive
         }
 
         /////////////////////////////////////////////////////////////////////////////
-        /// No auth token in headers
+        /// No auth cancelToken in headers
 
 
         public static async Task<TokenAccess> InferAccessTokenScope(CancellationToken token)
@@ -338,14 +338,14 @@ namespace OnedataDrive
         }
 
         public static async Task<DirChildren> GetFilesAndSubdirs(string dirId, List<ProviderInfo> providerInfos, uint limit = 1000,
-            string nextPageToken = "", CancellationToken token = default)
+            string nextPageToken = "", CancellationToken cancelToken = default)
         {
             JsonObject json = new JsonObject();
             json["attributes"] = new JsonArray("size", "name", "type", "atime", "mtime", "ctime", "fileId");
             json["limit"] = limit;
             if (!string.IsNullOrEmpty(nextPageToken))
             {
-                json["nextPageToken"] = nextPageToken;
+                json["token"] = nextPageToken;
             }
             StringContent content = new StringContent(json.ToJsonString(), mediaType: new MediaTypeHeaderValue("application/json"));
 
@@ -356,7 +356,7 @@ namespace OnedataDrive
                         + "/api/v3/oneprovider/data/"
                         + dirId
                         + "/children";
-                return await OnedataGet<DirChildren>(url, content: content, token: token);
+                return await OnedataGet<DirChildren>(url, content: content, token: cancelToken);
             };
 
             return await MultiProviderWorker<DirChildren>(providerInfos, func);

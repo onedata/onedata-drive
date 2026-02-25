@@ -440,7 +440,7 @@ namespace OnedataDrive
             {
                 logger.Error($"Failed to create Root Folder - acess rights, {e}");
 
-                throw new RootFolderAcessException("Insufficiend acess rights", e);
+                //throw new RootFolderAcessException("Insufficiend acess rights", e);
             }
         }
     }
