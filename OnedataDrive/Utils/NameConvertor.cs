@@ -145,7 +145,7 @@ namespace OnedataDrive.Utils
         {
             NameConvertor nameConvertor = new NameConvertor();
             string windowsCorrectName;
-            windowsCorrectName = nameConvertor.MakeWindowsCorrectDistinct(child.name, child.file_id, placeholderNames);
+            windowsCorrectName = nameConvertor.MakeWindowsCorrectDistinct(child.name, child.fileId, placeholderNames);
             return windowsCorrectName;
         }
     }
