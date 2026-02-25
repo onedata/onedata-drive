@@ -75,6 +75,7 @@ namespace OnedataDrive
                     int entriesProcessed = 0;
 
                     string nextPageToken = "";
+                    bool isLast = true;
                     do
                     {
                         CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR;
@@ -82,6 +83,7 @@ namespace OnedataDrive
                         // fetch placeholders - done
                         DirChildren dirChildren = await RestClient.GetFilesAndSubdirs(parentId, space.providerInfos, PLACEHOLDER_BATCH_SIZE,nextPageToken, token);
                         nextPageToken = dirChildren.nextPageToken;
+                        isLast = dirChildren.isLast;
 
 
                         // create placeholder create infos and make names distinct
@@ -89,7 +91,7 @@ namespace OnedataDrive
                         foreach (Child child in dirChildren.children)
                         {
                             string windowsCorrectName = NameConvertor.DistinctWindowsName(child, placeholderNames);
-                            PlaceholderData data = new(child.file_id, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
+                            PlaceholderData data = new(child.fileId, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
                             placeholderCreateInfo.Add(Placeholders.CreateInfo(data));
                             placeholderNames.Add(windowsCorrectName.ToLower());
                         }
@@ -107,7 +109,7 @@ namespace OnedataDrive
 
 
                         // if there is no next page token, set flags ... - done
-                        if (string.IsNullOrEmpty(nextPageToken))
+                        if (dirChildren.isLast)
                         {
                             flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION
                                 | CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR;
@@ -117,7 +119,7 @@ namespace OnedataDrive
                         CfExecuteWrapper(oi, ref op);
                         entriesProcessed += placeholderCreateInfo.Count();
                     }
-                    while (!string.IsNullOrEmpty(nextPageToken));
+                    while (!isLast);
 
                     string spaceName = PathUtils.GetSpaceName(folderPath);
                     if (CloudSync.spaces.TryGetValue(spaceName, out SpaceFolder? spaceFolder))

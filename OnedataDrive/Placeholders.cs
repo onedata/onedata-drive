@@ -149,7 +149,7 @@ namespace OnedataDrive
             foreach (Child child in children.children)
             {
                 string windowsCorrectName = NameConvertor.DistinctWindowsName(child, placeholderNames);
-                PlaceholderData data = new(child.file_id, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
+                PlaceholderData data = new(child.fileId, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
                 placeholderCreateInfo.Add(CreateInfo(data));
                 placeholderNames.Add(windowsCorrectName.ToLower());
             }
