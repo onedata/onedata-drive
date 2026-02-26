@@ -8,9 +8,9 @@
   IgnorableNamespaces="uap rescap desktop3">
 
   <Identity
-    Name="d97aa3fc-e760-4a1a-b382-b0487c177db3"
-    Publisher="CN=Masarykova univerzita, O=Masarykova univerzita, S=Jihomoravský kraj, C=CZ"
-    Version="0.5.7.1" />
+    Name="d97aa3fc-e760-4a1a-b382-b0487c177db3-develop"
+    Publisher="CN=Andrej Gafrik"
+    Version="0.5.8.0" />
 
   <Properties>
     <DisplayName>Onedata Drive</DisplayName>
