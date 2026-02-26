@@ -193,6 +193,11 @@ namespace OnedataDrive
         private CF_OPERATION_PARAMETERS RegularPlaceholdersParams(int entriesProcessed, int placeholderArrLen,
             UnmanagedMem placeholderArrayMemory, CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS flags)
         {
+            nint placeholderArrayPtr = IntPtr.Zero;
+            if (placeholderArrLen > 0)
+            {
+                placeholderArrayPtr = placeholderArrayMemory.GetPointer();
+            }
             CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp = new()
             {
                 CompletionStatus = NTStatus.STATUS_SUCCESS,
@@ -200,7 +205,7 @@ namespace OnedataDrive
                 PlaceholderTotalCount = placeholderArrLen + entriesProcessed,
                 EntriesProcessed = (uint)entriesProcessed,
                 PlaceholderCount = (uint)placeholderArrLen,
-                PlaceholderArray = placeholderArrayMemory.GetPointer()
+                PlaceholderArray = placeholderArrayPtr
             };
             return CF_OPERATION_PARAMETERS.Create(tp);
         }
