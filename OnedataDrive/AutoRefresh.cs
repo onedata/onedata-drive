@@ -99,6 +99,23 @@ namespace OnedataDrive
             }
         }
 
+        public void RemoveFromMonitored(string fileId)
+        {
+            string id = IdGenerator.GenerateId8();
+            List<string> moreInfo = new() { $"FileId: {fileId}" };
+            if (monitored.RemoveFromMonitored(fileId))
+            {
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Removed from monitor", 
+                    moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
+                restartNeeded = true;
+            }
+            else
+            {
+                logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "Remove from monitor failed", 
+                    moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
+            }
+        }
+
         public void RenameMonitored(string fileId, string newName)
         {   
             List<string> renamed = monitored.RenameMonitored(fileId, newName);
