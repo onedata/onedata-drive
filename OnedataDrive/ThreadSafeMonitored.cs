@@ -25,6 +25,20 @@ namespace OnedataDrive
             }
         }
 
+        public bool RemoveFromMonitored(string fileId)
+        {
+            bool removed = true;
+            lock (_lock)
+            {
+                MonitoredFolder? monitoredFolder = _list.FirstOrDefault(x => x.id == fileId);
+                if (monitoredFolder != null && !_list.Remove(monitoredFolder))
+                {
+                    removed = !_list.Any(x => x.id == fileId);
+                }
+                return removed;
+            }
+        }
+
         public List<string> RenameMonitored(string fileId, string newName)
         {
             lock (_lock)

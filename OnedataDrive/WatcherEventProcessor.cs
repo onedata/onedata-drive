@@ -225,7 +225,8 @@ namespace OnedataDrive
             string parentPath = PathUtils.GetParentPath(fullPath);
             CF_PLACEHOLDER_BASIC_INFO parentInfo = CldApiUtils.GetBasicInfo(parentPath);
             string parentId = System.Text.Encoding.Unicode.GetString(parentInfo.FileIdentity);
-            List<ProviderInfo> providers = CloudSync.spaces[PathUtils.GetSpaceName(fullPath)].providerInfos;
+            SpaceFolder spaceFolder = CloudSync.spaces[PathUtils.GetSpaceName(fullPath)];
+            List<ProviderInfo> providers = spaceFolder.providerInfos;
 
             FileId id;
 
@@ -239,11 +240,21 @@ namespace OnedataDrive
             // register it as placeholder - not in sync
             try
             {
+                string msg = "Converted to empty placeholder";
+                if (isDir)
+                {
+                    spaceFolder.autoRefresh?.AddToMonitored(id.fileId, fullPath);
+                    msg += " and added to auto refresh";
+                }
                 ConvertToPlaceholder(fullPath, id, isDir, setInSync: false);
-                loggerFormater.LogFileOP(LogLevel.Info, "RegisterFile", "Converted to empty placeholder", opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Info, "RegisterFile", msg, opID: opID);
             }
             catch (Exception e)
             {
+                if (isDir)
+                {
+                    spaceFolder.autoRefresh?.RemoveFromMonitored(id.fileId);
+                }
                 loggerFormater.LogFileOP(LogLevel.Error, "RegisterFile", "Can not convert to placeholder", e, opID: opID);
                 RestClient.Delete(providers, id.fileId).Wait();
                 throw;
