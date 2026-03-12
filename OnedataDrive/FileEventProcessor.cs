@@ -201,6 +201,7 @@ namespace OnedataDrive
                     if (directory)
                     {
                         FileSystem.RenameDirectory(placeholderPath, newName);
+                        PathUtils.GetSpaceFolder(placeholderPath).autoRefresh?.RenameMonitored(processedEvent.@event.fileId, newName);
                     }
                     else
                     {
