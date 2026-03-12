@@ -116,20 +116,24 @@ namespace OnedataDrive
             }
         }
 
-        public void RenameMonitored(string fileId, string newName)
+        public void RenameMonitored(string fileId, string newName, string opID = "")
         {   
+            if (string.IsNullOrEmpty(opID))
+            {
+                opID = IdGenerator.GenerateId8();
+            }
+            string space = "SPC: " + spaceFolder.name;
             List<string> renamed = monitored.RenameMonitored(fileId, newName);
-            string id = IdGenerator.GenerateId8();
             if (renamed.Count <= 0)
             {
                 logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "Rename monitored - not found", 
                     moreInfo: new List<string> { $"FileId: {fileId}", $"NewName: {newName}" }, 
-                    filePath: spaceFolder.name, opID: id);
+                    filePath: space, opID: opID);
             }
             else
             {
                 logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Renamed monitored", 
-                    moreInfo: renamed, filePath: spaceFolder.name, opID: id);
+                    moreInfo: renamed, filePath: space, opID: opID);
             }
         }
 
@@ -268,11 +272,11 @@ namespace OnedataDrive
             {
                 await foreach (SseEvent receivedEvent in SseReader.Read(stream, cancelToken))
                 {
-                    Debug.Print("Event received: {0}", receivedEvent.ToString());
+                    //Debug.Print("Event received: {0}", receivedEvent.ToString());
                     FileEvent newEvent = new FileEvent(receivedEvent);
                     eventMerger.AddEvent(newEvent);
-                    string json = JsonSerializer.Serialize(newEvent);
-                    Debug.Print("JSON: {0}", json);
+                    //string json = JsonSerializer.Serialize(newEvent);
+                    //Debug.Print("JSON: {0}", json);
                 }
             }
             catch (OperationCanceledException)
