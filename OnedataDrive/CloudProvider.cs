@@ -10,6 +10,7 @@ using Windows.Security.Cryptography;
 using Windows.Storage;
 using Windows.Storage.Provider;
 using static Vanara.PInvoke.CldApi;
+using static Vanara.PInvoke.CldApi.CF_CALLBACK_PARAMETERS;
 using static Vanara.PInvoke.ComCtl32;
 
 namespace OnedataDrive
@@ -339,6 +340,16 @@ namespace OnedataDrive
                     }
                     throw new Exception(string.Join("\n\t", errorMessages));
                 }
+
+                SpaceFolder spaceFolder = PathUtils.GetSpaceFolder(PathUtils.GetFullPath(CallbackInfo));
+                string newPath = PathUtils.GetFullPath(CallbackInfo.VolumeDosName, CallbackParameters.Rename.TargetPath);
+                if (Directory.Exists(newPath))
+                {
+                    string fileId = CldApiUtils.GetFileIdFromPointer(CallbackInfo.FileIdentity, CallbackInfo.FileIdentityLength);
+                    spaceFolder.autoRefresh?.RenameMonitoredPath(fileId, newPath);
+                }
+                
+
 
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "OK");
             }

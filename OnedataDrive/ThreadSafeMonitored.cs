@@ -1,5 +1,6 @@
 ﻿using OnedataDrive.Utils;
 using static OnedataDrive.AutoRefresh;
+using static Vanara.PInvoke.CldApi.CF_CALLBACK_PARAMETERS;
 
 namespace OnedataDrive
 {
@@ -43,28 +44,49 @@ namespace OnedataDrive
         {
             lock (_lock)
             {
-                List<string> renamed = new();
                 MonitoredFolder? monitoredFolder = _list.FirstOrDefault(x => x.id == fileId);
                 if (monitoredFolder != null)
                 {
                     string oldPath = monitoredFolder.path;
                     string newPath = PathUtils.ReplaceLastInPath(oldPath, newName);
 
-                    foreach (MonitoredFolder proccesedFolder in _list)
-                    {
-                        
-                        if (proccesedFolder.path.StartsWith(oldPath))
-                        {
-                            string oldPathForLog = proccesedFolder.path;
-                            string newPathForLog = proccesedFolder.path.Replace(oldPath, newPath);
-                            proccesedFolder.path = newPathForLog;
-
-                            renamed.Add($"oldPath: {oldPathForLog}, newPath: {newPathForLog}");
-                        }
-                    }
+                    return ReplaceInnerPath(oldPath, newPath);
                 }
-                return renamed;
+                return [];
             }
+        }
+
+        public List<string> RenameMonitoredPath(string fileId, string newPath)
+        {
+            lock (_lock)
+            {
+                MonitoredFolder? monitoredFolder = _list.FirstOrDefault(x => x.id == fileId);
+                if (monitoredFolder != null)
+                {
+                    string oldPath = monitoredFolder.path;
+
+                    return ReplaceInnerPath(oldPath, newPath);
+                }
+                return [];
+            }
+        }
+
+        private List<string> ReplaceInnerPath(string oldPath, string newPath)
+        {
+            List<string> renamed = new();
+            foreach (MonitoredFolder proccesedFolder in _list)
+            {
+
+                if (proccesedFolder.path.StartsWith(oldPath))
+                {
+                    string oldPathForLog = proccesedFolder.path;
+                    string newPathForLog = proccesedFolder.path.Replace(oldPath, newPath);
+                    proccesedFolder.path = newPathForLog;
+
+                    renamed.Add($"oldPath: {oldPathForLog}, newPath: {newPathForLog}");
+                }
+            }
+            return renamed;
         }
     }
 }
