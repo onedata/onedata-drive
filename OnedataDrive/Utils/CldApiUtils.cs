@@ -48,6 +48,15 @@ static class CldApiUtils
         PlaceholderExceptionGen(hresSync, fullPath);
     }
 
+    public static string GetFileIdFromPointer(nint pointer, uint length, int characterSize = 2)
+    {
+        if (length <= 0 || characterSize <= 0 || length % characterSize != 0 || pointer != IntPtr.Zero)
+        {
+            throw new ArgumentException($"length({length}) <= 0 || characterSize({characterSize}) <= 0 || length % characterSize != 0 || pointer({pointer}) != IntPtr.Zero");
+        }
+        return Marshal.PtrToStringAuto(pointer, (int)length / characterSize) ?? "";
+    }
+
     private static void PlaceholderExceptionGen(HRESULT hres, string fullPath)
     {
         if (hres == NOT_A_CLOUD_FILE)

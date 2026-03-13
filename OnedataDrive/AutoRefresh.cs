@@ -3,6 +3,7 @@ using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
 using System.Text.Json;
+using static Vanara.PInvoke.CldApi.CF_CALLBACK_PARAMETERS;
 
 
 namespace OnedataDrive
@@ -116,23 +117,37 @@ namespace OnedataDrive
             }
         }
 
+        public void RenameMonitoredPath(string fileId, string newPath, string opID = "")
+        {
+            List<string> renamed = monitored.RenameMonitoredPath(fileId, newPath);
+
+            LogRenameMonitored(renamed, fileId, newPath, opID);
+        }
+
         public void RenameMonitored(string fileId, string newName, string opID = "")
-        {   
+        {
+            List<string> renamed = monitored.RenameMonitored(fileId, newName);
+
+            LogRenameMonitored(renamed, fileId, newName, opID);
+        }
+
+        private void LogRenameMonitored(List<string> renamed, string fileId, string newName, string opID)
+        {
             if (string.IsNullOrEmpty(opID))
             {
                 opID = IdGenerator.GenerateId8();
             }
+
             string space = "SPC: " + spaceFolder.name;
-            List<string> renamed = monitored.RenameMonitored(fileId, newName);
             if (renamed.Count <= 0)
             {
-                logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "Rename monitored - not found", 
-                    moreInfo: new List<string> { $"FileId: {fileId}", $"NewName: {newName}" }, 
+                logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "Rename monitored - not found",
+                    moreInfo: new List<string> { $"FileId: {fileId}", $"New name/path: {newName}" },
                     filePath: space, opID: opID);
             }
             else
             {
-                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Renamed monitored", 
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Renamed monitored",
                     moreInfo: renamed, filePath: space, opID: opID);
             }
         }
