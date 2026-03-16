@@ -124,4 +124,16 @@
             return "NotPlaceholder: " + base.ToString();
         }
     }
+
+    public class InvalidFileEventException : Exception
+    {
+        public InvalidFileEventException() : base() { }
+        public InvalidFileEventException(string message) : base(message) { }
+        public InvalidFileEventException(string message, Exception innerException) : base(message, innerException) { }
+
+        public override string ToString()
+        {
+            return "InvalidFileEventException: " + base.ToString();
+        }
+    }
 }
