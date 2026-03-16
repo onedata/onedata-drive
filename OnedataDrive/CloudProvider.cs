@@ -1,5 +1,6 @@
 ﻿using NLog;
 using OnedataDrive.ErrorHandling;
+using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Diagnostics;
 using System.Reflection;
@@ -236,9 +237,13 @@ namespace OnedataDrive
                 {
                     throw new Exception("Can not delete space folder");
                 }
+
+                SpaceFolder spaceFolder = CloudSync.spaces[PathUtils.GetSpaceName(PathUtils.GetFullPath(CallbackInfo))];
+                string fileID = CldApiUtils.GetFileIdFromPointer(CallbackInfo.FileIdentity, CallbackInfo.FileIdentityLength);
+
                 var task = RestClient.Delete(
-                    CloudSync.spaces[PathUtils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath)].providerInfos,
-                    Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int)CallbackInfo.FileIdentityLength / 2) ?? "");
+                    spaceFolder.providerInfos,
+                    fileID);
                 task.Wait();
 
                 CF_OPERATION_PARAMETERS.ACKDELETE del = new()
@@ -253,6 +258,9 @@ namespace OnedataDrive
                 {
                     throw new Exception($"Delete CfExecute FAIL - HRES: {hres} int value: {((int)hres)}");
                 }
+
+                spaceFolder.autoRefresh?.RemoveFromMonitored(fileID);
+
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "DELETE", "OK");
             }
             catch (Exception e) when (e is NoSuchCloudFile || e.InnerException is NoSuchCloudFile)
@@ -349,8 +357,6 @@ namespace OnedataDrive
                     spaceFolder.autoRefresh?.RenameMonitoredPath(fileId, newPath);
                 }
                 
-
-
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "OK");
             }
             catch (Exception e)
