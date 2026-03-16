@@ -67,6 +67,14 @@ namespace OnedataDrive
             return null;
         }
 
+        private void TestIfCanBeCreated(FileAttribute attribute)
+        {
+            if (attribute.name == ".trash")
+            {
+                throw new InvalidFileEventException($"Prohibited file/direcotry name: {attribute.name}");
+            }
+        }
+
         protected override bool ProcessEventWorker(EventPenalizable<FileEvent> processedEvent)
         {
             bool eventCompleted = false;
@@ -91,6 +99,9 @@ namespace OnedataDrive
                                 moreInfo: moreInfo, opID: processedEvent.@event.AEventId, filePath: spaceName);
                             List<ProviderInfo> providerInfos = autoRefresh.spaceFolder.providerInfos;
                             FileAttribute attribute = RestClient.GetFileAttribute(processedEvent.@event.fileId, providerInfos).Result;
+
+                            TestIfCanBeCreated(attribute);
+
                             using (PlaceholderCreateInfoList createInfo = new())
                             {
                                 PlaceholderData placeholderData = new(attribute);
@@ -101,7 +112,6 @@ namespace OnedataDrive
                                 if (hres == HRESULT.S_OK || entriesProcessed == infoArr.Length)
                                 {
                                     eventCompleted = true;
-                                    Debug.Print($"File Created: {processedEvent.@event.fileId}");
                                 }
                             }
                         }
@@ -143,10 +153,16 @@ namespace OnedataDrive
                         break;
                 }
             }
-            catch (NoSuchCloudFile e)
+            catch (InvalidFileEventException e)
             {
                 eventCompleted = true;
-                logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "File does not exist on cloud anymore",
+                logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "Invalid file event - discarding event",
+                    e, moreInfo: moreInfo, filePath: spaceName, opID: processedEvent.@event.AEventId);
+            }
+            catch (Exception e) when (e is NoSuchCloudFile || e is AggregateException && e.InnerException is NoSuchCloudFile)
+            {
+                eventCompleted = true;
+                logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "File does not exist on cloud anymore - discarding event",
                     e, moreInfo: moreInfo, filePath: spaceName, opID: processedEvent.@event.AEventId);
             }
             catch (ThreadSafeMonitored.DirectoryNotMonitoredException e)
