@@ -16,8 +16,7 @@ namespace OnedataDrive.JSON_Object
         public const string EVENT_DELETED = "deleted";
         [JsonIgnore]
         public bool isMerged { get; private set; }
-
-        public string eventId { get; set; }
+        public string SSEventId { get; set; }
         public string eventType { get; set; }
         public string fileId { get; set; }
         public string parentFileId { get; set; }
@@ -36,7 +35,7 @@ namespace OnedataDrive.JSON_Object
         public FileEvent()
         {
             isMerged = false;
-            eventId = string.Empty;
+            SSEventId = string.Empty;
             eventType = string.Empty;
             fileId = string.Empty;
             parentFileId = string.Empty;
@@ -48,7 +47,7 @@ namespace OnedataDrive.JSON_Object
             FileEvent? fe = JsonSerializer.Deserialize<FileEvent>(sseEvent.data);
             if (fe != null)
             {
-                eventId = sseEvent.eventId;
+                SSEventId = sseEvent.SSEventId;
                 eventType = sseEvent.eventType;
                 fileId = fe.fileId;
                 parentFileId = fe.parentFileId;
@@ -57,7 +56,7 @@ namespace OnedataDrive.JSON_Object
         }
 
         /// <summary>
-        /// Merges properties: eventId, eventType, data.size, data.mtime, data.name, data.type
+        /// Merges properties: SSEventId, eventType, data.size, data.mtime, data.name, data.type
         /// </summary>
         /// <param name="updateFrom"></param>
         /// <exception cref="ArgumentException"></exception>
@@ -68,8 +67,8 @@ namespace OnedataDrive.JSON_Object
                 throw new ArgumentException("Cannot update FileEvent with different fileId");
             }
 
-            eventId = updateFrom.eventId;
-            if (!string.IsNullOrWhiteSpace(updateFrom.eventType) && updateFrom.eventId == EVENT_DELETED) eventType = updateFrom.eventType;
+            SSEventId = updateFrom.SSEventId;
+            if (!string.IsNullOrWhiteSpace(updateFrom.eventType) && updateFrom.SSEventId == EVENT_DELETED) eventType = updateFrom.eventType;
             if (updateFrom.data.size != null) data.size = updateFrom.data.size;
             if (updateFrom.data.mtime != null) data.mtime = updateFrom.data.mtime;
             if (!string.IsNullOrWhiteSpace(updateFrom.data.name)) data.name = updateFrom.data.name;
@@ -94,7 +93,7 @@ namespace OnedataDrive.JSON_Object
             List<string> list = new()
             {
                 "FileEvent: ",
-                $"FileEventId={eventId}",
+                $"SSEventId={SSEventId}",
                 $"EventType={eventType}",
                 $"Name={data.name}",
                 $"Merged={isMerged}",

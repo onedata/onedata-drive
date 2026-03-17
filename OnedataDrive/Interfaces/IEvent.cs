@@ -4,7 +4,7 @@ namespace OnedataDrive.Interfaces
 {
     public abstract class IEvent<T>
     {
-        public string AEventId { get; protected set; } = IdGenerator.GenerateId8();
+        public string eventId { get; protected set; } = IdGenerator.GenerateId8();
         public abstract void Merge(T mergeWith);
         public abstract string RelationKey();
         public abstract List<string> MoreInfo();

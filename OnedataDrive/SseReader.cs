@@ -10,13 +10,13 @@ namespace OnedataDrive
 {
     public struct SseEvent
     {
-        public string eventId;
+        public string SSEventId;
         public string eventType;
         public string data;
 
         public override string ToString()
         {
-            return $"Id: {eventId}, Event: {eventType}, Data: {data}";
+            return $"Id: {SSEventId}, Event: {eventType}, Data: {data}";
         }
     }
 
@@ -39,7 +39,7 @@ namespace OnedataDrive
                         {
                             yield return new SseEvent
                             {
-                                eventId = id ?? "",
+                                SSEventId = id ?? "",
                                 eventType = eventType ?? "",
                                 data = data.ToString().TrimEnd('\n')
                             };
