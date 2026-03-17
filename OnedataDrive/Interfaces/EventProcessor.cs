@@ -40,7 +40,7 @@ namespace OnedataDrive.Interfaces
     abstract class EventProcessor<T> where T : IEvent<T>
     {
         protected LoggerFormater logFormatter;
-        protected string spaceName;
+        protected string spaceNameWPrefix;
 
         protected ThreadSafeList<EventPenalizable<T>> events;
         private CancellationTokenSource processingTokenSource;
@@ -49,7 +49,7 @@ namespace OnedataDrive.Interfaces
 
         public EventProcessor(Logger logger, string spaceName = "", int sleepInterval = 2000)
         {
-            this.spaceName = "Spc: " + spaceName;
+            this.spaceNameWPrefix = "Spc: " + spaceName;
             this.logFormatter = new(logger); 
             this.sleepInterval = sleepInterval;
             this.processingTokenSource = new();
@@ -62,13 +62,13 @@ namespace OnedataDrive.Interfaces
         public bool StopProcessing()
         {
             logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Stop processing - request",
-                filePath: spaceName);
+                filePath: spaceNameWPrefix);
             processingTokenSource.Cancel();
             try
             {
                 processingTask.Wait();
                 logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "STOP OK",
-                    filePath: spaceName);
+                    filePath: spaceNameWPrefix);
                 return true;
             }
             catch (AggregateException ae)
@@ -78,12 +78,12 @@ namespace OnedataDrive.Interfaces
                     if (e is TaskCanceledException)
                     {
                         logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "stopped/canceled OK",
-                            e, filePath: spaceName);
+                            e, filePath: spaceNameWPrefix);
                     }
                     else
                     {
                         logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR", "STOP FAIL",
-                            e, filePath: spaceName);
+                            e, filePath: spaceNameWPrefix);
                         return false;
                     }
                 }
@@ -153,20 +153,20 @@ namespace OnedataDrive.Interfaces
                         if (penaltyTime < 0)
                         {
                             logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR", 
-                                "Event not processed - giving up", filePath: spaceName, opID: processedEvent.@event.eventId);
+                                "Event not processed - giving up", filePath: spaceNameWPrefix, opID: processedEvent.@event.eventId);
                             events.RemoveAt(index);
                             continue;
                         }
                         processedEvent.Penalize(penaltyTime);
                         logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR",
                             $"Event not processed - re-adding to the queue with penalty of {penaltyTime}s",
-                            filePath: spaceName, opID: processedEvent.@event.eventId);
+                            filePath: spaceNameWPrefix, opID: processedEvent.@event.eventId);
                     }
                     else
                     {
                         events.RemoveAt(index);
                         logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Event processed",
-                            filePath: spaceName, opID: processedEvent.@event.eventId);
+                            filePath: spaceNameWPrefix, opID: processedEvent.@event.eventId);
                     }
                 }
                 else
@@ -175,7 +175,7 @@ namespace OnedataDrive.Interfaces
                 }
             }
             logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Process event stopped",
-                        filePath: spaceName);
+                        filePath: spaceNameWPrefix);
         }
 
         protected abstract bool ProcessEventWorker(EventPenalizable<T> processedEvent);
