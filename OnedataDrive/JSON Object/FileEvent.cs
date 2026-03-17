@@ -58,21 +58,21 @@ namespace OnedataDrive.JSON_Object
         /// <summary>
         /// Merges properties: SSEventId, eventType, data.size, data.mtime, data.name, data.type
         /// </summary>
-        /// <param name="updateFrom"></param>
+        /// <param name="newEvent"></param>
         /// <exception cref="ArgumentException"></exception>
-        public override void Merge(FileEvent updateFrom)
+        public override void Merge(FileEvent newEvent)
         {
-            if (this.fileId != updateFrom.fileId)
+            if (this.fileId != newEvent.fileId)
             {
                 throw new ArgumentException("Cannot update FileEvent with different fileId");
             }
 
-            SSEventId = updateFrom.SSEventId;
-            if (!string.IsNullOrWhiteSpace(updateFrom.eventType) && updateFrom.SSEventId == EVENT_DELETED) eventType = updateFrom.eventType;
-            if (updateFrom.data.size != null) data.size = updateFrom.data.size;
-            if (updateFrom.data.mtime != null) data.mtime = updateFrom.data.mtime;
-            if (!string.IsNullOrWhiteSpace(updateFrom.data.name)) data.name = updateFrom.data.name;
-            if (!string.IsNullOrWhiteSpace(updateFrom.data.type)) data.type = updateFrom.data.type;
+            SSEventId = newEvent.SSEventId;
+            if (!string.IsNullOrWhiteSpace(newEvent.eventType) && newEvent.eventType == EVENT_DELETED) this.eventType = newEvent.eventType;
+            if (newEvent.data.size != null) data.size = newEvent.data.size;
+            if (newEvent.data.mtime != null) data.mtime = newEvent.data.mtime;
+            if (!string.IsNullOrWhiteSpace(newEvent.data.name)) data.name = newEvent.data.name;
+            if (!string.IsNullOrWhiteSpace(newEvent.data.type)) data.type = newEvent.data.type;
 
             isMerged = true;
         }
