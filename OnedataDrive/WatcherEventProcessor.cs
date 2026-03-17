@@ -24,14 +24,14 @@ namespace OnedataDrive
             if (!Path.Exists(processedEvent.@event.eventArgs.FullPath))
             {
                 loggerFormater.LogFileOP(LogLevel.Warn, "FILEWATCHER EVENT", 
-                    "IGNORED - file/dir does not exists", filePath: processedEvent.@event.eventArgs.FullPath, opID: processedEvent.@event.AEventId);
+                    "IGNORED - file/dir does not exists", filePath: processedEvent.@event.eventArgs.FullPath, opID: processedEvent.@event.eventId);
                 return true;
             }
 
             if (!PathUtils.IsSpacePath(processedEvent.@event.eventArgs.FullPath))
             {
                 loggerFormater.LogFileOP(LogLevel.Info, "FILEWATCHER EVENT", 
-                    "IGNORED - spaces directory", filePath: processedEvent.@event.eventArgs.FullPath, opID: processedEvent.@event.AEventId);
+                    "IGNORED - spaces directory", filePath: processedEvent.@event.eventArgs.FullPath, opID: processedEvent.@event.eventId);
                 return true;
             }
 
@@ -47,7 +47,7 @@ namespace OnedataDrive
             catch (Exception e)
             {
                 loggerFormater.LogFileOP(LogLevel.Error, "FILEWATCHER EVENT", 
-                    "FAILED to get placeholder info", e, filePath: processedEvent.@event.eventArgs.FullPath, opID: processedEvent.@event.AEventId);
+                    "FAILED to get placeholder info", e, filePath: processedEvent.@event.eventArgs.FullPath, opID: processedEvent.@event.eventId);
                 return false;
             }
 
@@ -57,54 +57,54 @@ namespace OnedataDrive
 
         private bool Created(WatcherEvent @event)
         {
-            loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "START", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
+            loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "START", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
 
             try
             {
-                RegisterFile(@event, @event.AEventId);
-                loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "FINISHED", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
+                RegisterFile(@event, @event.eventId);
+                loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "FINISHED", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
                 return true;
             }
             catch (Exception ex)
             {
-                loggerFormater.LogFileOP(LogLevel.Error, "FILE CREATED", "FAILED", ex, filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
+                loggerFormater.LogFileOP(LogLevel.Error, "FILE CREATED", "FAILED", ex, filePath: @event.eventArgs.FullPath, opID: @event.eventId);
                 return false;
             }
         }
 
         private bool Changed(WatcherEvent @event, CF_PLACEHOLDER_STANDARD_INFO info)
         {
-            loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "START", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
+            loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "START", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
             try
             {
                 FileAttributes attributes = File.GetAttributes(@event.eventArgs.FullPath);
                 if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
                 {
-                    loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED - File is DIR", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
+                    loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED - File is DIR", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
                     return true;
                 }
 
                 if (info.InSyncState == CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_NOT_IN_SYNC)
                 {
-                    UpdateCloudFile(@event.eventArgs, info, @event.AEventId);
+                    UpdateCloudFile(@event.eventArgs, info, @event.eventId);
                 }
 
                 if (info.PinState == CF_PIN_STATE.CF_PIN_STATE_UNPINNED)
                 {
-                    Dehydrate(@event.eventArgs.FullPath, info, @event.AEventId);
+                    Dehydrate(@event.eventArgs.FullPath, info, @event.eventId);
                 }
                 if (info.PinState == CF_PIN_STATE.CF_PIN_STATE_PINNED)
                 {
-                    Hydrate(@event.eventArgs.FullPath, info, @event.AEventId);
+                    Hydrate(@event.eventArgs.FullPath, info, @event.eventId);
                 }
             }
             catch (Exception exception)
             {
-                loggerFormater.LogFileOP(LogLevel.Error, "FILE CHANGED", "FAILED", exception, filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
+                loggerFormater.LogFileOP(LogLevel.Error, "FILE CHANGED", "FAILED", exception, filePath: @event.eventArgs.FullPath, opID: @event.eventId);
                 return false;
             }
 
-            loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED", filePath: @event.eventArgs.FullPath, opID: @event.AEventId);
+            loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
             return true;
         }
 
