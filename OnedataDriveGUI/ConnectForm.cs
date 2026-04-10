@@ -40,6 +40,7 @@ namespace OnedataDriveGUI
             rootFolder_folderBrowserDialog.InitialDirectory = userProfilePath;
             version_label.Text = CloudSync.VERSION;
             disableRefresh_checkBox.Checked = false;
+            readOnly_checkBox.Checked = false;
         }
 
         private void LoadLastConfig()
@@ -51,6 +52,7 @@ namespace OnedataDriveGUI
             oneproviderTokenKeep_checkBox.Checked = userSettings.OneproviderTokenKeep;
             rootFolderDelete_checkBox.Checked = userSettings.RootFolderDeleteCheckBox;
             disableRefresh_checkBox.Checked = userSettings.DisableRefreshCheckbox;
+            readOnly_checkBox.Checked = userSettings.ReadOnlyCheckbox; 
         }
 
         private async Task<CloudSyncReturnCodes> LaunchCloudSyncAsync(Config config)
@@ -59,6 +61,7 @@ namespace OnedataDriveGUI
 
             config.deleteExistingRootDir = rootFolderDelete_checkBox.Checked;
             config.enableRefresh = !disableRefresh_checkBox.Checked;
+            config.readOnly = readOnly_checkBox.Checked;
             status = await CloudSync.RunAsync(config);
 
             if (status == CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY && !rootFolderDelete_checkBox.Checked)

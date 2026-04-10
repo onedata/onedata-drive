@@ -52,6 +52,14 @@ namespace OnedataDriveGUI
             get => (bool)this[nameof(DisableRefreshCheckbox)];
             set => this[nameof(DisableRefreshCheckbox)] = value;
         }
+
+        [UserScopedSetting]
+        [DefaultSettingValue("False")]
+        public bool ReadOnlyCheckbox
+        {
+            get => (bool)this[nameof(ReadOnlyCheckbox)];
+            set => this[nameof(ReadOnlyCheckbox)] = value;
+        }
     }
 
 }
