@@ -352,14 +352,11 @@ namespace OnedataDrive
                                 task5.Wait();
                                 FileAttribute fileInfo = task5.Result;
 
-                                PlaceholderData placeholderData = new(
-                                    fileInfo.file_id,
-                                    spaceName,
-                                    0,
-                                    fileInfo.atime,
-                                    fileInfo.mtime,
-                                    fileInfo.ctime);
-                                info.Add(Placeholders.CreateDirInfo(placeholderData));
+                                PlaceholderData placeholderData = new PlaceholderData(fileInfo);
+                                placeholderData.Name = spaceName;
+                                placeholderData.Type = PlaceholderData.DIRECTORY;
+
+                                info.Add(PlaceholderData.CreateDirInfo(placeholderData));
 
                                 placeholderAdded = true;
 

@@ -7,7 +7,7 @@ using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 namespace OnedataDrive
 {
-    class PlaceholderData
+    public class PlaceholderData
     {
         public string FileIdentity;
         public long Size;
@@ -41,10 +41,7 @@ namespace OnedataDrive
             this.Name = fileAttribute.name;
             this.Type = fileAttribute.type;
         }
-    }
 
-    class Placeholders
-    {
         public const int ENCODING_SIZE = 2;
 
         public static CF_PLACEHOLDER_CREATE_INFO CreateRegInfo(PlaceholderData data)

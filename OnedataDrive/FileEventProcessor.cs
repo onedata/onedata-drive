@@ -107,7 +107,7 @@ namespace OnedataDrive
                             using (PlaceholderCreateInfoList createInfo = new())
                             {
                                 PlaceholderData placeholderData = new(attribute);
-                                createInfo.Add(Placeholders.CreateInfo(placeholderData));
+                                createInfo.Add(PlaceholderData.CreateInfo(placeholderData));
                                 CF_PLACEHOLDER_CREATE_INFO[] infoArr = createInfo.GetArray();
                                 HRESULT hres = CfCreatePlaceholders(parentFolder, infoArr, (uint)infoArr.Length,
                                     CF_CREATE_FLAGS.CF_CREATE_FLAG_NONE, out uint entriesProcessed);

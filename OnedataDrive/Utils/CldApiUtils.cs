@@ -1,3 +1,5 @@
+using OnedataDrive;
+using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -56,6 +58,46 @@ static class CldApiUtils
         }
         return Marshal.PtrToStringAuto(pointer, (int)length / characterSize) ?? "";
     }
+
+
+    public static HRESULT CreatePlaceholders(string baseDirPath, CF_PLACEHOLDER_CREATE_INFO[] files, CF_CREATE_FLAGS createFlags, out uint entriesProcessed)
+    {
+        if (files.Length <= 0)
+        {
+            entriesProcessed = 0;
+            return HRESULT.S_OK;
+        }
+
+        return CfCreatePlaceholders(baseDirPath, files, (uint)files.Length,
+                createFlags, out entriesProcessed);
+    }
+
+    public static HRESULT CreatePlaceholders(string baseDirPath, List<PlaceholderData> files, CF_CREATE_FLAGS createFlags, out uint entriesProcessed)
+    {
+        using (PlaceholderCreateInfoList placeholderList = new())
+        {
+            foreach (PlaceholderData file in files)
+            {
+                placeholderList.Add(file);
+            }
+
+            return CfCreatePlaceholders(baseDirPath, placeholderList.GetArray(), (uint)placeholderList.Count(),
+                createFlags, out entriesProcessed);
+        }
+    }
+
+    public static HRESULT CreatePlaceholders(string baseDirPath, List<FileAttribute> files, CF_CREATE_FLAGS createFlags, out uint entriesProcessed)
+    {
+        List<PlaceholderData> data = new();
+        foreach (FileAttribute file in files)
+        {
+            data.Add(new PlaceholderData(file));
+        }
+
+        return CreatePlaceholders(baseDirPath, data, createFlags, out entriesProcessed);
+    }
+
+
 
     private static void PlaceholderExceptionGen(HRESULT hres, string fullPath)
     {
