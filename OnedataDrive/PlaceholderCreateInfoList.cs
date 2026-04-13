@@ -1,3 +1,4 @@
+using OnedataDrive.JSON_Object;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using static Vanara.PInvoke.CldApi;
@@ -25,6 +26,17 @@ namespace OnedataDrive
         public void Add(CF_PLACEHOLDER_CREATE_INFO info)
         {
             infos.Add(info);
+        }
+
+        public void Add(PlaceholderData data)
+        {
+            infos.Add(PlaceholderData.CreateInfo(data));
+        }
+
+        public void Add(FileAttribute fileAttribute)
+        {
+            PlaceholderData data = new(fileAttribute);
+            infos.Add(PlaceholderData.CreateInfo(data));
         }
 
         public ReadOnlyCollection<CF_PLACEHOLDER_CREATE_INFO> Get()

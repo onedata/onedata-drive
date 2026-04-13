@@ -179,7 +179,7 @@ namespace OnedataDrive
             task.Wait();
             FileAttribute attribute = task.Result;
 
-            CF_FS_METADATA metadata = Placeholders.CreateFSMetadata(attribute);
+            CF_FS_METADATA metadata = PlaceholderData.CreateFSMetadata(attribute);
             //metadata.FileSize = info.PropertiesSize;
 
             long updateUsn = 0;
