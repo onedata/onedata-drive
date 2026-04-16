@@ -9,6 +9,7 @@ using Windows.Security.Cryptography;
 using Windows.Storage;
 using Windows.Storage.Provider;
 using static Vanara.PInvoke.CldApi;
+using static Vanara.PInvoke.Kernel32;
 
 namespace OnedataDrive
 {
@@ -226,6 +227,25 @@ namespace OnedataDrive
             };
             oi.StructSize = (uint)Marshal.SizeOf(oi);
 
+            if (CloudSync.configuration.readOnly)
+            {
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "DELETE", "IGNORED - read-only mode");
+
+                CF_OPERATION_PARAMETERS.ACKDELETE del = new()
+                {
+                    CompletionStatus = new NTStatus(((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED)),
+                    Flags = CF_OPERATION_ACK_DELETE_FLAGS.CF_OPERATION_ACK_DELETE_FLAG_NONE
+                };
+                CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(del);
+
+                var hres = CfExecute(oi, ref op);
+                if (hres != HRESULT.S_OK)
+                {
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Warn, "DELETE", $"FAIL - read-only mode, HRES: {((uint)hres):X}");
+                }
+                return;
+            }
+
             try
             {
                 if (CloudSync.configuration.root_path + PathUtils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath) ==
@@ -301,6 +321,35 @@ namespace OnedataDrive
             try
             {
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "START");
+
+                if (CloudSync.configuration.readOnly)
+                {
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "IGNORED - read-only mode");
+
+                    CF_OPERATION_PARAMETERS.ACKRENAME ackRename = new()
+                    {
+                        CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED),
+                        Flags = CF_OPERATION_ACK_RENAME_FLAGS.CF_OPERATION_ACK_RENAME_FLAG_NONE
+                    };
+                    CF_OPERATION_PARAMETERS opRO = CF_OPERATION_PARAMETERS.Create(ackRename);
+
+                    CF_OPERATION_INFO oiRO = new()
+                    {
+                        Type = CF_OPERATION_TYPE.CF_OPERATION_TYPE_ACK_RENAME,
+                        ConnectionKey = CallbackInfo.ConnectionKey,
+                        TransferKey = CallbackInfo.TransferKey
+                    };
+                    oiRO.StructSize = (uint)Marshal.SizeOf(oiRO);
+
+                    HRESULT hresRO = CfExecute(oiRO, ref opRO);
+                    if (hresRO != HRESULT.S_OK)
+                    {
+                        PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Warn, "RENAME/MOVE", $"FAIL - read-only mode, HRES: {((uint)hresRO):X}");
+                    }
+
+                    return;
+                }
+
                 CloudSync.watcher?.Pause();
 
                 NTStatus status;

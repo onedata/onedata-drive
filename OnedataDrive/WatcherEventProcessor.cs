@@ -6,6 +6,7 @@ using OnedataDrive.Utils;
 using System.Runtime.InteropServices;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
+using static Vanara.PInvoke.Kernel32.PSS_HANDLE_ENTRY;
 
 namespace OnedataDrive
 {
@@ -59,6 +60,12 @@ namespace OnedataDrive
         {
             loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "START", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
 
+            if (CloudSync.configuration.readOnly)
+            {
+                loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "IGNORED - read-only mode", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
+                return true;
+            }
+
             try
             {
                 RegisterFile(@event, @event.eventId);
@@ -75,6 +82,7 @@ namespace OnedataDrive
         private bool Changed(WatcherEvent @event, CF_PLACEHOLDER_STANDARD_INFO info)
         {
             loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "START", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
+
             try
             {
                 FileAttributes attributes = File.GetAttributes(@event.eventArgs.FullPath);
@@ -137,6 +145,12 @@ namespace OnedataDrive
 
         private void UpdateCloudFile(FileSystemEventArgs e, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
         {
+            if (CloudSync.configuration.readOnly)
+            {
+                loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "IGNORED - read-only mode", opID: opID);
+                return;
+            }
+
             try
             {
                 PushToCloudUpdate(e.FullPath, info);
