@@ -280,7 +280,7 @@ namespace OnedataDrive
         {
             HttpRequestMessage request = new(HttpMethod.Post, url)
             {
-                Content = content
+                Content = content,
             };
             AddDefaultHeaders(request);
 
