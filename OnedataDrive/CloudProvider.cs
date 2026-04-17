@@ -350,8 +350,6 @@ namespace OnedataDrive
                     return;
                 }
 
-                CloudSync.watcher?.Pause();
-
                 NTStatus status;
 
                 if (RenameOnCloud(CallbackInfo, CallbackParameters))
@@ -360,7 +358,7 @@ namespace OnedataDrive
                 }
                 else
                 {
-                    status = new NTStatus((uint)1);
+                    status = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_UNSUCCESSFUL);
                 }
 
                 CF_OPERATION_PARAMETERS.ACKRENAME rename = new()
@@ -407,11 +405,6 @@ namespace OnedataDrive
             catch (Exception e)
             {
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "RENAME/MOVE", "FAIL", e);
-            }
-            finally
-            {
-                Thread.Sleep(250);
-                CloudSync.watcher?.Resume();
             }
         }
 
