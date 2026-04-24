@@ -444,7 +444,8 @@ namespace OnedataDrive
             return await MultiProviderWorker(providerInfos, func);
         }
 
-        public static async Task PostFileContent(List<ProviderInfo> providerInfos, string id, FileStream stream)
+        public static async Task PostFileContent(List<ProviderInfo> providerInfos, string id, FileStream stream, 
+            CancellationToken token = default)
         {
             Func<ProviderInfo, Task> func = async (info) => {
                 string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + id + "/content";
@@ -452,7 +453,7 @@ namespace OnedataDrive
                 StreamContent content = new StreamContent(stream);
                 content.Headers.Add("Content-Type", "application/octet-stream");
 
-                await OnedataPut(url, content);
+                await OnedataPut(url, content, token);
                 return;
             };
 

@@ -59,7 +59,7 @@ namespace OnedataDrive
                 {
                     "WatcherEvent: ",
                     $"ChangeType={eventArgs.ChangeType}",
-                    $"FullPath={eventArgs.FullPath}",
+                    $"FullPath/RelationKey={eventArgs.FullPath}",
                     $"Name={eventArgs.Name}",
                     $"Merged={merged}",
                 };

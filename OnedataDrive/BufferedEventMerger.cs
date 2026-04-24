@@ -44,7 +44,7 @@ namespace OnedataDrive
             {
                 throw new InvalidOperationException("BufferedEventMerger is not running.");
             }
-            loggerFormater.LogFileOP(LogLevel.Debug, "ADD EVENT", "Event detected", opID: newEvent.eventId, moreInfo: newEvent.MoreInfo());
+            loggerFormater.LogFileOP(LogLevel.Info, "ADD EVENT", "Event detected", opID: newEvent.eventId, moreInfo: newEvent.MoreInfo());
             input.Enqueue(newEvent);
         }
 
@@ -54,8 +54,6 @@ namespace OnedataDrive
             {
                 if (input.TryPeek(out T? newEvent))
                 {
-                    List<string> moreInfo = newEvent.MoreInfo();
-                    moreInfo.Add($"Event relation key={newEvent.RelationKey()}");
                     try
                     {
                         bufferExpirable.Add(newEvent);
@@ -64,13 +62,13 @@ namespace OnedataDrive
                     catch (Exception ex) when (ex is TimeoutException || ex is EventExpiredException)
                     {
                         loggerFormater.LogFileOP(LogLevel.Warn, "BUFFERED EVENT MERGER", "Queue reader - " +
-                            "FAILED to add event to BufferExpirable - trying again", ex, opID: newEvent.eventId, moreInfo: moreInfo);
+                            "FAILED to add event to BufferExpirable - trying again", ex, opID: newEvent.eventId);
                         token.WaitHandle.WaitOne(cyclePeriod);
                     }
                     catch (Exception ex)
                     {
                         loggerFormater.LogFileOP(LogLevel.Error, "BUFFERED EVENT MERGER", "Queue reader - FAILED " +
-                            "to add event to BufferExpirable - NOT PROCESSING this event", ex, opID: newEvent.eventId, moreInfo: moreInfo);
+                            "to add event to BufferExpirable - NOT PROCESSING this event", ex, opID: newEvent.eventId);
                         input.TryDequeue(out _);
                     }
                 }
@@ -192,11 +190,10 @@ namespace OnedataDrive
 
             public void Add(U newEvent)
             {
-                List<string> moreInfo = new() { $"Relation Key: {newEvent.RelationKey()}" };
                 if (buffer.TryGetValue(newEvent.RelationKey(), out EventExpirable<U>? fileEventExpirable))
                 {
                     string mergedToEventId = fileEventExpirable.MergeEvent(newEvent);
-                    moreInfo.Add($"MergedToEventId: {mergedToEventId}");
+                    List<string> moreInfo = new() { $"MergedToEventId: {mergedToEventId}" };
                     loggFormater.LogFileOP(LogLevel.Info, "BUFFERED EVENT MERGER", "Event merged", opID: newEvent.eventId,
                         moreInfo: moreInfo);
                 }
@@ -205,7 +202,7 @@ namespace OnedataDrive
                     string key = newEvent.RelationKey();
                     buffer[key] = new EventExpirable<U>(newEvent, eventLifespan);
                     expirationQueue.Enqueue(key);
-                    loggFormater.LogFileOP(LogLevel.Info, "BUFFERED EVENT MERGER", "Event added", opID: newEvent.eventId);
+                    loggFormater.LogFileOP(LogLevel.Debug, "BUFFERED EVENT MERGER", "Event added", opID: newEvent.eventId);
                 }
             }
 

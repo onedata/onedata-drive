@@ -98,7 +98,7 @@ namespace OnedataDrive.JSON_Object
                 $"Name={data.name}",
                 $"Merged={isMerged}",
                 $"Size={data.size}",
-                $"FileId={fileId}",
+                $"FileId/RelationKey={fileId}",
                 $"ParentId={parentFileId}"
             };
             return list;
