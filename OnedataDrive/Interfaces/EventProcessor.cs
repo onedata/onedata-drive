@@ -143,9 +143,17 @@ namespace OnedataDrive.Interfaces
 
                     // process event
                     EventPenalizable<T> processedEvent = events[index];
-                    
 
-                    bool eventCompleted = ProcessEventWorker(processedEvent);
+                    bool eventCompleted = false;
+                    try
+                    {
+                        eventCompleted = ProcessEventWorker(processedEvent);
+                    }
+                    catch (Exception e) 
+                    {
+                        logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR", "ProcessEventWorker failed",
+                            e, filePath: spaceNameWPrefix, opID: processedEvent.@event.eventId);
+                    }
 
                     if (!eventCompleted)
                     {

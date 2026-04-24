@@ -76,6 +76,7 @@ namespace OnedataDrive
         CANCEL_FETCH_DATA,
         FETCH_PLACEHOLDERS,
         CANCEL_FETCH_PLACEHOLDERS,
+        WATCHER_TASK
     }
 
     public class RunningTask

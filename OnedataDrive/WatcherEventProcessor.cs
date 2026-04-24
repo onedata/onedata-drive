@@ -4,6 +4,7 @@ using OnedataDrive.Interfaces;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
 using static Vanara.PInvoke.Kernel32.PSS_HANDLE_ENTRY;
@@ -25,61 +26,85 @@ namespace OnedataDrive
             if (!Path.Exists(processedEvent.@event.eventArgs.FullPath))
             {
                 loggerFormater.LogFileOP(LogLevel.Warn, "FILEWATCHER EVENT", 
-                    "IGNORED - file/dir does not exists", filePath: processedEvent.@event.eventArgs.FullPath, opID: processedEvent.@event.eventId);
+                    "IGNORED - file/dir does not exists", opID: processedEvent.@event.eventId);
                 return true;
             }
 
             if (!PathUtils.IsSpacePath(processedEvent.@event.eventArgs.FullPath))
             {
                 loggerFormater.LogFileOP(LogLevel.Info, "FILEWATCHER EVENT", 
-                    "IGNORED - spaces directory", filePath: processedEvent.@event.eventArgs.FullPath, opID: processedEvent.@event.eventId);
+                    "IGNORED - spaces directory", opID: processedEvent.@event.eventId);
                 return true;
             }
 
             CF_PLACEHOLDER_STANDARD_INFO info;
+            Func<CancellationToken, Task> operation;
             try
             {
                 info = CldApiUtils.GetStandardInfo(processedEvent.@event.eventArgs.FullPath);
+
+                operation = (token) => ChangeAsync(processedEvent.@event, info, token);
             }
             catch (NotPlaceholder)
             {
-                return Created(processedEvent.@event);
+                operation = (token) => CreateAsync(processedEvent.@event, token);
             }
             catch (Exception e)
             {
                 loggerFormater.LogFileOP(LogLevel.Error, "FILEWATCHER EVENT", 
-                    "FAILED to get placeholder info", e, filePath: processedEvent.@event.eventArgs.FullPath, opID: processedEvent.@event.eventId);
+                    "FAILED to get placeholder info", e, opID: processedEvent.@event.eventId);
                 return false;
             }
 
-            return Changed(processedEvent.@event, info);
+
+            RunningTask runningTask = CloudSync.runningTasks.AddTask(operation, TaskType.WATCHER_TASK, processedEvent.@event.eventId);
+            try
+            {
+                runningTask.task.Wait();
+                return runningTask.task.IsCompletedSuccessfully;
+            }
+            catch (Exception ex)
+            {
+                if (runningTask.task.IsCanceled)
+                {
+                    logFormatter.LogFileOP(LogLevel.Info, "FILEWATCHER EVENT",
+                        "WATCHER TASK task was canceled", opID: processedEvent.@event.eventId);
+                    return true;
+                }
+                if (ex is ObjectDisposedException)
+                {
+                    loggerFormater.LogFileOP(LogLevel.Error, "FILEWATCHER EVENT",
+                        "WATCHER TASK disposed", ex, opID: processedEvent.@event.eventId);
+                    return true;
+                }
+                return false;
+            }
         }
 
-
-        private bool Created(WatcherEvent @event)
+        private async Task CreateAsync(WatcherEvent @event, CancellationToken cancellationToken)
         {
-            loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "START", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
+            loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED (ASYNC)", "START", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
 
             if (CloudSync.configuration.readOnly)
             {
-                loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "IGNORED - read-only mode", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
-                return true;
+                loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED (ASYNC)", "IGNORED - read-only mode", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
+                return;
             }
 
             try
             {
-                RegisterFile(@event, @event.eventId);
-                loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED", "FINISHED", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
-                return true;
+                RegisterFile(@event, cancellationToken, @event.eventId);
+                loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED (ASYNC)", "FINISHED", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
+                return;
             }
             catch (Exception ex)
             {
-                loggerFormater.LogFileOP(LogLevel.Error, "FILE CREATED", "FAILED", ex, filePath: @event.eventArgs.FullPath, opID: @event.eventId);
-                return false;
+                loggerFormater.LogFileOP(LogLevel.Error, "FILE CREATED (ASYNC)", "FAILED", ex, filePath: @event.eventArgs.FullPath, opID: @event.eventId);
+                throw;
             }
         }
 
-        private bool Changed(WatcherEvent @event, CF_PLACEHOLDER_STANDARD_INFO info)
+        private async Task ChangeAsync(WatcherEvent @event, CF_PLACEHOLDER_STANDARD_INFO info, CancellationToken cancellationToken)
         {
             loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "START", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
 
@@ -89,12 +114,12 @@ namespace OnedataDrive
                 if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
                 {
                     loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED - File is DIR", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
-                    return true;
+                    return;
                 }
 
                 if (info.InSyncState == CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_NOT_IN_SYNC)
                 {
-                    UpdateCloudFile(@event.eventArgs, info, @event.eventId);
+                    UpdateCloudFile(@event.eventArgs, info, cancellationToken, @event.eventId);
                 }
 
                 if (info.PinState == CF_PIN_STATE.CF_PIN_STATE_UNPINNED)
@@ -108,12 +133,12 @@ namespace OnedataDrive
             }
             catch (Exception exception)
             {
-                loggerFormater.LogFileOP(LogLevel.Error, "FILE CHANGED", "FAILED", exception, filePath: @event.eventArgs.FullPath, opID: @event.eventId);
-                return false;
+                loggerFormater.LogFileOP(LogLevel.Error, "FILE CHANGED", "FAILED", exception, opID: @event.eventId);
+                throw;
             }
 
-            loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
-            return true;
+            loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "FINISHED", opID: @event.eventId);
+            return;
         }
 
         private void Hydrate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
@@ -143,7 +168,7 @@ namespace OnedataDrive
             loggerFormater.LogFileOP(LogLevel.Info, "Dehydrate", "OK", opID: opID);
         }
 
-        private void UpdateCloudFile(FileSystemEventArgs e, CF_PLACEHOLDER_STANDARD_INFO info, string opID = "")
+        private void UpdateCloudFile(FileSystemEventArgs e, CF_PLACEHOLDER_STANDARD_INFO info, CancellationToken cancellationToken, string opID = "")
         {
             if (CloudSync.configuration.readOnly)
             {
@@ -153,7 +178,7 @@ namespace OnedataDrive
 
             try
             {
-                PushToCloudUpdate(e.FullPath, info);
+                PushToCloudUpdate(e.FullPath, info, cancellationToken);
                 loggerFormater.LogFileOP(LogLevel.Info, "PushToCloudUpdate", "OK", opID: opID);
             }
             catch (AggregateException ae) when (ae.InnerException is NoSuchCloudFile)
@@ -211,28 +236,29 @@ namespace OnedataDrive
             }
         }
 
-        private void PushToCloudUpdate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info)
+        private void PushToCloudUpdate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, CancellationToken cancellationToken)
         {
             string fileId = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
             List<ProviderInfo> providers = CloudSync.spaces[PathUtils.GetSpaceName(fullPath)].providerInfos;
 
-            PushToCloudUpdate(fullPath, fileId, providers);
+            PushToCloudUpdate(fullPath, fileId, providers, cancellationToken);
         }
 
-        private void PushToCloudUpdate(string fullPath, string fileId, List<ProviderInfo> providers)
+        private void PushToCloudUpdate(string fullPath, string fileId, List<ProviderInfo> providers, CancellationToken cancellationToken)
         {
             using (FileStream stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
             {
                 var task = RestClient.PostFileContent(
                     providers,
                     fileId,
-                    stream
+                    stream,
+                    cancellationToken
                 );
                 task.Wait();
             }
         }
 
-        private void RegisterFile(WatcherEvent @event, string opID = "")
+        private void RegisterFile(WatcherEvent @event, CancellationToken cancellationToken, string opID = "")
         {
             string fullPath = @event.eventArgs.FullPath;
 
@@ -279,7 +305,7 @@ namespace OnedataDrive
             {
                 try
                 {
-                    PushToCloudUpdate(fullPath, id.fileId, providers);
+                    PushToCloudUpdate(fullPath, id.fileId, providers, cancellationToken);
                 }
                 catch (Exception e)
                 {
