@@ -22,7 +22,7 @@ namespace OnedataDrive
         public void FetchPlaceholders(Callback callback)
         {
             string opID = IdGenerator.GenerateId8();
-            Func<CancellationToken, Task> func = (token) => FetchPlaceholdersAsync(callback, token, opID);
+            Func<CancellationToken, Task> fetchFunc = (token) => FetchPlaceholdersAsync(callback, token, opID);
 
             if (CloudSync.runningTasks.list.Any(x => x.type == TaskType.FETCH_PLACEHOLDERS && x.callback?.filePath == callback.filePath))
             {
@@ -31,7 +31,7 @@ namespace OnedataDrive
             }
 
             CloudSync.runningTasks.AddTask(
-                func,
+                fetchFunc,
                 TaskType.FETCH_DATA,
                 opID);
         }
@@ -150,9 +150,17 @@ namespace OnedataDrive
             {
                 loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL", e, filePath: callback.filePath, opID: opID);
                 NTStatus status = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_UNSUCCESSFUL);
-                if (e.InnerException is NoSuchCloudFile)
+                if (e is NoSuchCloudFile)
                 {
                     status = new NTStatus((uint)CloudFilterEnum.STATUS_NOT_A_CLOUD_FILE);
+                    try
+                    {
+                        string fullPath = PathUtils.GetFullPath(callback);
+                        Directory.Delete(fullPath, recursive: true);
+                        loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", 
+                            "Deleted placeholder directory after NoSuchCloudFile exception", filePath: fullPath, opID: opID);
+                    }
+                    catch (Exception) { }
                 }
                 CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp = new()
                 {
