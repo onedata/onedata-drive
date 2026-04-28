@@ -173,6 +173,12 @@ namespace OnedataDrive
                 logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "Parent folder not monitored - Unknown parent id - discarding event",
                     e, moreInfo: moreInfo, filePath: spaceNameWPrefix, opID: processedEvent.@event.eventId);
             }
+            catch (DirectoryNotFoundException e)
+            {
+                eventCompleted = true;
+                logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "Directory not found - discarding event",
+                    e, moreInfo: moreInfo, filePath: spaceNameWPrefix, opID: processedEvent.@event.eventId);
+            }
             catch (Exception e)
             {
                 logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR", "Process event error", e,
