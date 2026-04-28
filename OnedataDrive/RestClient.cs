@@ -359,7 +359,7 @@ namespace OnedataDrive
                 return await OnedataGet<DirChildren>(url, content: content, token: cancelToken);
             };
 
-            return await MultiProviderWorker<DirChildren>(providerInfos, func);
+            return await MultiProviderWorker(providerInfos, func);
         }
 
         public static async Task<byte[]> GetData(string provider_domain, string fileId)
