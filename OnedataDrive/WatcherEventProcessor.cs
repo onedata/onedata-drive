@@ -4,10 +4,8 @@ using OnedataDrive.Interfaces;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
-using static Vanara.PInvoke.Kernel32.PSS_HANDLE_ENTRY;
 
 namespace OnedataDrive
 {
