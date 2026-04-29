@@ -157,10 +157,15 @@ namespace OnedataDrive
                     {
                         string fullPath = PathUtils.GetFullPath(callback);
                         Directory.Delete(fullPath, recursive: true);
+                        PathUtils.GetSpaceFolder(fullPath).autoRefresh?.RemoveFromMonitored(callback.fileIdentity);
                         loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", 
                             "Deleted placeholder directory after NoSuchCloudFile exception", filePath: fullPath, opID: opID);
                     }
-                    catch (Exception) { }
+                    catch (Exception ex) 
+                    {
+                        loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS",
+                            "Failed to delete placeholder directory after NoSuchCloudFile exception", ex, opID: opID);
+                    }
                 }
                 CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp = new()
                 {
