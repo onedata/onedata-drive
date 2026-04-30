@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
-using static Vanara.PInvoke.Kernel32;
 
 static class CldApiUtils
 {
@@ -110,32 +109,5 @@ static class CldApiUtils
         {
             throw new Exception($"CfGetPlaceholderInfo PATH: {fullPath} \n" + hres);
         }
-    }
-
-    public static IEnumerable<WIN32_FIND_DATA> EnumDirectory(string path)
-    {
-        using SafeSearchHandle hFind = FindFirstFile(path, out var findData);
-        if (hFind.IsInvalid) yield break;
-
-        do
-        {
-            if (findData.cFileName != "." && findData.cFileName != "..")
-                yield return findData;
-        } while (FindNextFile(hFind, out findData));
-    }
-
-    public static List<string> FindNotInSync(string path)
-    {
-        List<string> notInSyncFiles = new();
-        foreach (WIN32_FIND_DATA data in EnumDirectory(path))
-        {
-            CF_PLACEHOLDER_STATE state = CfGetPlaceholderStateFromFindData(data);
-            if ((state & CF_PLACEHOLDER_STATE.CF_PLACEHOLDER_STATE_IN_SYNC) != CF_PLACEHOLDER_STATE.CF_PLACEHOLDER_STATE_IN_SYNC
-                || (state & CF_PLACEHOLDER_STATE.CF_PLACEHOLDER_STATE_PLACEHOLDER) != CF_PLACEHOLDER_STATE.CF_PLACEHOLDER_STATE_PLACEHOLDER)
-            {
-                notInSyncFiles.Add(data.cFileName);
-            }
-        }
-        return notInSyncFiles;
     }
 }
