@@ -3,7 +3,7 @@ using OnedataDrive.Utils;
 
 namespace OnedataDrive
 {
-    public class FileWatcher
+    public class Watcher
     {
         private FileSystemWatcher watcher;
         private bool disposed = true;
@@ -12,7 +12,7 @@ namespace OnedataDrive
         private BufferedEventMerger<WatcherEvent> bufferedEventMerger;
         private WatcherEventProcessor eventProcessor;
 
-        public FileWatcher(string rootDir)
+        public Watcher(string rootDir)
         {
             this.watcher = new(rootDir) {
                 InternalBufferSize = 64 * 1024 // max recomended size
