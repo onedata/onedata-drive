@@ -32,7 +32,7 @@ namespace OnedataDrive
         }
 
         /// <summary>
-        /// Stop list cleaner task and cancel all running tasks in the list. 
+        /// Stop list cleaner task and cancel all Running tasks in the list. 
         /// After calling this method, the RunningTaksList instance should not be used anymore.
         /// If you want to use RunningTaksList again call Initialize()
         /// </summary>

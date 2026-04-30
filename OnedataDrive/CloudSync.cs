@@ -3,6 +3,7 @@ using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.CustomMarshalers;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
 using static Vanara.PInvoke.SearchApi;
@@ -15,9 +16,9 @@ namespace OnedataDrive
         public const string APP_NAME = "Onedata Drive";
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public static Config configuration = new();
-        public static Dictionary<string, SpaceFolder> spaces = new(); // spaces: KEY is space name
+        public static Dictionary<string, SpaceFolder> spaces = []; // spaces: KEY is space name
         public static Watcher? watcher = default;
-        public static bool running { get; private set; } = false;
+        public static bool Running { get; private set; } = false;
         public static RunningTaksList runningTasks = new(10);
 
         private static CancellationTokenSource cts = new();
@@ -39,7 +40,7 @@ namespace OnedataDrive
             logger.Info($"CLOUD SYNC: Autorefresh - {config.enableRefresh}");
             logger.Info($"CLOUD SYNC: DeleteExistingRootDir - {config.deleteExistingRootDir}");
 
-            spaces = new();
+            spaces = [];
 
             List<Step> startupSteps = CreateStartupSteps();
             PipelineRunner runner = new(logger);
@@ -84,7 +85,7 @@ namespace OnedataDrive
                 return CloudSyncReturnCodes.ERROR;
             }
             
-            running = true;
+            Running = true;
             logger.Info("CLOUD SYNC IS RUNNING");
 
             return CloudSyncReturnCodes.SUCCESS;
@@ -92,7 +93,7 @@ namespace OnedataDrive
 
         public static async Task Stop()
         {
-            if (running)
+            if (Running)
             {
                 TurnOff();
             }
@@ -108,18 +109,18 @@ namespace OnedataDrive
                     // ignore
                 }
                 logger.Info("Startup task canceled");
-                if (running)
+                if (Running)
                 {
                     TurnOff();
                 }
             }
-            running = false;
+            Running = false;
             logger.Info("CLOUD SYNC STOPPED");
         }
 
         private static void TurnOff()
         {
-            if (running)
+            if (Running)
             {
                 watcher?.Pause();
                 CloudProvider.DisconectCallbacks();
@@ -140,97 +141,98 @@ namespace OnedataDrive
 
         public static List<Step> CreateStartupSteps()
         {
-            List<Step> steps = new();
-
-            steps.Add(new Step 
-            { 
-                Name = "InitRunningTaskList",
-                Run = (token) => Task.Run(() => {
-                    runningTasks.Initialize();
-                    logger.Info("RunningTaskList OK");
-                }),
-                Undo = () => Task.Run(() => runningTasks.Dispose())
-            });
-
-            steps.Add(new Step
-            {
-                Name = "InitRootDir",
-                Run = (token) => Task.Run(() =>
+            List<Step> steps =
+            [
+                new Step
                 {
-                    InitSyncRootDir(token);
-                    logger.Info("SyncRootDir OK");
-                }),
-                Undo = () => Task.CompletedTask
-            });
-            steps.Add(new Step
-            {
-                Name = "AddFolderToSearchIndexer",
-                Run = (token) => Task.Run(() => {
-                    AddFolderToSearchIndexer(configuration.root_path);
-                    logger.Info("AddFolderToSearchIndexer OK");
-                }),
-                Undo = () => Task.CompletedTask
-            });
+                    Name = "InitRunningTaskList",
+                    Run = (token) => Task.Run(() => {
+                        runningTasks.Initialize();
+                        logger.Info("RunningTaskList OK");
+                    }, token),
+                    Undo = () => Task.Run(() => runningTasks.Dispose())
+                },
 
-            steps.Add(new Step
-            {
-                Name = "InitRestClient",
-                Run = (token) => Task.Run(() => { 
-                    RestClient.Init(configuration);
-                    logger.Info("RestInit OK"); 
-                }),
-                Undo = () => Task.Run(() => RestClient.Stop())
-            });
+                new Step
+                {
+                    Name = "InitRootDir",
+                    Run = (token) => Task.Run(() => {
+                        InitSyncRootDir(token);
+                        logger.Info("SyncRootDir OK");
+                    }, token),
+                    Undo = () => Task.CompletedTask
+                },
 
-            steps.Add(new Step
-            {
-                Name = "TestTokenAndOnezone",
-                Run = (token) => Task.Run(() => { 
-                    TestTokenAndOnezone(token); 
-                    logger.Info("TestTokenAndOnezone OK"); 
-                }),
-                Undo = () => Task.CompletedTask
-            });
+                new Step
+                {
+                    Name = "AddFolderToSearchIndexer",
+                    Run = (token) => Task.Run(() => {
+                        AddFolderToSearchIndexer(configuration.root_path);
+                        logger.Info("AddFolderToSearchIndexer OK");
+                    }, token),
+                    Undo = () => Task.CompletedTask
+                },
 
-            steps.Add(new Step
-            {
-                Name = "ShellRegister",
-                Run = (token) => Task.Run(() => {
-                    CloudProvider.RegisterWithShell(configuration.root_path);
-                    logger.Info("RegisterWithShell OK");
-                }),
-                Undo = () => Task.Run(() => CloudProvider.UnregisterSafely())
-            });
+                new Step
+                {
+                    Name = "InitRestClient",
+                    Run = (token) => Task.Run(() => {
+                        RestClient.Init(configuration);
+                        logger.Info("RestInit OK");
+                    }, token),
+                    Undo = () => Task.Run(() => RestClient.Stop())
+                },
 
-            steps.Add(new Step
-            {
-                Name = "InitSpaceFolders",
-                Run = (token) => Task.Run(() => {
-                    InitSpaceFolders(token);
-                    logger.Info("InitSpaceFolders OK");
-                }),
-                Undo = () => Task.CompletedTask
-            });
+                new Step
+                {
+                    Name = "TestTokenAndOnezone",
+                    Run = (token) => Task.Run(() => {
+                        TestTokenAndOnezone(token);
+                        logger.Info("TestTokenAndOnezone OK");
+                    }, token),
+                    Undo = () => Task.CompletedTask
+                },
 
-            steps.Add(new Step
-            {
-                Name = "ConnectCallbacks",
-                Run = (token) => Task.Run(() => {
-                    CloudProvider.ConnectCallbacks(configuration.root_path);
-                    logger.Info("ConnectCallbacks OK");
-                }),
-                Undo = () => Task.Run(() => CloudProvider.DisconectCallbacks())
-            });
+                new Step
+                {
+                    Name = "ShellRegister",
+                    Run = (token) => Task.Run(() => {
+                        CloudProvider.RegisterWithShell(configuration.root_path);
+                        logger.Info("RegisterWithShell OK");
+                    }, token),
+                    Undo = () => Task.Run(() => CloudProvider.UnregisterSafely())
+                },
 
-            steps.Add(new Step
-            {
-                Name = "StartFileWatcher",
-                Run = (token) => Task.Run(() => { 
-                    watcher = new(configuration.root_path);
-                    logger.Info("StartFileWatcher OK");
-                }),
-                Undo = () => Task.Run(() => { watcher?.Dispose(); })
-            });
+                new Step
+                {
+                    Name = "InitSpaceFolders",
+                    Run = (token) => Task.Run(() => {
+                        InitSpaceFolders(token);
+                        logger.Info("InitSpaceFolders OK");
+                    }, token),
+                    Undo = () => Task.CompletedTask
+                },
+
+                new Step
+                {
+                    Name = "ConnectCallbacks",
+                    Run = (token) => Task.Run(() => {
+                        CloudProvider.ConnectCallbacks(configuration.root_path);
+                        logger.Info("ConnectCallbacks OK");
+                    }, token),
+                    Undo = () => Task.Run(() => CloudProvider.DisconectCallbacks())
+                },
+
+                new Step
+                {
+                    Name = "StartFileWatcher",
+                    Run = (token) => Task.Run(() => {
+                        watcher = new(configuration.root_path);
+                        logger.Info("StartFileWatcher OK");
+                    }, token),
+                    Undo = () => Task.Run(() => { watcher?.Dispose(); })
+                }
+            ];
 
             return steps;
         }
@@ -266,9 +268,7 @@ namespace OnedataDrive
 
         private static void TestTokenValidity(CancellationToken token)
         {
-            var task = RestClient.ExamineToken(token);
-            task.Wait();
-            TokenExamine te = task.Result;
+            TokenExamine te = RestClient.ExamineOnedataToken(token).Result;
             if (!te.isRestInterface())
             {
                 throw new InvalidTokenType("Wrong token interface");
@@ -285,9 +285,7 @@ namespace OnedataDrive
         {
             try
             {
-                var taskTA = RestClient.InferAccessTokenScope(token);
-                taskTA.Wait();
-                return taskTA.Result;
+                return RestClient.InferAccessTokenScope(token).Result;
             }
             catch (AggregateException e)
             {
@@ -329,10 +327,7 @@ namespace OnedataDrive
                     // KEY is providerId
                     foreach (KeyValuePair<string, Support> support in space.Value.supports)
                     {
-                        if (token.IsCancellationRequested)
-                        {
-                            throw new OperationCanceledException(token);
-                        }
+                        token.ThrowIfCancellationRequested();
                         string providerDomain = tokenAccess.dataAccessScope.providers[support.Key].domain;
                         string providerId = support.Key;
                         bool online = tokenAccess.dataAccessScope.providers[support.Key].online;
@@ -348,11 +343,9 @@ namespace OnedataDrive
                             {
                                 string dirId = space.Key;
 
-                                var task5 = RestClient.GetFileAttribute(dirId, providerDomain, token);
-                                task5.Wait();
-                                FileAttribute fileInfo = task5.Result;
+                                FileAttribute fileInfo = RestClient.GetFileAttribute(dirId, providerDomain, token).Result;
 
-                                PlaceholderData placeholderData = new PlaceholderData(fileInfo) { 
+                                PlaceholderData placeholderData = new (fileInfo) { 
                                     Name = spaceName, Type = PlaceholderData.DIRECTORY };
                                 info.Add(PlaceholderData.CreateDirInfo(placeholderData));
 
@@ -410,6 +403,7 @@ namespace OnedataDrive
         {
             try
             {
+                token.ThrowIfCancellationRequested();
                 if (configuration.deleteExistingRootDir && Directory.Exists(configuration.root_path))
                 {
                     Directory.Delete(configuration.root_path, true);

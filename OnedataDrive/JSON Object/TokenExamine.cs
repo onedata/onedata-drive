@@ -11,6 +11,10 @@
 
         public bool isRestInterface()
         {
+            if (caveats == null || caveats.Count == 0)
+            {
+                return true;
+            }
             return caveats.Any(caveat => caveat.type == "interface" && caveat.@interface == "rest");
         }
     }

@@ -241,7 +241,14 @@ namespace OnedataDrive
              throw new JsonReturnedNullException();
         }
 
-        public static async Task<TokenExamine> ExamineToken(CancellationToken token)
+        /// <summary>
+        /// Examine Onedata Token (not cancellation token), which was used to initialize REST client.
+        /// </summary>
+        /// <param name="token">Cancellation token used to cancel the operation</param>
+        /// <returns></returns>
+        /// <exception cref="JsonReturnedNullException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static async Task<TokenExamine> ExamineOnedataToken(CancellationToken token)
         {
             string url = ZONE_PROTOCOL
                 + ZONE_HOST
