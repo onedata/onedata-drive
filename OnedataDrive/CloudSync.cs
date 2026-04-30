@@ -16,7 +16,7 @@ namespace OnedataDrive
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public static Config configuration = new();
         public static Dictionary<string, SpaceFolder> spaces = new(); // spaces: KEY is space name
-        public static FileWatcher? watcher = default;
+        public static Watcher? watcher = default;
         public static bool running { get; private set; } = false;
         public static RunningTaksList runningTasks = new(10);
 
