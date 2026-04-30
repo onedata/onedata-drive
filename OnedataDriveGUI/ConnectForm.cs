@@ -295,7 +295,7 @@ namespace OnedataDriveGUI
         {
             SetDisplayStatus(Status.DISCONNECTING);
             statusMessage.Text = "Disconnecting";
-            if (CloudSync.running)
+            if (CloudSync.Running)
             {
                 CloudSync.Stop();
             }
@@ -341,8 +341,8 @@ namespace OnedataDriveGUI
         {
             try
             {
-                logger.Info("Unregister SyncRoot START, CloudSync running: {0}", CloudSync.running);
-                if (!CloudSync.running)
+                logger.Info("Unregister SyncRoot START, CloudSync running: {0}", CloudSync.Running);
+                if (!CloudSync.Running)
                 {
                     string message = "Use this only after crash or when you can not remove SyncRoot by using Disconnect. Do you want to proceed?";
                     if (MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.Yes)
