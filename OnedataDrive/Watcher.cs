@@ -50,7 +50,7 @@ namespace OnedataDrive
         public void OnError(object sender, ErrorEventArgs e)
         {
             loggerFormater.LogFileOP(LogLevel.Error, "FILE WATCHER", "ERROR event", e.GetException());
-            crawler.Run();
+            _ = crawler.CrawlWatcherTree();
         }
 
         public void OnCreate(object sender, FileSystemEventArgs e)
@@ -63,12 +63,20 @@ namespace OnedataDrive
         {
             WatcherEvent watcherEvent = new(sender, e);
             bufferedEventMerger.AddEvent(watcherEvent);
+            if (Directory.Exists(e.FullPath))
+            {
+                crawler.CrawlDirectory(e.FullPath);
+            }
         }
 
         public void OnRename(object sender, RenamedEventArgs e)
         {
             WatcherEvent watcherEvent = new(sender, e);
             bufferedEventMerger.AddEvent(watcherEvent);
+            if (Directory.Exists(e.FullPath))
+            {
+                crawler.CrawlDirectory(e.FullPath);
+            }
         }
 
         public void Dispose()
@@ -94,41 +102,41 @@ namespace OnedataDrive
             watcher.EnableRaisingEvents = true;
         }
 
-        internal class Crawler
+        internal class Crawler(Watcher watcher)
         {
-            private readonly Watcher PARENT;
-            private Task crawlerTask;
-            private CancellationTokenSource masterToken;
+            private readonly Watcher PARENT = watcher;
+            private Task crawlerTask = Task.CompletedTask;
+            private readonly CancellationTokenSource masterToken = new();
             private CancellationTokenSource? linkedToken;
-            
-            public Crawler(Watcher watcher)
-            {
-                this.PARENT = watcher;
-                this.crawlerTask = Task.CompletedTask;
-                this.masterToken = new CancellationTokenSource();
-            }
 
-            public void Run()
+            public async Task CrawlWatcherTree()
             {
-                if (masterToken.IsCancellationRequested)
-                {
-                    throw new ObjectDisposedException("Crawler has been stopped and cannot be restarted.");
-                }
+                ObjectDisposedException.ThrowIf(masterToken.IsCancellationRequested, this);
+                
+                string opID = IdGenerator.GenerateId8();
                 if (!crawlerTask.IsCompleted)
                 {
                     linkedToken?.Cancel();
                     try
                     {
-                        crawlerTask.Wait(masterToken.Token);
+                        await crawlerTask;
                     }
                     catch (Exception) { }
                 }
                 if (!masterToken.IsCancellationRequested)
                 {
-                    PARENT.loggerFormater.LogFileOP(LogLevel.Info, "CRAWLER", "Starting crawler task.");
+                    PARENT.loggerFormater.LogFileOP(LogLevel.Info, "CRAWLER", "Starting crawler task. Full watcher tree", opID: opID);
                     linkedToken = CancellationTokenSource.CreateLinkedTokenSource(masterToken.Token);
-                    crawlerTask = Task.Run(() => DirectoryCrawler(linkedToken.Token));
+                    crawlerTask = Task.Run(() => DirectoryTreeCrawler(PARENT.watcher.Path, linkedToken.Token, opID));
                 }
+            }
+
+            public void CrawlDirectory(string path)
+            {
+                string opID = IdGenerator.GenerateId8();
+                PARENT.loggerFormater.LogFileOP(LogLevel.Info, "CRAWLER", "Starting crawler task.", filePath: path, opID: opID);
+                linkedToken = CancellationTokenSource.CreateLinkedTokenSource(masterToken.Token);
+                _ = Task.Run(() => DirectoryTreeCrawler(path, linkedToken.Token, opID));
             }
 
             public void Stop()
@@ -136,14 +144,24 @@ namespace OnedataDrive
                 masterToken.Cancel();
             }
 
-            private void DirectoryCrawler(CancellationToken token)
+            private void DirectoryTreeCrawler(string path, CancellationToken token, string opID)
             {
+                if (!Directory.Exists(path))
+                {
+                    PARENT.loggerFormater.LogFileOP(LogLevel.Error, "CRAWLER", $"Path does not exist.", opID: opID, filePath: path);
+                    throw new ArgumentException($"Path does not exist. Given path: {path}");
+                }
+                if (!path.StartsWith(PARENT.watcher.Path))
+                {
+                    PARENT.loggerFormater.LogFileOP(LogLevel.Error, "CRAWLER", $"Path is not an Watcher path.", opID: opID, filePath: path);
+                    throw new ArgumentException($"Path is not an Watcher path. Given path: {path}");
+                }
                 int counterFile = 0;
                 int counterDir = 0;
                 try
                 {
                     Queue<string> directoriesToProcess = new();
-                    directoriesToProcess.Enqueue(PARENT.watcher.Path);
+                    directoriesToProcess.Enqueue(path);
 
                     while (directoriesToProcess.Count > 0)
                     {
@@ -152,11 +170,14 @@ namespace OnedataDrive
 
                         foreach (WIN32_FIND_DATA data in EnumDirectory(dirPath))
                         {
+                            token.ThrowIfCancellationRequested();
                             bool isDirectory = ((data.dwFileAttributes & FileAttributes.Directory) == FileAttributes.Directory);
                             CF_PLACEHOLDER_STATE state = CfGetPlaceholderStateFromFindData(data);
                             if ((state & CF_PLACEHOLDER_STATE.CF_PLACEHOLDER_STATE_IN_SYNC) != CF_PLACEHOLDER_STATE.CF_PLACEHOLDER_STATE_IN_SYNC)
                             {
-                                WatcherEvent watcherEvent = new(this, new FileSystemEventArgs(WatcherChangeTypes.Changed, dirPath, data.cFileName));
+                                WatcherChangeTypes watcherEventType = 
+                                    (state == CF_PLACEHOLDER_STATE.CF_PLACEHOLDER_STATE_NO_STATES) ? WatcherChangeTypes.Created : WatcherChangeTypes.Changed;
+                                WatcherEvent watcherEvent = new(this, new FileSystemEventArgs(watcherEventType, dirPath, data.cFileName));
                                 PARENT.bufferedEventMerger.AddEvent(watcherEvent);
                                 if (isDirectory)
                                 {
@@ -173,13 +194,14 @@ namespace OnedataDrive
                             }
                         }
                     }
-                    PARENT.loggerFormater.LogFileOP(LogLevel.Debug, "CRAWLER", $"Crawler finished. Found {counterFile} files and {counterDir} directories not in sync.");
+                    PARENT.loggerFormater.LogFileOP(LogLevel.Debug, "CRAWLER", $"Crawler finished. Found {counterFile} files and {counterDir} directories not in sync.",
+                        opID: opID, filePath: path);
                 }
                 catch (Exception e)
                 {
                     if (e is not OperationCanceledException)
                     {
-                        PARENT.loggerFormater.LogFileOP(LogLevel.Error, "CRAWLER", "Error during crawling", e); 
+                        PARENT.loggerFormater.LogFileOP(LogLevel.Error, "CRAWLER", "Error during crawling", e, opID: opID, filePath: path); 
                     }
                     throw;
                 }
