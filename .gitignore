@@ -5,6 +5,7 @@ syncRoot/
 Debug/
 Release/
 AppPackages/
+*.assets.cache
 
 local-config*
 *.pfx
