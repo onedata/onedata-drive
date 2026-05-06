@@ -1,7 +1,7 @@
 
 dotnet-test:
   image:
-    name: mcr.microsoft.com/dotnet/sdk:9.0
+    name: mcr.microsoft.com/dotnet/sdk:10.0
   stage: test
   script:
     - cd TestProject
