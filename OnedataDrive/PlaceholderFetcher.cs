@@ -24,7 +24,7 @@ namespace OnedataDrive
             string opID = IdGenerator.GenerateId8();
             Func<CancellationToken, Task> fetchFunc = (token) => FetchPlaceholdersAsync(callback, token, opID);
 
-            if (CloudSync.runningTasks.list.Any(x => x.type == TaskType.FETCH_PLACEHOLDERS && x.callback?.filePath == callback.filePath))
+            if (CloudSync.runningTasks.list.Any(x => x.type == TaskType.FETCH_PLACEHOLDERS && x.callback?.filePath == callback.filePath && !x.task.IsCompleted))
             {
                 loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "Already running for this path, skipping", filePath: callback.filePath, opID: opID);
                 return;
@@ -32,7 +32,8 @@ namespace OnedataDrive
 
             CloudSync.runningTasks.AddTask(
                 fetchFunc,
-                TaskType.FETCH_DATA,
+                TaskType.FETCH_PLACEHOLDERS,
+                callback,
                 opID);
         }
 
@@ -142,50 +143,55 @@ namespace OnedataDrive
             catch (TaskCanceledException e)
             {
                 loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", "Canceled", e, opID: opID);
-
-                NTStatus status = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED);
-
+            }
+            catch (NoSuchCloudFile e)
+            {
+                loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS", "NoSuchCloudFile", e, filePath: callback.filePath, opID: opID);
+                NTStatus status = new NTStatus((uint)CloudFilterEnum.STATUS_NOT_A_CLOUD_FILE);
+                LastResortFailureHandler(oi, status, opID);
+                try
+                {
+                    string fullPath = PathUtils.GetFullPath(callback);
+                    Directory.Delete(fullPath, recursive: true);
+                    PathUtils.GetSpaceFolder(fullPath).autoRefresh?.RemoveFromMonitored(callback.fileIdentity);
+                    loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS",
+                        "Deleted placeholder directory after NoSuchCloudFile exception", filePath: fullPath, opID: opID);
+                }
+                catch (Exception ex)
+                {
+                    loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS",
+                        "Failed to delete placeholder directory after NoSuchCloudFile exception", ex, opID: opID);
+                }
             }
             catch (Exception e)
             {
                 loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL", e, filePath: callback.filePath, opID: opID);
                 NTStatus status = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_UNSUCCESSFUL);
-                if (e is NoSuchCloudFile)
-                {
-                    status = new NTStatus((uint)CloudFilterEnum.STATUS_NOT_A_CLOUD_FILE);
-                    try
-                    {
-                        string fullPath = PathUtils.GetFullPath(callback);
-                        Directory.Delete(fullPath, recursive: true);
-                        PathUtils.GetSpaceFolder(fullPath).autoRefresh?.RemoveFromMonitored(callback.fileIdentity);
-                        loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS", 
-                            "Deleted placeholder directory after NoSuchCloudFile exception", filePath: fullPath, opID: opID);
-                    }
-                    catch (Exception ex) 
-                    {
-                        loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS",
-                            "Failed to delete placeholder directory after NoSuchCloudFile exception", ex, opID: opID);
-                    }
-                }
-                CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp = new()
-                {
-                    Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR,
-                    CompletionStatus = status,
-                    PlaceholderTotalCount = 0,
-                    EntriesProcessed = 0,
-                    PlaceholderArray = IntPtr.Zero,
-                    PlaceholderCount = 0
-                };
-                CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(tp);
+                LastResortFailureHandler(oi, status, opID);
+            }
+        }
 
-                try
-                {
-                    CfExecuteWrapper(oi, ref op);
-                }
-                catch (Exception ex)
-                {
-                    loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL - last resort CfExecute", ex, opID: opID);
-                }
+
+        private void LastResortFailureHandler(CF_OPERATION_INFO oi, NTStatus status, string opID)
+        {
+            CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp = new()
+            {
+                Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR,
+                CompletionStatus = status,
+                PlaceholderTotalCount = 0,
+                EntriesProcessed = 0,
+                PlaceholderArray = IntPtr.Zero,
+                PlaceholderCount = 0
+            };
+            CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(tp);
+
+            try
+            {
+                CfExecuteWrapper(oi, ref op);
+            }
+            catch (Exception ex)
+            {
+                loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL - last resort CfExecute", ex, opID: opID);
             }
         }
 

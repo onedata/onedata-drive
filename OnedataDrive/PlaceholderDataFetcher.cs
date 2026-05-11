@@ -26,6 +26,7 @@ namespace OnedataDrive
             CloudSync.runningTasks.AddTask(
                 func,
                 TaskType.FETCH_DATA,
+                callback,
                 opID);
         }
         private async Task FetchDataAsync(FetchDataCallback callback, CancellationToken token, string opID)
@@ -214,10 +215,19 @@ namespace OnedataDrive
                 long cancelEnd = callback.offset + callback.length;
 
                 List<RunningTask> terminateList = CloudSync.runningTasks.list.FindAll(
-                    x => x.type == TaskType.FETCH_DATA
-                    && x.callback?.normalizedPath == callback.normalizedPath
-                    && x.callback.alreadyFetchedOffset >= cancelStart
-                    && (x.callback.offset + x.callback.length) <= cancelEnd);
+                    x => {
+                        if (x.type == TaskType.FETCH_DATA)
+                        {
+                            FetchDataCallback? fetchDataCallback = x.callback as FetchDataCallback;
+                            if (fetchDataCallback != null)
+                            {
+                                return fetchDataCallback.normalizedPath == callback.normalizedPath
+                                    && fetchDataCallback.alreadyFetchedOffset >= cancelStart
+                                    && (fetchDataCallback.offset + fetchDataCallback.length) <= cancelEnd;
+                            }
+                        }
+                        return false;
+                    });
 
                 List<string> moreInfo = new() { "List:" };
                 foreach (RunningTask task in terminateList)
