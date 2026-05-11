@@ -47,6 +47,11 @@ namespace OnedataDrive
 
         public RunningTask AddTask(Func<CancellationToken, Task> funcToStart, TaskType type, string opID)
         {
+            return AddTask(funcToStart, type, null, opID);
+        }
+
+        public RunningTask AddTask(Func<CancellationToken, Task> funcToStart, TaskType type, Callback? callback, string opID)
+        {
             if (!isInitialized)
             {
                 throw new InvalidOperationException("RunningTaksList is not initialized. Call Initialize() before adding tasks.");
@@ -54,7 +59,7 @@ namespace OnedataDrive
 
             CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(masterCTS!.Token);
             Task newTask = Task.Run(() => funcToStart(cts.Token));
-            RunningTask runningTask = new RunningTask(type, newTask, cts, opID);
+            RunningTask runningTask = new(type, newTask, cts, opID, callback);
             this.list.Add(runningTask);
             return runningTask;
         }
@@ -82,12 +87,12 @@ namespace OnedataDrive
     public class RunningTask
     {
         public TaskType type;
-        public FetchDataCallback? callback;
+        public Callback? callback;
         public Task task;
         public CancellationTokenSource taskCancelation;
         public string opID;
 
-        public RunningTask(TaskType type, Task task, CancellationTokenSource taskCancelation, string opID, FetchDataCallback? callback = null)
+        public RunningTask(TaskType type, Task task, CancellationTokenSource taskCancelation, string opID, Callback? callback = null)
         {
             this.type = type;
             this.callback = callback;

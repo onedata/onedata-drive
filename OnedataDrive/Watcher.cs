@@ -57,6 +57,10 @@ namespace OnedataDrive
         {
             WatcherEvent watcherEvent = new(sender, e);
             bufferedEventMerger.AddEvent(watcherEvent);
+            if (Directory.Exists(e.FullPath))
+            {
+                crawler.CrawlDirectory(e.FullPath);
+            }
         }
 
         public void OnChange(object sender, FileSystemEventArgs e)
