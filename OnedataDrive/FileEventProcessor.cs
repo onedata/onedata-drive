@@ -138,7 +138,7 @@ namespace OnedataDrive
                         {
                             if (directory)
                             {
-                                Directory.Delete(filePath, true);
+                                DirectoryOD.Delete(filePath, processedEvent.@event.fileId);
                             }
                             else
                             {

@@ -2,11 +2,8 @@
 using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using Vanara.PInvoke;
-using Windows.ApplicationModel.Contacts;
 using static Vanara.PInvoke.CldApi;
 
 namespace OnedataDrive
@@ -146,16 +143,14 @@ namespace OnedataDrive
             }
             catch (NoSuchCloudFile e)
             {
-                loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS", "NoSuchCloudFile", e, filePath: callback.filePath, opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS", "NoSuchCloudFile", e, opID: opID);
                 NTStatus status = new NTStatus((uint)CloudFilterEnum.STATUS_NOT_A_CLOUD_FILE);
                 LastResortFailureHandler(oi, status, opID);
                 try
                 {
-                    string fullPath = PathUtils.GetFullPath(callback);
-                    Directory.Delete(fullPath, recursive: true);
-                    PathUtils.GetSpaceFolder(fullPath).autoRefresh?.RemoveFromMonitored(callback.fileIdentity);
+                    DirectoryOD.Delete(callback);
                     loggerFormater.LogFileOP(LogLevel.Info, "FETCH PLACEHOLDERS",
-                        "Deleted placeholder directory after NoSuchCloudFile exception", filePath: fullPath, opID: opID);
+                        "Deleted placeholder directory after NoSuchCloudFile exception", opID: opID);
                 }
                 catch (Exception ex)
                 {
@@ -165,7 +160,7 @@ namespace OnedataDrive
             }
             catch (Exception e)
             {
-                loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL", e, filePath: callback.filePath, opID: opID);
+                loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL", e, opID: opID);
                 NTStatus status = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_UNSUCCESSFUL);
                 LastResortFailureHandler(oi, status, opID);
             }
