@@ -40,7 +40,7 @@ namespace OnedataDriveGUI
             rootFolder_folderBrowserDialog.InitialDirectory = userProfilePath;
             version_label.Text = CloudSync.VERSION;
             disableRefresh_checkBox.Checked = false;
-            readOnly_checkBox.Checked = false;
+            readOnly_checkBox.Checked = true;
         }
 
         private void LoadLastConfig()
@@ -85,6 +85,7 @@ namespace OnedataDriveGUI
             userSettings.RootFolderPath = rootFolder_textBox.Text;
             userSettings.OneproviderTokenKeep = oneproviderTokenKeep_checkBox.Checked;
             userSettings.DisableRefreshCheckbox = disableRefresh_checkBox.Checked;
+            userSettings.ReadOnlyCheckbox = readOnly_checkBox.Checked;
             if (oneproviderTokenKeep_checkBox.Checked)
             {
                 userSettings.OneproviderToken = oneproviderToken_textBox.Text;
@@ -211,6 +212,9 @@ namespace OnedataDriveGUI
                     break;
                 case CloudSyncReturnCodes.STARTUP_CANCELED:
                     statusMessage.Text = "Startup Canceled";
+                    break;
+                case CloudSyncReturnCodes.ROOT_FOLDER_EXCEPTION:
+                    statusMessage.Text = "Can not create root folder";
                     break;
                 default:
                     SetDisplayStatus(Status.ERROR);

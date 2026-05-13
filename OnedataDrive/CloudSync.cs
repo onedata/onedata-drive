@@ -63,6 +63,11 @@ namespace OnedataDrive
                 logger.Error($"CLOUD SYNC FAIL -> Root Folder - No Access Right, {e}");
                 return CloudSyncReturnCodes.ROOT_FOLDER_NO_ACCESS_RIGHT;
             }
+            catch (RootFolderException e)
+            {
+                logger.Error($"CLOUD SYNC FAIL -> Can not create root folder, {e}");
+                return CloudSyncReturnCodes.ROOT_FOLDER_EXCEPTION;
+            }
             catch (OnezoneException e)
             {
                 logger.Error($"CLOUD SYNC FAIL -> Invalid Onezone, {e}");
@@ -82,7 +87,7 @@ namespace OnedataDrive
                 logger.Error($"CLOUD SYNC FAIL -> Startup, {e}");
                 return CloudSyncReturnCodes.ERROR;
             }
-            
+
             Running = true;
             logger.Info("CLOUD SYNC IS RUNNING");
 
@@ -153,22 +158,42 @@ namespace OnedataDrive
 
                 new Step
                 {
-                    Name = "InitRootDir",
+                    Name = "CreateRootDir",
                     Run = (token) => Task.Run(() => {
-                        InitSyncRootDir(token);
-                        logger.Info("SyncRootDir OK");
+                        CreateRootFolder();
+                        logger.Info("RootDir created");
                     }, token),
                     Undo = () => Task.CompletedTask
                 },
 
                 new Step
                 {
-                    Name = "AddFolderToSearchIndexer",
+                    Name = "TestRootFolderAccess",
                     Run = (token) => Task.Run(() => {
-                        AddFolderToSearchIndexer(configuration.root_path);
-                        logger.Info("AddFolderToSearchIndexer OK");
+                        TestRootFolderAccess();
+                        logger.Info("RootFolder access OK");
                     }, token),
                     Undo = () => Task.CompletedTask
+                },
+
+                new Step
+                {
+                    Name = "EmptyRootFolder",
+                    Run = (token) => Task.Run(() => {
+                        EmptyRootFolder();
+                        logger.Info("RootFolder is empty");
+                    }, token),
+                    Undo = () => Task.CompletedTask
+                },
+
+                new Step
+                {
+                    Name = "ShellRegister",
+                    Run = (token) => Task.Run(() => {
+                        CloudProvider.RegisterWithShell(configuration.root_path);
+                        logger.Info("RegisterWithShell OK");
+                    }, token),
+                    Undo = () => Task.Run(() => CloudProvider.UnregisterSafely())
                 },
 
                 new Step
@@ -189,16 +214,6 @@ namespace OnedataDrive
                         logger.Info("TestTokenAndOnezone OK");
                     }, token),
                     Undo = () => Task.CompletedTask
-                },
-
-                new Step
-                {
-                    Name = "ShellRegister",
-                    Run = (token) => Task.Run(() => {
-                        CloudProvider.RegisterWithShell(configuration.root_path);
-                        logger.Info("RegisterWithShell OK");
-                    }, token),
-                    Undo = () => Task.Run(() => CloudProvider.UnregisterSafely())
                 },
 
                 new Step
@@ -260,7 +275,16 @@ namespace OnedataDrive
 
         public static int Repair(string syncRootId = "")
         {
-            CloudProvider.UnregisterSafely(syncRootId);
+            try
+            {
+                CloudProvider.RegisterWithShell(configuration.root_path);
+                CloudProvider.UnregisterSafely(syncRootId);
+            }
+            catch (Exception e)
+            {
+                logger.Error($"Failed to repair, {e}");
+                return -1;
+            }
             return 0;
         }
 
@@ -310,8 +334,8 @@ namespace OnedataDrive
             using (PlaceholderCreateInfoList info = new())
             {
                 TokenAccess tokenAccess = InferTokenAccess(token);
-                logger.Info("Available spaces: " 
-                    + String.Join(" | " ,tokenAccess.dataAccessScope.spaces.Values.Select(o => o.name)));
+                logger.Info("Available spaces: "
+                    + String.Join(" | ", tokenAccess.dataAccessScope.spaces.Values.Select(o => o.name)));
 
                 foreach (KeyValuePair<string, TASpace> space in tokenAccess.dataAccessScope.spaces)
                 // KEY is spaceId
@@ -343,13 +367,16 @@ namespace OnedataDrive
 
                                 FileAttribute fileInfo = RestClient.GetFileAttribute(dirId, providerDomain, token).Result;
 
-                                PlaceholderData placeholderData = new (fileInfo) { 
-                                    Name = spaceName, Type = PlaceholderData.DIRECTORY };
+                                PlaceholderData placeholderData = new(fileInfo)
+                                {
+                                    Name = spaceName,
+                                    Type = PlaceholderData.DIRECTORY
+                                };
                                 info.Add(PlaceholderData.CreateDirInfo(placeholderData));
 
                                 placeholderAdded = true;
 
-                                spaceFolder = new(spaceName, fileInfo.file_id, space.Key, 
+                                spaceFolder = new(spaceName, fileInfo.file_id, space.Key,
                                     new ProviderInfo(providerId, providerDomain), configuration.enableRefresh);
                             }
                             else
@@ -397,37 +424,64 @@ namespace OnedataDrive
             logger.Debug("Placeholders created in dirPath:{0} -> {1} / {2}", path, entriesProcessed, infoArr.Length);
         }
 
-        public static void InitSyncRootDir(CancellationToken token)
+        private static void CreateRootFolder()
         {
             try
             {
-                token.ThrowIfCancellationRequested();
-                if (configuration.deleteExistingRootDir && Directory.Exists(configuration.root_path))
-                {
-                    Directory.Delete(configuration.root_path, true);
-                }
-
                 if (!Directory.Exists(configuration.root_path))
                 {
                     _ = Directory.CreateDirectory(configuration.root_path);
                     logger.Info("Creating new SyncRoot Directory.");
                 }
+            }
+            catch (Exception e)
+            {
+                logger.Error($"Failed to create Root Folder, {e}");
 
-                // test root folder permissions
+                throw new RootFolderException("Can not create Root Folder", e);
+            }
+        }
+
+        private static void TestRootFolderAccess()
+        {
+            try
+            {
                 File.Create(configuration.root_path + "testingAccess").Close();
                 File.Delete(configuration.root_path + "testingAccess");
-
-                if (Directory.EnumerateFileSystemEntries(configuration.root_path).Any())
-                {
-                    throw new RootFolderNotEmptyException("SyncRoot Directory must be empty.");
-                }
-                return;
             }
             catch (Exception e) when (e is UnauthorizedAccessException || e is IOException)
             {
-                logger.Error($"Failed to create Root Folder - acess rights, {e}");
+                logger.Error($"Failed to access Root Folder, {e}");
+                throw new RootFolderAcessException("Insufficient access rights for Root Folder", e);
+            }
+        }
 
-                //throw new RootFolderAcessException("Insufficiend acess rights", e);
+        private static void EmptyRootFolder()
+        {
+            if (configuration.deleteExistingRootDir)
+            {
+                foreach (string entry in Directory.EnumerateFileSystemEntries(configuration.root_path))
+                {
+                    try
+                    {
+                        if (Directory.Exists(entry))
+                        {
+                            Directory.Delete(entry, true);
+                        }
+                        else
+                        {
+                            File.Delete(entry);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        throw new RootFolderNotEmptyException("Failed to delete contents of directory", e);
+                    }
+                }
+            }
+            if (Directory.EnumerateFileSystemEntries(configuration.root_path).Any())
+            {
+                throw new RootFolderNotEmptyException("SyncRoot Directory must be empty.");
             }
         }
     }
