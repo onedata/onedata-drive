@@ -13,7 +13,7 @@
 
     }
 
-    public class RootFolderNotEmptyException : Exception
+    public class RootFolderNotEmptyException : RootFolderException
     {
         public RootFolderNotEmptyException() : base() { }
         public RootFolderNotEmptyException(string message) : base(message) { }
@@ -25,7 +25,7 @@
         }
     }
 
-    public class RootFolderAcessException : Exception
+    public class RootFolderAcessException : RootFolderException
     {
         public RootFolderAcessException() : base() { }
         public RootFolderAcessException(string message) : base(message) { }
@@ -34,6 +34,18 @@
         public override string ToString()
         {
             return "RootFolderAcessException: " + base.ToString();
+        }
+    }
+
+    public class  RootFolderException : Exception
+    {
+        public RootFolderException() : base() { }
+        public RootFolderException(string message) : base(message) { }
+        public RootFolderException(string message, Exception innerException) : base(message, innerException) { }
+
+        public override string ToString()
+        {
+            return "RootFolderException: " + base.ToString();
         }
     }
 

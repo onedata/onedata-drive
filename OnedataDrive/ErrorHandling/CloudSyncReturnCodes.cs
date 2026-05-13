@@ -4,6 +4,7 @@
     {
         SUCCESS = 0,
         ERROR = 1,
+        ROOT_FOLDER_EXCEPTION,
         ROOT_FOLDER_NOT_EMPTY,
         ROOT_FOLDER_NO_ACCESS_RIGHT,
         ONEZONE_FAIL,

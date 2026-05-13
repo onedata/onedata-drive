@@ -51,6 +51,7 @@
             advanced_button = new Button();
             rootFolderErase_button = new Button();
             advanced_panel = new Panel();
+            readOnly_checkBox = new CheckBox();
             disableRefresh_checkBox = new CheckBox();
             saveToFile_button = new Button();
             removeSyncRoot_button = new Button();
@@ -67,7 +68,6 @@
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
             config_saveFileDialog = new SaveFileDialog();
-            readOnly_checkBox = new CheckBox();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             form_panel.SuspendLayout();
@@ -205,7 +205,7 @@
             // loadFromFile_button
             // 
             loadFromFile_button.BackColor = SystemColors.Window;
-            loadFromFile_button.Location = new Point(177, 173);
+            loadFromFile_button.Location = new Point(177, 136);
             loadFromFile_button.Margin = new Padding(2, 3, 2, 3);
             loadFromFile_button.Name = "loadFromFile_button";
             loadFromFile_button.Size = new Size(234, 33);
@@ -221,6 +221,7 @@
             // 
             // form_panel
             // 
+            form_panel.Controls.Add(readOnly_checkBox);
             form_panel.Controls.Add(onezone_comboBox);
             form_panel.Controls.Add(oneproviderTokenKeep_checkBox);
             form_panel.Controls.Add(advanced_button);
@@ -230,7 +231,7 @@
             form_panel.Dock = DockStyle.Top;
             form_panel.Location = new Point(0, 119);
             form_panel.Name = "form_panel";
-            form_panel.Size = new Size(767, 181);
+            form_panel.Size = new Size(767, 217);
             form_panel.TabIndex = 20;
             // 
             // onezone_comboBox
@@ -258,7 +259,7 @@
             advanced_button.FlatStyle = FlatStyle.Flat;
             advanced_button.Image = (Image)resources.GetObject("advanced_button.Image");
             advanced_button.ImageAlign = ContentAlignment.MiddleRight;
-            advanced_button.Location = new Point(15, 148);
+            advanced_button.Location = new Point(15, 178);
             advanced_button.Name = "advanced_button";
             advanced_button.Size = new Size(110, 28);
             advanced_button.TabIndex = 15;
@@ -282,7 +283,6 @@
             // advanced_panel
             // 
             advanced_panel.BackColor = Color.FromArgb(225, 225, 225);
-            advanced_panel.Controls.Add(readOnly_checkBox);
             advanced_panel.Controls.Add(disableRefresh_checkBox);
             advanced_panel.Controls.Add(saveToFile_button);
             advanced_panel.Controls.Add(removeSyncRoot_button);
@@ -294,12 +294,23 @@
             advanced_panel.Controls.Add(rootFolder_textBox);
             advanced_panel.Controls.Add(folderBrowser_button);
             advanced_panel.Dock = DockStyle.Top;
-            advanced_panel.Location = new Point(0, 300);
+            advanced_panel.Location = new Point(0, 336);
             advanced_panel.Name = "advanced_panel";
-            advanced_panel.Size = new Size(767, 374);
+            advanced_panel.Size = new Size(767, 330);
             advanced_panel.TabIndex = 21;
             advanced_panel.Visible = false;
             advanced_panel.Paint += advanced_panel_paint;
+            // 
+            // readOnly_checkBox
+            // 
+            readOnly_checkBox.AutoSize = true;
+            readOnly_checkBox.Location = new Point(161, 154);
+            readOnly_checkBox.Margin = new Padding(2, 3, 2, 3);
+            readOnly_checkBox.Name = "readOnly_checkBox";
+            readOnly_checkBox.Size = new Size(91, 23);
+            readOnly_checkBox.TabIndex = 24;
+            readOnly_checkBox.Text = "Read Only";
+            readOnly_checkBox.UseVisualStyleBackColor = true;
             // 
             // disableRefresh_checkBox
             // 
@@ -315,7 +326,7 @@
             // saveToFile_button
             // 
             saveToFile_button.BackColor = SystemColors.Window;
-            saveToFile_button.Location = new Point(177, 221);
+            saveToFile_button.Location = new Point(177, 184);
             saveToFile_button.Margin = new Padding(2, 3, 2, 3);
             saveToFile_button.Name = "saveToFile_button";
             saveToFile_button.Size = new Size(234, 33);
@@ -327,7 +338,7 @@
             // removeSyncRoot_button
             // 
             removeSyncRoot_button.BackColor = SystemColors.Window;
-            removeSyncRoot_button.Location = new Point(177, 317);
+            removeSyncRoot_button.Location = new Point(177, 280);
             removeSyncRoot_button.Margin = new Padding(2, 3, 2, 3);
             removeSyncRoot_button.Name = "removeSyncRoot_button";
             removeSyncRoot_button.Size = new Size(234, 33);
@@ -339,7 +350,7 @@
             // openLogFolder_button
             // 
             openLogFolder_button.BackColor = SystemColors.Window;
-            openLogFolder_button.Location = new Point(177, 269);
+            openLogFolder_button.Location = new Point(177, 232);
             openLogFolder_button.Margin = new Padding(2, 3, 2, 3);
             openLogFolder_button.Name = "openLogFolder_button";
             openLogFolder_button.Size = new Size(234, 33);
@@ -353,7 +364,7 @@
             controls_panel.Controls.Add(connect_button);
             controls_panel.Controls.Add(disconect_button);
             controls_panel.Dock = DockStyle.Top;
-            controls_panel.Location = new Point(0, 674);
+            controls_panel.Location = new Point(0, 666);
             controls_panel.Name = "controls_panel";
             controls_panel.Size = new Size(767, 97);
             controls_panel.TabIndex = 22;
@@ -426,17 +437,6 @@
             // config_saveFileDialog
             // 
             config_saveFileDialog.FileName = "config.json";
-            // 
-            // readOnly_checkBox
-            // 
-            readOnly_checkBox.AutoSize = true;
-            readOnly_checkBox.Location = new Point(179, 132);
-            readOnly_checkBox.Margin = new Padding(2, 3, 2, 3);
-            readOnly_checkBox.Name = "readOnly_checkBox";
-            readOnly_checkBox.Size = new Size(91, 23);
-            readOnly_checkBox.TabIndex = 24;
-            readOnly_checkBox.Text = "Read Only";
-            readOnly_checkBox.UseVisualStyleBackColor = true;
             // 
             // ConnectForm
             // 
