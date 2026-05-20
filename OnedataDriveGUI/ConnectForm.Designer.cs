@@ -171,7 +171,7 @@
             // rootFolderDelete_checkBox
             // 
             rootFolderDelete_checkBox.AutoSize = true;
-            rootFolderDelete_checkBox.Location = new Point(179, 64);
+            rootFolderDelete_checkBox.Location = new Point(161, 214);
             rootFolderDelete_checkBox.Margin = new Padding(2, 3, 2, 3);
             rootFolderDelete_checkBox.Name = "rootFolderDelete_checkBox";
             rootFolderDelete_checkBox.Size = new Size(330, 23);
@@ -228,18 +228,19 @@
             form_panel.Controls.Add(oneproviderTokenKeep_checkBox);
             form_panel.Controls.Add(advanced_button);
             form_panel.Controls.Add(onezone_label);
+            form_panel.Controls.Add(rootFolderDelete_checkBox);
             form_panel.Controls.Add(oneproviderToken_label);
             form_panel.Controls.Add(oneproviderToken_textBox);
             form_panel.Dock = DockStyle.Top;
             form_panel.Location = new Point(0, 119);
             form_panel.Name = "form_panel";
-            form_panel.Size = new Size(767, 217);
+            form_panel.Size = new Size(767, 281);
             form_panel.TabIndex = 20;
             // 
             // createToken_linkLabel
             // 
             createToken_linkLabel.AutoSize = true;
-            createToken_linkLabel.Location = new Point(161, 46);
+            createToken_linkLabel.Location = new Point(161, 116);
             createToken_linkLabel.Name = "createToken_linkLabel";
             createToken_linkLabel.Size = new Size(171, 19);
             createToken_linkLabel.TabIndex = 25;
@@ -250,7 +251,7 @@
             // readOnly_checkBox
             // 
             readOnly_checkBox.AutoSize = true;
-            readOnly_checkBox.Location = new Point(161, 154);
+            readOnly_checkBox.Location = new Point(161, 180);
             readOnly_checkBox.Margin = new Padding(2, 3, 2, 3);
             readOnly_checkBox.Name = "readOnly_checkBox";
             readOnly_checkBox.Size = new Size(91, 23);
@@ -270,7 +271,7 @@
             // oneproviderTokenKeep_checkBox
             // 
             oneproviderTokenKeep_checkBox.AutoSize = true;
-            oneproviderTokenKeep_checkBox.Location = new Point(161, 120);
+            oneproviderTokenKeep_checkBox.Location = new Point(161, 146);
             oneproviderTokenKeep_checkBox.Name = "oneproviderTokenKeep_checkBox";
             oneproviderTokenKeep_checkBox.Size = new Size(204, 23);
             oneproviderTokenKeep_checkBox.TabIndex = 16;
@@ -283,7 +284,7 @@
             advanced_button.FlatStyle = FlatStyle.Flat;
             advanced_button.Image = (Image)resources.GetObject("advanced_button.Image");
             advanced_button.ImageAlign = ContentAlignment.MiddleRight;
-            advanced_button.Location = new Point(15, 178);
+            advanced_button.Location = new Point(15, 242);
             advanced_button.Name = "advanced_button";
             advanced_button.Size = new Size(110, 28);
             advanced_button.TabIndex = 15;
@@ -313,12 +314,11 @@
             advanced_panel.Controls.Add(openLogFolder_button);
             advanced_panel.Controls.Add(rootFolderErase_button);
             advanced_panel.Controls.Add(loadFromFile_button);
-            advanced_panel.Controls.Add(rootFolderDelete_checkBox);
             advanced_panel.Controls.Add(rootFolder_label);
             advanced_panel.Controls.Add(rootFolder_textBox);
             advanced_panel.Controls.Add(folderBrowser_button);
             advanced_panel.Dock = DockStyle.Top;
-            advanced_panel.Location = new Point(0, 336);
+            advanced_panel.Location = new Point(0, 400);
             advanced_panel.Name = "advanced_panel";
             advanced_panel.Size = new Size(767, 330);
             advanced_panel.TabIndex = 21;
@@ -377,7 +377,7 @@
             controls_panel.Controls.Add(connect_button);
             controls_panel.Controls.Add(disconect_button);
             controls_panel.Dock = DockStyle.Top;
-            controls_panel.Location = new Point(0, 666);
+            controls_panel.Location = new Point(0, 730);
             controls_panel.Name = "controls_panel";
             controls_panel.Size = new Size(767, 97);
             controls_panel.TabIndex = 22;
@@ -385,7 +385,7 @@
             // statusStrip
             // 
             statusStrip.Items.AddRange(new ToolStripItem[] { statusImageGrey, statusImageBlue, statusImageRed, statusImageGreen, statusLabel, statusMessage, refreshStatusMessage });
-            statusStrip.Location = new Point(0, 464);
+            statusStrip.Location = new Point(0, 519);
             statusStrip.Name = "statusStrip";
             statusStrip.Size = new Size(784, 22);
             statusStrip.TabIndex = 23;
@@ -444,7 +444,7 @@
             scrollPanel.Dock = DockStyle.Fill;
             scrollPanel.Location = new Point(0, 0);
             scrollPanel.Name = "scrollPanel";
-            scrollPanel.Size = new Size(784, 464);
+            scrollPanel.Size = new Size(784, 519);
             scrollPanel.TabIndex = 24;
             // 
             // config_saveFileDialog
@@ -456,7 +456,7 @@
             AutoScaleDimensions = new SizeF(8F, 19F);
             AutoScaleMode = AutoScaleMode.Font;
             AutoScroll = true;
-            ClientSize = new Size(784, 486);
+            ClientSize = new Size(784, 541);
             Controls.Add(scrollPanel);
             Controls.Add(statusStrip);
             Font = new Font("Microsoft YaHei", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
@@ -464,7 +464,7 @@
             Margin = new Padding(2, 3, 2, 3);
             MaximizeBox = false;
             MaximumSize = new Size(900, 1080);
-            MinimumSize = new Size(800, 525);
+            MinimumSize = new Size(800, 580);
             Name = "ConnectForm";
             FormClosing += ConnectForm_Closing;
             FormClosed += ConnectForm_FormClosed;
