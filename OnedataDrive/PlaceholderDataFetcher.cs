@@ -74,7 +74,7 @@ namespace OnedataDrive
                     callback.offset,
                     callback.fileSize - 1))
                 {
-                    const int CHUNK = (int)ALIGNMENT * 4;
+                    const int CHUNK = (int)ALIGNMENT * 32;
                     unmanagedPointer = Marshal.AllocHGlobal(CHUNK);
                     byte[] buffer = new byte[CHUNK];
                     int read;

@@ -178,22 +178,32 @@ namespace OnedataDrive
 
                 new Step
                 {
-                    Name = "EmptyRootFolder",
-                    Run = (token) => Task.Run(() => {
-                        EmptyRootFolder();
-                        logger.Info("RootFolder is empty");
-                    }, token),
-                    Undo = () => Task.CompletedTask
-                },
-
-                new Step
-                {
                     Name = "ShellRegister",
                     Run = (token) => Task.Run(() => {
                         CloudProvider.RegisterWithShell(configuration.root_path);
                         logger.Info("RegisterWithShell OK");
                     }, token),
                     Undo = () => Task.Run(() => CloudProvider.UnregisterSafely())
+                },
+
+                new Step
+                {
+                    Name = "ConnectCallbacks",
+                    Run = (token) => Task.Run(() => {
+                        CloudProvider.ConnectCallbacks(configuration.root_path);
+                        logger.Info("ConnectCallbacks OK");
+                    }, token),
+                    Undo = () => Task.Run(() => CloudProvider.DisconectCallbacks())
+                },
+
+                new Step
+                {
+                    Name = "EmptyRootFolder",
+                    Run = (token) => Task.Run(() => {
+                        EmptyRootFolder();
+                        logger.Info("RootFolder is empty");
+                    }, token),
+                    Undo = () => Task.CompletedTask
                 },
 
                 new Step
@@ -224,16 +234,6 @@ namespace OnedataDrive
                         logger.Info("InitSpaceFolders OK");
                     }, token),
                     Undo = () => Task.CompletedTask
-                },
-
-                new Step
-                {
-                    Name = "ConnectCallbacks",
-                    Run = (token) => Task.Run(() => {
-                        CloudProvider.ConnectCallbacks(configuration.root_path);
-                        logger.Info("ConnectCallbacks OK");
-                    }, token),
-                    Undo = () => Task.Run(() => CloudProvider.DisconectCallbacks())
                 },
 
                 new Step
