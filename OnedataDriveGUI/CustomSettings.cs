@@ -38,7 +38,7 @@ namespace OnedataDriveGUI
         }
 
         [UserScopedSetting]
-        [DefaultSettingValue("False")]
+        [DefaultSettingValue("True")]
         public bool OneproviderTokenKeep
         {
             get => (bool)this[nameof(OneproviderTokenKeep)];
@@ -54,7 +54,7 @@ namespace OnedataDriveGUI
         }
 
         [UserScopedSetting]
-        [DefaultSettingValue("False")]
+        [DefaultSettingValue("True")]
         public bool ReadOnlyCheckbox
         {
             get => (bool)this[nameof(ReadOnlyCheckbox)];

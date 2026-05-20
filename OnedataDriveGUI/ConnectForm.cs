@@ -39,6 +39,7 @@ namespace OnedataDriveGUI
             rootFolder_textBox.PlaceholderText = defaultRootPath;
             rootFolder_folderBrowserDialog.InitialDirectory = userProfilePath;
             version_label.Text = CloudSync.VERSION;
+            oneproviderTokenKeep_checkBox.Checked = true;
             disableRefresh_checkBox.Checked = false;
             readOnly_checkBox.Checked = true;
         }
@@ -373,7 +374,7 @@ namespace OnedataDriveGUI
 
             if (string.IsNullOrEmpty(host))
             {
-                MessageBox.Show("Select/write a onezone host, to generate token creation link", ROOT_DIR, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Select/write a Onezone, to generate token creation link", ROOT_DIR, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             else
