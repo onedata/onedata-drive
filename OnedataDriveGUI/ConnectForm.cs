@@ -366,9 +366,6 @@ namespace OnedataDriveGUI
 
         private void createToken_linkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            Debug.Print("Link clicked");
-            string defaultUrl = "https://onezone.devel.onedata.e-infra.cz/ozw/onezone/i#/onedata/tokens/new?options=";
-
             string host = onezone_comboBox.Text?.Trim() ?? "";
             string url;
 
@@ -404,9 +401,8 @@ namespace OnedataDriveGUI
                     UseShellExecute = true
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                //logger?.Error(ex, "Failed to open URL: {0}", url);
                 MessageBox.Show("Failed to open web browser.", ROOT_DIR, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
