@@ -52,7 +52,7 @@ namespace OnedataDriveGUI
             oneproviderTokenKeep_checkBox.Checked = userSettings.OneproviderTokenKeep;
             rootFolderDelete_checkBox.Checked = userSettings.RootFolderDeleteCheckBox;
             disableRefresh_checkBox.Checked = userSettings.DisableRefreshCheckbox;
-            readOnly_checkBox.Checked = userSettings.ReadOnlyCheckbox; 
+            readOnly_checkBox.Checked = userSettings.ReadOnlyCheckbox;
         }
 
         private async Task<CloudSyncReturnCodes> LaunchCloudSyncAsync(Config config)
@@ -285,7 +285,7 @@ namespace OnedataDriveGUI
 
 
                     string filePath = config_saveFileDialog.FileName;
-                    
+
                     File.WriteAllText(config_saveFileDialog.FileName, content);
                 }
                 catch (Exception)
@@ -360,6 +360,53 @@ namespace OnedataDriveGUI
             {
                 statusMessage.Text = "Unregister SyncRoot FAIL";
                 logger.Error("Unregister SyncRoot", exception);
+            }
+        }
+
+        private void createToken_linkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            Debug.Print("Link clicked");
+            string defaultUrl = "https://onezone.devel.onedata.e-infra.cz/ozw/onezone/i#/onedata/tokens/new?options=";
+
+            string host = onezone_comboBox.Text?.Trim() ?? "";
+            string url;
+
+            if (string.IsNullOrEmpty(host))
+            {
+                MessageBox.Show("Select/write a onezone host, to generate token creation link", ROOT_DIR, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            else
+            {
+                // remove any scheme if the user included it
+                if (host.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+                {
+                    host = host.Substring("http://".Length);
+                }
+                else if (host.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                {
+                    host = host.Substring("https://".Length);
+                }
+
+                // remove trailing slashes
+                host = host.TrimEnd('/');
+
+                // build token creation path based on selected onezone host
+                url = $"https://{host}/ozw/onezone/i#/onedata/tokens/new?options=";
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                //logger?.Error(ex, "Failed to open URL: {0}", url);
+                MessageBox.Show("Failed to open web browser.", ROOT_DIR, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

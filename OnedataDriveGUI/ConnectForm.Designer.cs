@@ -46,12 +46,13 @@
             loadFromFile_button = new Button();
             config_openFileDialog = new OpenFileDialog();
             form_panel = new Panel();
+            createToken_linkLabel = new LinkLabel();
+            readOnly_checkBox = new CheckBox();
             onezone_comboBox = new ComboBox();
             oneproviderTokenKeep_checkBox = new CheckBox();
             advanced_button = new Button();
             rootFolderErase_button = new Button();
             advanced_panel = new Panel();
-            readOnly_checkBox = new CheckBox();
             disableRefresh_checkBox = new CheckBox();
             saveToFile_button = new Button();
             removeSyncRoot_button = new Button();
@@ -221,6 +222,7 @@
             // 
             // form_panel
             // 
+            form_panel.Controls.Add(createToken_linkLabel);
             form_panel.Controls.Add(readOnly_checkBox);
             form_panel.Controls.Add(onezone_comboBox);
             form_panel.Controls.Add(oneproviderTokenKeep_checkBox);
@@ -233,6 +235,28 @@
             form_panel.Name = "form_panel";
             form_panel.Size = new Size(767, 217);
             form_panel.TabIndex = 20;
+            // 
+            // createToken_linkLabel
+            // 
+            createToken_linkLabel.AutoSize = true;
+            createToken_linkLabel.Location = new Point(161, 46);
+            createToken_linkLabel.Name = "createToken_linkLabel";
+            createToken_linkLabel.Size = new Size(171, 19);
+            createToken_linkLabel.TabIndex = 25;
+            createToken_linkLabel.TabStop = true;
+            createToken_linkLabel.Text = "Create Oneprovider Token";
+            createToken_linkLabel.LinkClicked += createToken_linkLabel_LinkClicked;
+            // 
+            // readOnly_checkBox
+            // 
+            readOnly_checkBox.AutoSize = true;
+            readOnly_checkBox.Location = new Point(161, 154);
+            readOnly_checkBox.Margin = new Padding(2, 3, 2, 3);
+            readOnly_checkBox.Name = "readOnly_checkBox";
+            readOnly_checkBox.Size = new Size(91, 23);
+            readOnly_checkBox.TabIndex = 24;
+            readOnly_checkBox.Text = "Read Only";
+            readOnly_checkBox.UseVisualStyleBackColor = true;
             // 
             // onezone_comboBox
             // 
@@ -300,17 +324,6 @@
             advanced_panel.TabIndex = 21;
             advanced_panel.Visible = false;
             advanced_panel.Paint += advanced_panel_paint;
-            // 
-            // readOnly_checkBox
-            // 
-            readOnly_checkBox.AutoSize = true;
-            readOnly_checkBox.Location = new Point(161, 154);
-            readOnly_checkBox.Margin = new Padding(2, 3, 2, 3);
-            readOnly_checkBox.Name = "readOnly_checkBox";
-            readOnly_checkBox.Size = new Size(91, 23);
-            readOnly_checkBox.TabIndex = 24;
-            readOnly_checkBox.Text = "Read Only";
-            readOnly_checkBox.UseVisualStyleBackColor = true;
             // 
             // disableRefresh_checkBox
             // 
@@ -509,5 +522,6 @@
         private SaveFileDialog config_saveFileDialog;
         private CheckBox disableRefresh_checkBox;
         private CheckBox readOnly_checkBox;
+        private LinkLabel createToken_linkLabel;
     }
 }
