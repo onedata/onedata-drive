@@ -8,7 +8,7 @@
   IgnorableNamespaces="uap rescap desktop3">
 
   <Identity
-    Name="d97aa3fc-e760-4a1a-b382-b0487c177db3-develop"
+    Name="d97aa3fc-e760-4a1a-b382-b0487c177db3"
     Publisher="CN=Andrej Gafrik"
     Version="25.0.0.0" />
 
