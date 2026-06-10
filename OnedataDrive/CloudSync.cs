@@ -32,7 +32,6 @@ namespace OnedataDrive
         public static async Task<CloudSyncReturnCodes> RunAsync(Config config)
         {
             cts = new();
-            NotificationCentre.ResetReadOnlyNotificationTimer();
             logger.Info("CLOUD SYNC: Start Connecting");
 
             configuration = config;
@@ -147,6 +146,16 @@ namespace OnedataDrive
         {
             List<Step> steps =
             [
+                new Step
+                {
+                    Name = "ResetNotificationTimer",
+                    Run = (token) => Task.Run(() => {
+                        NotificationCentre.ResetReadOnlyNotificationTimer();
+                        logger.Info("Notification timer reset");
+                    }, token),
+                    Undo = () => Task.CompletedTask
+                },
+
                 new Step
                 {
                     Name = "InitRunningTaskList",

@@ -159,6 +159,33 @@ namespace OnedataDriveGUI
         /* ---------- EVENT FUNCTIONS ---------- */
         /*          |                 |          */
         /*          V                 V          */
+
+        // Form events
+
+        private void ConnectForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            SetDisplayStatus(Status.DISCONNECTING);
+            statusMessage.Text = "Disconnecting";
+            if (CloudSync.Running)
+            {
+                CloudSync.Stop();
+            }
+            logger.Info("APP GUI STOPPED");
+        }
+
+        private void ConnectForm_Closing(object sender, FormClosingEventArgs e)
+        {
+            string message = $"Are you sure you want to quit? This will disconnect {ROOT_DIR}";
+            if (statusImageGreen.Visible &&
+                MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.No)
+            {
+                e.Cancel = true;
+            }
+        }
+
+
+        // Button clicked events //
+
         private async void connect_button_Click(object sender, EventArgs e)
         {
             // prohibit double click
@@ -169,13 +196,13 @@ namespace OnedataDriveGUI
             connectClicked = true;
 
             SetDisplayStatus(Status.CONNECTING);
+            statusMessage.Text = "In progress";
             SaveLastConfig();
             Config config = new();
             config.Init(
                 path: rootFolder_textBox.Text.Length == 0 ? defaultRootPath : rootFolder_textBox.Text,
                 token: oneproviderToken_textBox.Text,
                 host: onezone_comboBox.Text);
-            statusMessage.Text = "In progress";
 
             CloudSyncReturnCodes returnCode = await LaunchCloudSyncAsync(config);
 
@@ -296,17 +323,6 @@ namespace OnedataDriveGUI
             }
         }
 
-        private void ConnectForm_FormClosed(object sender, FormClosedEventArgs e)
-        {
-            SetDisplayStatus(Status.DISCONNECTING);
-            statusMessage.Text = "Disconnecting";
-            if (CloudSync.Running)
-            {
-                CloudSync.Stop();
-            }
-            logger.Info("APP GUI STOPPED");
-        }
-
         private void advanced_button_Click(object sender, EventArgs e)
         {
             if (advanced_panel.Visible)
@@ -318,16 +334,6 @@ namespace OnedataDriveGUI
             {
                 this.Size = new System.Drawing.Size(this.Size.Width, this.Size.Height + advanced_panel.Size.Height);
                 advanced_panel.Show();
-            }
-        }
-
-        private void ConnectForm_Closing(object sender, FormClosingEventArgs e)
-        {
-            string message = $"Are you sure you want to quit? This will disconnect {ROOT_DIR}";
-            if (statusImageGreen.Visible &&
-                MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.No)
-            {
-                e.Cancel = true;
             }
         }
 
