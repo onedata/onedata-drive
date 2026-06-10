@@ -32,6 +32,7 @@ namespace OnedataDrive
         public static async Task<CloudSyncReturnCodes> RunAsync(Config config)
         {
             cts = new();
+            NotificationCentre.ResetReadOnlyNotificationTimer();
             logger.Info("CLOUD SYNC: Start Connecting");
 
             configuration = config;

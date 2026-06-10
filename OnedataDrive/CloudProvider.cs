@@ -230,6 +230,7 @@ namespace OnedataDrive
             if (CloudSync.configuration.readOnly)
             {
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "DELETE", "IGNORED - read-only mode");
+                NotificationCentre.ReadOnlyNotification();  
 
                 CF_OPERATION_PARAMETERS.ACKDELETE del = new()
                 {
@@ -325,6 +326,7 @@ namespace OnedataDrive
                 if (CloudSync.configuration.readOnly)
                 {
                     PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "IGNORED - read-only mode");
+                    NotificationCentre.ReadOnlyNotification();
 
                     CF_OPERATION_PARAMETERS.ACKRENAME ackRename = new()
                     {
