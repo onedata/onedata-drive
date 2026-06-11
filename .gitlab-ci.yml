@@ -5,6 +5,6 @@ dotnet-test:
   stage: test
   script:
     - cd TestProject
-    - dotnet test -r linux-x64 -p:EnableWindowsTargeting=true
+    - dotnet test -r linux-x64 -p:EnableWindowsTargeting=true -p:AppxGeneratePriEnabled=false
 #  rules:
 #    - if: '$CI_COMMIT_BRANCH == "cicd"'
