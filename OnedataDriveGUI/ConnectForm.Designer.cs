@@ -65,10 +65,10 @@
             statusImageGreen = new ToolStripStatusLabel();
             statusLabel = new ToolStripStatusLabel();
             statusMessage = new ToolStripStatusLabel();
-            refreshStatusMessage = new ToolStripStatusLabel();
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
             config_saveFileDialog = new SaveFileDialog();
+            secondaryStatusMessage = new ToolStripStatusLabel();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             form_panel.SuspendLayout();
@@ -384,7 +384,7 @@
             // 
             // statusStrip
             // 
-            statusStrip.Items.AddRange(new ToolStripItem[] { statusImageGrey, statusImageBlue, statusImageRed, statusImageGreen, statusLabel, statusMessage, refreshStatusMessage });
+            statusStrip.Items.AddRange(new ToolStripItem[] { statusImageGrey, statusImageBlue, statusImageRed, statusImageGreen, statusLabel, statusMessage, secondaryStatusMessage });
             statusStrip.Location = new Point(0, 489);
             statusStrip.Name = "statusStrip";
             statusStrip.Size = new Size(784, 22);
@@ -429,11 +429,6 @@
             statusMessage.Name = "statusMessage";
             statusMessage.Size = new Size(0, 17);
             // 
-            // refreshStatusMessage
-            // 
-            refreshStatusMessage.Name = "refreshStatusMessage";
-            refreshStatusMessage.Size = new Size(0, 17);
-            // 
             // scrollPanel
             // 
             scrollPanel.AutoScroll = true;
@@ -450,6 +445,11 @@
             // config_saveFileDialog
             // 
             config_saveFileDialog.FileName = "config.json";
+            // 
+            // secondaryStatusMessage
+            // 
+            secondaryStatusMessage.Name = "secondaryStatusMessage";
+            secondaryStatusMessage.Size = new Size(0, 17);
             // 
             // ConnectForm
             // 
@@ -516,12 +516,12 @@
         private ComboBox onezone_comboBox;
         private Label version_label;
         private Button openLogFolder_button;
-        private ToolStripStatusLabel refreshStatusMessage;
         private Button removeSyncRoot_button;
         private Button saveToFile_button;
         private SaveFileDialog config_saveFileDialog;
         private CheckBox disableRefresh_checkBox;
         private CheckBox readOnly_checkBox;
         private LinkLabel createToken_linkLabel;
+        private ToolStripStatusLabel secondaryStatusMessage;
     }
 }

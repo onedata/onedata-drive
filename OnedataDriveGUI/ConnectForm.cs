@@ -31,6 +31,13 @@ namespace OnedataDriveGUI
             InitGuiValuesDefaults();
 
             LoadLastConfig();
+
+            CloudSync.OnMessageGenerated += PrintStatusMessage;
+        }
+
+        private void PrintStatusMessage(string message)
+        {
+            secondaryStatusMessage.Text = message;
         }
 
         private void InitGuiValuesDefaults()
@@ -54,29 +61,6 @@ namespace OnedataDriveGUI
             rootFolderDelete_checkBox.Checked = userSettings.RootFolderDeleteCheckBox;
             disableRefresh_checkBox.Checked = userSettings.DisableRefreshCheckbox;
             readOnly_checkBox.Checked = userSettings.ReadOnlyCheckbox;
-        }
-
-        private async Task<CloudSyncReturnCodes> LaunchCloudSyncAsync(Config config)
-        {
-            CloudSyncReturnCodes status;
-
-            config.deleteExistingRootDir = rootFolderDelete_checkBox.Checked;
-            config.enableRefresh = !disableRefresh_checkBox.Checked;
-            config.readOnly = readOnly_checkBox.Checked;
-            status = await CloudSync.RunAsync(config);
-
-            if (status == CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY && !rootFolderDelete_checkBox.Checked)
-            {
-                string message = "Can not connect, because Root Folder "
-                + config.root_path
-                + " is not empty. Do you want to delete contents of this folder?";
-                if (MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.Yes)
-                {
-                    config.deleteExistingRootDir = true;
-                    status = await CloudSync.RunAsync(config);
-                }
-            }
-            return status;
         }
 
         private void SaveLastConfig()
@@ -132,6 +116,25 @@ namespace OnedataDriveGUI
             {
                 control.Enabled = enabled;
             }
+        }
+
+        public static async Task<CloudSyncReturnCodes> LaunchCloudSyncAsync(Config config)
+        {
+            CloudSyncReturnCodes status;
+            status = await CloudSync.RunAsync(config);
+
+            if (status == CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY && !config.deleteExistingRootDir)
+            {
+                string message = "Can not connect, because Root Folder "
+                + config.root_path
+                + " is not empty. Do you want to delete contents of this folder?";
+                if (MessageBox.Show(message, "Onedata Drive", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    config.deleteExistingRootDir = true;
+                    status = await CloudSync.RunAsync(config);
+                }
+            }
+            return status;
         }
 
         /// <summary>
@@ -203,6 +206,9 @@ namespace OnedataDriveGUI
                 path: rootFolder_textBox.Text.Length == 0 ? defaultRootPath : rootFolder_textBox.Text,
                 token: oneproviderToken_textBox.Text,
                 host: onezone_comboBox.Text);
+            config.deleteExistingRootDir = rootFolderDelete_checkBox.Checked;
+            config.enableRefresh = !disableRefresh_checkBox.Checked;
+            config.readOnly = readOnly_checkBox.Checked;
 
             CloudSyncReturnCodes returnCode = await LaunchCloudSyncAsync(config);
 

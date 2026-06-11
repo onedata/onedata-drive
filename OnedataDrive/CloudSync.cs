@@ -19,9 +19,10 @@ namespace OnedataDrive
         public static bool Running { get; private set; } = false;
         public static RunningTaksList runningTasks = new(10);
 
+        public static event Action<string>? OnMessageGenerated;
+
         private static CancellationTokenSource cts = new();
         private static Task startupTask = Task.CompletedTask;
-
 
         /// <summary>
         /// Method to start CloudSync
@@ -140,6 +141,11 @@ namespace OnedataDrive
                 }
                 runningTasks.Dispose();
             }
+        }
+
+        public static void SendStatusMessage(string message)
+        {
+            OnMessageGenerated?.Invoke(message);
         }
 
         public static List<Step> CreateStartupSteps()

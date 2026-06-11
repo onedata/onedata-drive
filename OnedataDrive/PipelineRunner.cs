@@ -31,6 +31,7 @@ namespace OnedataDrive
                 foreach (Step step in _step)
                 {
                     token.ThrowIfCancellationRequested();
+                    CloudSync.SendStatusMessage($"{step.Name}");
                     await step.Run(token);
                     executedSteps.Push(step);
                 }
