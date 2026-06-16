@@ -177,6 +177,8 @@ namespace OnedataDrive
             {
                 loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "IGNORED - read-only mode", opID: opID);
                 NotificationCentre.ReadOnlyNotification();
+                Windows.Storage.StorageFile file = Windows.Storage.StorageFile.GetFileFromPathAsync(e.FullPath).AsTask().Result;
+                CustomStatus.ApplyCustomStatusToFile(file);
                 return;
             }
 

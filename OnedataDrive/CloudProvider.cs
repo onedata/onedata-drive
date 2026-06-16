@@ -57,6 +57,18 @@ namespace OnedataDrive
             info.RecycleBinUri = new Uri("https://www.abcd.abcd.com/recyclebin");
             info.Context = CryptographicBuffer.ConvertStringToBinary(folderPath, BinaryStringEncoding.Utf8);
 
+            StorageProviderItemPropertyDefinition customStatusColumn = new StorageProviderItemPropertyDefinition()
+            {
+                // Must match the exact ID integer used later in your StorageProviderItemProperty instances
+                Id = 1,
+
+                // Resource pointer to the title of the File Explorer column (e.g., "Sync Status")
+                DisplayNameResource = "ms-resource:/Resource/StatusColumnHeader",
+            };
+
+            // 3. Bind the property definition to the sync root schema
+            info.StorageProviderItemPropertyDefinitions.Add(customStatusColumn);
+
             StorageProviderSyncRootManager.Register(info);
             logger.Debug("SyncRoot ID: {0}", info.Id);
 
