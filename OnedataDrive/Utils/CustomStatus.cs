@@ -9,7 +9,7 @@ namespace OnedataDrive.Utils
 {
     public class CustomStatus
     {
-        public static async void ApplyCustomStatusToFile(StorageFile file)
+        public static async void ApplyCustomStatus(string path)
         {
             // 1. Create a container for the properties
             List<StorageProviderItemProperty> itemProperties = new List<StorageProviderItemProperty>();
@@ -21,18 +21,27 @@ namespace OnedataDrive.Utils
                 Id = 1,
 
                 // The visible text displayed in File Explorer (e.g., in a custom column)
-                Value = "No Sync",
+                Value = "File will not be synced with the cloud",
 
                 // Path to your icon resource dll/exe. Do not leave empty to prevent Explorer crashes.
-                IconResource = "ms-resource:Resource/StatusIcon,0"
+                IconResource = "shell32.dll,131"
             };
 
             itemProperties.Add(customStatus);
 
             try
-            {
-                // 3. Apply the custom status asynchronously to the target item
-                await StorageProviderItemProperties.SetAsync(file, itemProperties);
+            { 
+                if (Directory.Exists(path))
+                {
+                    StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(path);
+                    await StorageProviderItemProperties.SetAsync(folder, itemProperties);
+                }
+                else
+                {
+                    StorageFile file = await StorageFile.GetFileFromPathAsync(path);
+                    await StorageProviderItemProperties.SetAsync(file, itemProperties);
+                }
+                
                 Debug.Print("Custom status applied successfully.");
             }
             catch (Exception ex)

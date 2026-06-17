@@ -87,6 +87,7 @@ namespace OnedataDrive
             {
                 loggerFormater.LogFileOP(LogLevel.Info, "FILE CREATED (ASYNC)", "IGNORED - read-only mode", filePath: @event.eventArgs.FullPath, opID: @event.eventId);
                 NotificationCentre.ReadOnlyNotification();
+                CustomStatus.ApplyCustomStatus(@event.eventArgs.FullPath);
                 return;
             }
 
@@ -177,8 +178,7 @@ namespace OnedataDrive
             {
                 loggerFormater.LogFileOP(LogLevel.Info, "FILE CHANGED", "IGNORED - read-only mode", opID: opID);
                 NotificationCentre.ReadOnlyNotification();
-                Windows.Storage.StorageFile file = Windows.Storage.StorageFile.GetFileFromPathAsync(e.FullPath).AsTask().Result;
-                CustomStatus.ApplyCustomStatusToFile(file);
+                CustomStatus.ApplyCustomStatus(e.FullPath);
                 return;
             }
 
