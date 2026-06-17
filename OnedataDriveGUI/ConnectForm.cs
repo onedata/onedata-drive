@@ -9,7 +9,7 @@ namespace OnedataDriveGUI
 {
     public partial class ConnectForm : Form
     {
-        private const string ROOT_DIR = CloudSync.APP_NAME;
+        private const string ROOT_DIR = "OnedataDrive";
 
         private string loggerPath;
         private Logger logger;
@@ -178,9 +178,9 @@ namespace OnedataDriveGUI
 
         private void ConnectForm_Closing(object sender, FormClosingEventArgs e)
         {
-            string message = $"Are you sure you want to quit? This will disconnect {ROOT_DIR}";
+            string message = $"Are you sure you want to quit? This will disconnect {CloudSync.APP_NAME}";
             if (statusImageGreen.Visible &&
-                MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.No)
+                MessageBox.Show(message, CloudSync.APP_NAME, MessageBoxButtons.YesNo) == DialogResult.No)
             {
                 e.Cancel = true;
             }
@@ -362,7 +362,7 @@ namespace OnedataDriveGUI
                 if (!CloudSync.Running)
                 {
                     string message = "Use this only after crash or when you can not remove SyncRoot by using Disconnect. Do you want to proceed?";
-                    if (MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.Yes)
+                    if (MessageBox.Show(message, CloudSync.APP_NAME, MessageBoxButtons.YesNo) == DialogResult.Yes)
                     {
                         CloudProvider.UnregisterSafely();
                         statusMessage.Text = "Unregister SyncRoot OK";
@@ -383,7 +383,7 @@ namespace OnedataDriveGUI
 
             if (string.IsNullOrEmpty(host))
             {
-                MessageBox.Show("Select/write a Onezone, to generate token creation link", ROOT_DIR, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Select/write a Onezone, to generate token creation link", CloudSync.APP_NAME, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             else
@@ -415,7 +415,7 @@ namespace OnedataDriveGUI
             }
             catch (Exception)
             {
-                MessageBox.Show("Failed to open web browser.", ROOT_DIR, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Failed to open web browser.", CloudSync.APP_NAME, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
