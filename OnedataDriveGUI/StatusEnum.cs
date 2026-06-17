@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace OnedataDriveGUI
 {
-    public enum Status : uint
+    public enum GuiStatus : uint
     {
         NOT_CONNECTED,
         CONNECTED,

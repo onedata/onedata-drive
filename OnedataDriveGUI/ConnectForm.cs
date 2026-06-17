@@ -17,6 +17,7 @@ namespace OnedataDriveGUI
         private string userProfilePath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         private string defaultRootPath { get => userProfilePath + "\\" + ROOT_DIR; }
         private CustomSettings userSettings = new();
+        public GuiStatus Status { get; private set; }
 
         public ConnectForm()
         {
@@ -25,6 +26,7 @@ namespace OnedataDriveGUI
             NLog.GlobalDiagnosticsContext.Set("logdir", loggerPath);
             logger = LogManager.GetCurrentClassLogger();
             logger.Info("APP GUI LAUNCHED - version: " + CloudSync.VERSION);
+            Status = GuiStatus.NOT_CONNECTED;
 
             InitializeComponent();
 
@@ -37,7 +39,10 @@ namespace OnedataDriveGUI
 
         private void PrintStatusMessage(string message)
         {
-            secondaryStatusMessage.Text = message;
+            if (Status == GuiStatus.CONNECTING)
+            {
+                secondaryStatusMessage.Text = message;
+            }
         }
 
         private void InitGuiValuesDefaults()
@@ -84,30 +89,31 @@ namespace OnedataDriveGUI
             userSettings.Save();
         }
 
-        private void SetDisplayStatus(Status status)
+        private void SetDisplayStatus(GuiStatus status)
         {
-            Dictionary<Status, bool> mask = new()
+            Status = status;
+            Dictionary<GuiStatus, bool> mask = new()
             {
-                { Status.CONNECTED, false },
-                { Status.NOT_CONNECTED, false },
-                { Status.ERROR, false },
-                { Status.CONNECTING, false },
-                { Status.DISCONNECTING, false },
+                { GuiStatus.CONNECTED, false },
+                { GuiStatus.NOT_CONNECTED, false },
+                { GuiStatus.ERROR, false },
+                { GuiStatus.CONNECTING, false },
+                { GuiStatus.DISCONNECTING, false },
             };
 
             mask[status] = true;
 
-            statusImageBlue.Visible = mask[Status.CONNECTING] || mask[Status.DISCONNECTING];
-            statusImageGrey.Visible = mask[Status.NOT_CONNECTED];
-            statusImageGreen.Visible = mask[Status.CONNECTED];
-            statusImageRed.Visible = mask[Status.ERROR];
+            statusImageBlue.Visible = mask[GuiStatus.CONNECTING] || mask[GuiStatus.DISCONNECTING];
+            statusImageGrey.Visible = mask[GuiStatus.NOT_CONNECTED];
+            statusImageGreen.Visible = mask[GuiStatus.CONNECTED];
+            statusImageRed.Visible = mask[GuiStatus.ERROR];
 
-            EnableDisableControl(advanced_panel, mask[Status.NOT_CONNECTED] || mask[Status.ERROR]);
-            EnableDisableControl(form_panel, mask[Status.NOT_CONNECTED] || mask[Status.ERROR]);
+            EnableDisableControl(advanced_panel, mask[GuiStatus.NOT_CONNECTED] || mask[GuiStatus.ERROR]);
+            EnableDisableControl(form_panel, mask[GuiStatus.NOT_CONNECTED] || mask[GuiStatus.ERROR]);
             advanced_button.Enabled = true;
             openLogFolder_button.Enabled = true;
 
-            connect_button.Enabled = mask[Status.NOT_CONNECTED] || mask[Status.ERROR];
+            connect_button.Enabled = mask[GuiStatus.NOT_CONNECTED] || mask[GuiStatus.ERROR];
             disconect_button.Enabled = !connect_button.Enabled;
         }
 
@@ -168,7 +174,7 @@ namespace OnedataDriveGUI
 
         private void ConnectForm_FormClosed(object sender, FormClosedEventArgs e)
         {
-            SetDisplayStatus(Status.DISCONNECTING);
+            SetDisplayStatus(GuiStatus.DISCONNECTING);
             statusMessage.Text = "Disconnecting";
             if (CloudSync.Running)
             {
@@ -199,7 +205,7 @@ namespace OnedataDriveGUI
             }
             connectClicked = true;
 
-            SetDisplayStatus(Status.CONNECTING);
+            SetDisplayStatus(GuiStatus.CONNECTING);
             statusMessage.Text = "In progress";
             SaveLastConfig();
             Config config = new();
@@ -215,11 +221,11 @@ namespace OnedataDriveGUI
 
             if (returnCode == CloudSyncReturnCodes.SUCCESS)
             {
-                SetDisplayStatus(Status.CONNECTED);
+                SetDisplayStatus(GuiStatus.CONNECTED);
             }
             else
             {
-                SetDisplayStatus(Status.ERROR);
+                SetDisplayStatus(GuiStatus.ERROR);
             }
 
             switch (returnCode)
@@ -252,10 +258,12 @@ namespace OnedataDriveGUI
                     statusMessage.Text = "Can not create root folder";
                     break;
                 default:
-                    SetDisplayStatus(Status.ERROR);
+                    SetDisplayStatus(GuiStatus.ERROR);
                     statusMessage.Text = "Unknown Error";
                     break;
             }
+
+            secondaryStatusMessage.Text = "";
 
             // prohibit double click
             connectClicked = false;
@@ -263,11 +271,11 @@ namespace OnedataDriveGUI
 
         private async void disconect_button_ClickAsync(object sender, EventArgs e)
         {
-            SetDisplayStatus(Status.DISCONNECTING);
+            SetDisplayStatus(GuiStatus.DISCONNECTING);
             statusMessage.Text = "Disconnecting";
             await CloudSync.Stop();
             statusMessage.Text = "Disconected";
-            SetDisplayStatus(Status.NOT_CONNECTED);
+            SetDisplayStatus(GuiStatus.NOT_CONNECTED);
         }
 
         private void folderBrowser_button_Click(object sender, EventArgs e)
