@@ -49,6 +49,7 @@ namespace OnedataDriveGUI
             oneproviderTokenKeep_checkBox.Checked = true;
             disableRefresh_checkBox.Checked = false;
             readOnly_checkBox.Checked = true;
+            rootFolderDelete_checkBox.Checked = false;
         }
 
         private void LoadLastConfig()
@@ -127,7 +128,7 @@ namespace OnedataDriveGUI
             {
                 string message = "Can not connect, because Root Folder "
                 + config.root_path
-                + " is not empty. Do you want to delete contents of this folder?";
+                + " is not empty. In order to connect this directory needs to be empty. Do you want to delete contents of this directory?";
                 if (MessageBox.Show(message, "Onedata Drive", MessageBoxButtons.YesNo) == DialogResult.Yes)
                 {
                     config.deleteExistingRootDir = true;

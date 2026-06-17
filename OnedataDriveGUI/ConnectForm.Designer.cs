@@ -65,10 +65,10 @@
             statusImageGreen = new ToolStripStatusLabel();
             statusLabel = new ToolStripStatusLabel();
             statusMessage = new ToolStripStatusLabel();
+            secondaryStatusMessage = new ToolStripStatusLabel();
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
             config_saveFileDialog = new SaveFileDialog();
-            secondaryStatusMessage = new ToolStripStatusLabel();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             form_panel.SuspendLayout();
@@ -331,9 +331,9 @@
             disableRefresh_checkBox.Location = new Point(179, 98);
             disableRefresh_checkBox.Margin = new Padding(2, 3, 2, 3);
             disableRefresh_checkBox.Name = "disableRefresh_checkBox";
-            disableRefresh_checkBox.Size = new Size(141, 23);
+            disableRefresh_checkBox.Size = new Size(286, 23);
             disableRefresh_checkBox.TabIndex = 23;
-            disableRefresh_checkBox.Text = "Disable file refresh";
+            disableRefresh_checkBox.Text = "Disable file refresh (Oneprovider -> Local)";
             disableRefresh_checkBox.UseVisualStyleBackColor = true;
             // 
             // saveToFile_button
@@ -429,6 +429,11 @@
             statusMessage.Name = "statusMessage";
             statusMessage.Size = new Size(0, 17);
             // 
+            // secondaryStatusMessage
+            // 
+            secondaryStatusMessage.Name = "secondaryStatusMessage";
+            secondaryStatusMessage.Size = new Size(0, 17);
+            // 
             // scrollPanel
             // 
             scrollPanel.AutoScroll = true;
@@ -445,11 +450,6 @@
             // config_saveFileDialog
             // 
             config_saveFileDialog.FileName = "config.json";
-            // 
-            // secondaryStatusMessage
-            // 
-            secondaryStatusMessage.Name = "secondaryStatusMessage";
-            secondaryStatusMessage.Size = new Size(0, 17);
             // 
             // ConnectForm
             // 
