@@ -14,12 +14,18 @@ static class CldApiUtils
 
     public static CF_PLACEHOLDER_BASIC_INFO GetBasicInfo(string fullPath)
     {
-        using UnmanagedMem memory = new UnmanagedMem(BLOB_LENGTH);
         using CfHandle handle = new CfHandle(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE);
+
+        return GetBasicInfo(handle);
+    }
+
+    public static CF_PLACEHOLDER_BASIC_INFO GetBasicInfo(CfHandle handle)
+    {
+        using UnmanagedMem memory = new UnmanagedMem(BLOB_LENGTH);
 
         // can not use generic variant of CfGetPlaceholderInfo<T>, because it prohibits the app from terminating normally (hangs on return)
         HRESULT hresInfo = CfGetPlaceholderInfo(handle.GetDangerousHandle(), CF_PLACEHOLDER_INFO_CLASS.CF_PLACEHOLDER_INFO_BASIC, memory.GetPointer(), BLOB_LENGTH, out uint returnedLength);
-        PlaceholderExceptionGen(hresInfo, fullPath);
+        PlaceholderExceptionGen(hresInfo, handle.path);
 
         CF_PLACEHOLDER_BASIC_INFO info = Marshal.PtrToStructure<CF_PLACEHOLDER_BASIC_INFO>(memory.GetPointer());
         info.FileIdentity = Encoding.Unicode.GetBytes(Marshal.PtrToStringAuto((nint)(memory.GetPointer() + returnedLength - info.FileIdentityLength), (int)info.FileIdentityLength / 2) ?? "");
@@ -29,12 +35,18 @@ static class CldApiUtils
 
     public static CF_PLACEHOLDER_STANDARD_INFO GetStandardInfo(string fullPath)
     {
-        using UnmanagedMem memory = new UnmanagedMem(BLOB_LENGTH);
         using CfHandle handle = new CfHandle(fullPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE);
+
+        return GetStandardInfo(handle);
+    }
+
+    public static CF_PLACEHOLDER_STANDARD_INFO GetStandardInfo(CfHandle handle)
+    {
+        using UnmanagedMem memory = new UnmanagedMem(BLOB_LENGTH);
 
         // can not use generic variant of CfGetPlaceholderInfo<T>, because it prohibits the app from terminating normally (hangs on return)
         HRESULT hresInfo = CfGetPlaceholderInfo(handle.GetDangerousHandle(), CF_PLACEHOLDER_INFO_CLASS.CF_PLACEHOLDER_INFO_STANDARD, memory.GetPointer(), BLOB_LENGTH, out uint returnedLength);
-        PlaceholderExceptionGen(hresInfo, fullPath);
+        PlaceholderExceptionGen(hresInfo, handle.path);
 
         CF_PLACEHOLDER_STANDARD_INFO info = Marshal.PtrToStructure<CF_PLACEHOLDER_STANDARD_INFO>(memory.GetPointer());
         info.FileIdentity = Encoding.Unicode.GetBytes(Marshal.PtrToStringAuto((nint)(memory.GetPointer() + returnedLength - info.FileIdentityLength), (int)info.FileIdentityLength / 2) ?? "");

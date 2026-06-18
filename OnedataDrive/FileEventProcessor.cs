@@ -206,7 +206,7 @@ namespace OnedataDrive
                                 FileIdentity: 0,
                                 FileIdentityLength: 0,
                                 DehydrateRangeCount: 0,
-                                UpdateFlags: CF_UPDATE_FLAGS.CF_UPDATE_FLAG_MARK_IN_SYNC,
+                                UpdateFlags: CF_UPDATE_FLAGS.CF_UPDATE_FLAG_NONE,
                                 UpdateUsn: ref updateUsn
                                 );
             if (updateHres != HRESULT.S_OK)
@@ -218,6 +218,8 @@ namespace OnedataDrive
             // rename if needed
             if (processedEvent.@event.data.name is not null)
             {
+                CF_PLACEHOLDER_BASIC_INFO basicInfo = CldApiUtils.GetBasicInfo(handle);
+
                 string oldName = PathUtils.GetLastInPath(placeholderPath);
                 string newName = processedEvent.@event.data.name;
                 if (oldName != newName)
@@ -232,8 +234,12 @@ namespace OnedataDrive
                         FileSystem.RenameFile(placeholderPath, newName);
                     }
                     processedEvent.localFileName = newName;
-                    HRESULT inSyncHres = CfSetInSyncState(handle.GetDangerousHandle(),
-                    CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
+
+                    string newPath = Path.Combine(PathUtils.GetParentPath(placeholderPath), newName);
+                    using CfHandle handleNewPath = new(newPath, flags);
+
+                    HRESULT inSyncHres = CfSetInSyncState(handleNewPath.GetDangerousHandle(),
+                    basicInfo.InSyncState, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
                     if (inSyncHres != HRESULT.S_OK)
                     {
                         throw new Exception($"CfSetInSync HRES number: {((int)inSyncHres)}" +
