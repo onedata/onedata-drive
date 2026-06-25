@@ -331,9 +331,9 @@
             disableRefresh_checkBox.Location = new Point(179, 98);
             disableRefresh_checkBox.Margin = new Padding(2, 3, 2, 3);
             disableRefresh_checkBox.Name = "disableRefresh_checkBox";
-            disableRefresh_checkBox.Size = new Size(286, 23);
+            disableRefresh_checkBox.Size = new Size(400, 23);
             disableRefresh_checkBox.TabIndex = 23;
-            disableRefresh_checkBox.Text = "Disable file refresh (Oneprovider -> Local)";
+            disableRefresh_checkBox.Text = "Debug: Disable file refresh (Oneprovider -> Local Computer)";
             disableRefresh_checkBox.UseVisualStyleBackColor = true;
             // 
             // saveToFile_button

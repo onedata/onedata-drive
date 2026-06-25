@@ -8,7 +8,7 @@ namespace OnedataDrive
     public static class NotificationCentre
     {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
-        private static readonly TimeSpan ReadOnlyNotificationThrottle = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan ReadOnlyNotificationThrottle = TimeSpan.FromMinutes(1);
         private static DateTime? _lastReadOnlyNotificationUtc;
         private static readonly object _lock = new();
 

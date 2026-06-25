@@ -10,7 +10,7 @@
   <Identity
     Name="d97aa3fc-e760-4a1a-b382-b0487c177db3-develop"
     Publisher="CN=Andrej Gafrik"
-    Version="25.0.1.0" />
+    Version="25.1.0.0" />
 
   <Properties>
     <DisplayName>Onedata Drive</DisplayName>
