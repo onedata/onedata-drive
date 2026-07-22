@@ -1,0 +1,223 @@
+﻿using NLog;
+using OnedataDrive.Utils;
+using Vanara.PInvoke;
+using static Vanara.PInvoke.CldApi;
+using static Vanara.PInvoke.Kernel32;
+
+namespace OnedataDrive
+{
+    public class Watcher
+    {
+        private FileSystemWatcher watcher;
+        private bool disposed = true;
+        private Logger logger;
+        private LoggerFormater loggerFormater;
+        private BufferedEventMerger<WatcherEvent> bufferedEventMerger;
+        private WatcherEventProcessor eventProcessor;
+        private Crawler crawler;
+
+        public Watcher(string rootDir)
+        {
+            this.watcher = new(rootDir) {
+                InternalBufferSize = 64 * 1024 // max recomended size
+            };
+
+            this.logger = LogManager.GetCurrentClassLogger();
+            this.loggerFormater = new(logger);
+
+            this.eventProcessor = new WatcherEventProcessor(logger);
+            this.bufferedEventMerger = new(eventProcessor, 5, logger);
+
+            this.crawler = new(this);
+
+            this.watcher.NotifyFilter = NotifyFilters.Attributes
+                                     | NotifyFilters.CreationTime
+                                     | NotifyFilters.FileName
+                                     | NotifyFilters.DirectoryName
+                                     | NotifyFilters.LastWrite;
+
+            this.watcher.Created += new FileSystemEventHandler(OnCreate);
+            this.watcher.Changed += new FileSystemEventHandler(OnChange);
+            this.watcher.Renamed += new RenamedEventHandler(OnRename);
+            this.watcher.Error += new ErrorEventHandler(OnError);
+
+            this.watcher.IncludeSubdirectories = true;
+            this.watcher.EnableRaisingEvents = true;
+
+            this.disposed = false;
+        }
+
+        public void OnError(object sender, ErrorEventArgs e)
+        {
+            loggerFormater.LogFileOP(LogLevel.Error, "FILE WATCHER", "ERROR event", e.GetException());
+            _ = crawler.CrawlWatcherTree();
+        }
+
+        public void OnCreate(object sender, FileSystemEventArgs e)
+        {
+            WatcherEvent watcherEvent = new(sender, e);
+            bufferedEventMerger.AddEvent(watcherEvent);
+            if (Directory.Exists(e.FullPath))
+            {
+                crawler.CrawlDirectory(e.FullPath);
+            }
+        }
+
+        public void OnChange(object sender, FileSystemEventArgs e)
+        {
+            WatcherEvent watcherEvent = new(sender, e);
+            bufferedEventMerger.AddEvent(watcherEvent);
+        }
+
+        public void OnRename(object sender, RenamedEventArgs e)
+        {
+            WatcherEvent watcherEvent = new(sender, e);
+            bufferedEventMerger.AddEvent(watcherEvent);
+            if (Directory.Exists(e.FullPath))
+            {
+                crawler.CrawlDirectory(e.FullPath);
+            }
+        }
+
+        public void Dispose()
+        {
+            if (!disposed)
+            {
+                crawler.Stop();
+                watcher.EnableRaisingEvents = false;
+                watcher.Dispose();
+                bufferedEventMerger.Dispose();
+                eventProcessor.StopProcessing();
+                disposed = true;
+            }
+        }
+
+        public void Pause()
+        {
+            watcher.EnableRaisingEvents = false;
+        }
+
+        public void Resume()
+        {
+            watcher.EnableRaisingEvents = true;
+        }
+
+        internal class Crawler(Watcher watcher)
+        {
+            private readonly Watcher PARENT = watcher;
+            private Task crawlerTask = Task.CompletedTask;
+            private readonly CancellationTokenSource masterToken = new();
+            private CancellationTokenSource? linkedToken;
+
+            public async Task CrawlWatcherTree()
+            {
+                ObjectDisposedException.ThrowIf(masterToken.IsCancellationRequested, this);
+                
+                string opID = IdGenerator.GenerateId8();
+                if (!crawlerTask.IsCompleted)
+                {
+                    linkedToken?.Cancel();
+                    try
+                    {
+                        await crawlerTask;
+                    }
+                    catch (Exception) { }
+                }
+                if (!masterToken.IsCancellationRequested)
+                {
+                    PARENT.loggerFormater.LogFileOP(LogLevel.Info, "CRAWLER", "Starting crawler task. Full watcher tree", opID: opID);
+                    linkedToken = CancellationTokenSource.CreateLinkedTokenSource(masterToken.Token);
+                    crawlerTask = Task.Run(() => DirectoryTreeCrawler(PARENT.watcher.Path, linkedToken.Token, opID));
+                }
+            }
+
+            public void CrawlDirectory(string path)
+            {
+                string opID = IdGenerator.GenerateId8();
+                PARENT.loggerFormater.LogFileOP(LogLevel.Info, "CRAWLER", "Starting crawler task.", filePath: path, opID: opID);
+                linkedToken = CancellationTokenSource.CreateLinkedTokenSource(masterToken.Token);
+                _ = Task.Run(() => DirectoryTreeCrawler(path, linkedToken.Token, opID));
+            }
+
+            public void Stop()
+            {
+                masterToken.Cancel();
+            }
+
+            private void DirectoryTreeCrawler(string path, CancellationToken token, string opID)
+            {
+                if (!Directory.Exists(path))
+                {
+                    PARENT.loggerFormater.LogFileOP(LogLevel.Error, "CRAWLER", $"Path does not exist.", opID: opID, filePath: path);
+                    throw new ArgumentException($"Path does not exist. Given path: {path}");
+                }
+                if (!path.StartsWith(PARENT.watcher.Path))
+                {
+                    PARENT.loggerFormater.LogFileOP(LogLevel.Error, "CRAWLER", $"Path is not an Watcher path.", opID: opID, filePath: path);
+                    throw new ArgumentException($"Path is not an Watcher path. Given path: {path}");
+                }
+                int counterFile = 0;
+                int counterDir = 0;
+                try
+                {
+                    Queue<string> directoriesToProcess = new();
+                    directoriesToProcess.Enqueue(path);
+
+                    while (directoriesToProcess.Count > 0)
+                    {
+                        token.ThrowIfCancellationRequested();
+                        string dirPath = directoriesToProcess.Dequeue();
+
+                        foreach (WIN32_FIND_DATA data in EnumDirectory(dirPath))
+                        {
+                            token.ThrowIfCancellationRequested();
+                            bool isDirectory = ((data.dwFileAttributes & FileAttributes.Directory) == FileAttributes.Directory);
+                            CF_PLACEHOLDER_STATE state = CfGetPlaceholderStateFromFindData(data);
+                            if ((state & CF_PLACEHOLDER_STATE.CF_PLACEHOLDER_STATE_IN_SYNC) != CF_PLACEHOLDER_STATE.CF_PLACEHOLDER_STATE_IN_SYNC)
+                            {
+                                WatcherChangeTypes watcherEventType = 
+                                    (state == CF_PLACEHOLDER_STATE.CF_PLACEHOLDER_STATE_NO_STATES) ? WatcherChangeTypes.Created : WatcherChangeTypes.Changed;
+                                WatcherEvent watcherEvent = new(this, new FileSystemEventArgs(watcherEventType, dirPath, data.cFileName));
+                                PARENT.bufferedEventMerger.AddEvent(watcherEvent);
+                                if (isDirectory)
+                                {
+                                    counterDir++;
+                                }
+                                else
+                                {
+                                    counterFile++;
+                                }
+                            }
+                            if (isDirectory)
+                            {
+                                directoriesToProcess.Enqueue(Path.Combine(dirPath, data.cFileName));
+                            }
+                        }
+                    }
+                    PARENT.loggerFormater.LogFileOP(LogLevel.Debug, "CRAWLER", $"Crawler finished. Found {counterFile} files and {counterDir} directories not in sync.",
+                        opID: opID, filePath: path);
+                }
+                catch (Exception e)
+                {
+                    if (e is not OperationCanceledException)
+                    {
+                        PARENT.loggerFormater.LogFileOP(LogLevel.Error, "CRAWLER", "Error during crawling", e, opID: opID, filePath: path); 
+                    }
+                    throw;
+                }
+            }
+
+            private static IEnumerable<WIN32_FIND_DATA> EnumDirectory(string path)
+            {
+                using SafeSearchHandle hFind = FindFirstFile(Path.Combine(path, "*"), out var findData);
+                if (hFind.IsInvalid) yield break;
+
+                do
+                {
+                    if (findData.cFileName != "." && findData.cFileName != "..")
+                        yield return findData;
+                } while (FindNextFile(hFind, out findData));
+            }
+        }
+    }
+}

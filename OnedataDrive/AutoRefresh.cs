@@ -1,9 +1,6 @@
 ﻿using NLog;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
-using System.Diagnostics;
-using System.Text.Json;
-
 
 namespace OnedataDrive
 {
@@ -99,20 +96,55 @@ namespace OnedataDrive
             }
         }
 
-        public void RenameMonitored(string fileId, string newName)
-        {   
-            List<string> renamed = monitored.RenameMonitored(fileId, newName);
+        public void RemoveFromMonitored(string fileId)
+        {
             string id = IdGenerator.GenerateId8();
-            if (renamed.Count <= 0)
+            List<string> moreInfo = new() { $"FileId: {fileId}" };
+            if (monitored.RemoveFromMonitored(fileId))
             {
-                logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "Rename monitored - not found", 
-                    moreInfo: new List<string> { $"FileId: {fileId}", $"NewName: {newName}" }, 
-                    filePath: spaceFolder.name, opID: id);
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Removed from monitor", 
+                    moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
+                restartNeeded = true;
             }
             else
             {
-                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Renamed monitored", 
-                    moreInfo: renamed, filePath: spaceFolder.name, opID: id);
+                logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "Remove from monitor failed", 
+                    moreInfo: moreInfo, filePath: spaceFolder.name, opID: id);
+            }
+        }
+
+        public void RenameMonitoredPath(string fileId, string newPath, string opID = "")
+        {
+            List<string> renamed = monitored.RenameMonitoredPath(fileId, newPath);
+
+            LogRenameMonitored(renamed, fileId, newPath, opID);
+        }
+
+        public void RenameMonitored(string fileId, string newName, string opID = "")
+        {
+            List<string> renamed = monitored.RenameMonitored(fileId, newName);
+
+            LogRenameMonitored(renamed, fileId, newName, opID);
+        }
+
+        private void LogRenameMonitored(List<string> renamed, string fileId, string newName, string opID)
+        {
+            if (string.IsNullOrEmpty(opID))
+            {
+                opID = IdGenerator.GenerateId8();
+            }
+
+            string space = "SPC: " + spaceFolder.name;
+            if (renamed.Count <= 0)
+            {
+                logFormatter.LogFileOP(LogLevel.Warn, "AUTOREFRESH", "Rename monitored - not found",
+                    moreInfo: new List<string> { $"FileId: {fileId}", $"New name/path: {newName}" },
+                    filePath: space, opID: opID);
+            }
+            else
+            {
+                logFormatter.LogFileOP(LogLevel.Info, "AUTOREFRESH", "Renamed monitored",
+                    moreInfo: renamed, filePath: space, opID: opID);
             }
         }
 
@@ -251,11 +283,11 @@ namespace OnedataDrive
             {
                 await foreach (SseEvent receivedEvent in SseReader.Read(stream, cancelToken))
                 {
-                    Debug.Print("Event received: {0}", receivedEvent.ToString());
+                    //Debug.Print("Event received: {0}", receivedEvent.ToString());
                     FileEvent newEvent = new FileEvent(receivedEvent);
                     eventMerger.AddEvent(newEvent);
-                    string json = JsonSerializer.Serialize(newEvent);
-                    Debug.Print("JSON: {0}", json);
+                    //string json = JsonSerializer.Serialize(newEvent);
+                    //Debug.Print("JSON: {0}", json);
                 }
             }
             catch (OperationCanceledException)

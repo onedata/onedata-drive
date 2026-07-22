@@ -12,6 +12,8 @@ namespace OnedataDrive.JSON_Object
         public bool deleteExistingRootDir { get; set; } = false;
         [JsonIgnore]
         public bool enableRefresh { get; set; } = true;
+        [JsonIgnore]
+        public bool readOnly { get; set; } = true;
 
         public void Init(string path)
         {

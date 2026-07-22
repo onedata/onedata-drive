@@ -1,7 +1,6 @@
 ﻿using NLog;
 using OnedataDrive.ErrorHandling;
 using OnedataDrive.Utils;
-using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -10,6 +9,7 @@ using Windows.Security.Cryptography;
 using Windows.Storage;
 using Windows.Storage.Provider;
 using static Vanara.PInvoke.CldApi;
+using static Vanara.PInvoke.Kernel32;
 
 namespace OnedataDrive
 {
@@ -19,8 +19,8 @@ namespace OnedataDrive
         private static LoggerFormater loggerFormater = new(logger);
         public const string ID = @"TestStorageProvider";
         public const string ACCOUNT = @"TestAccount";
-        public static List<(Task fetchTask, CancellationTokenSource cancellation)> fetchDataTasks = new();
         public static PlaceholderDataFetcher placeholderDataFetcher = new PlaceholderDataFetcher(logger);
+        public static PlaceholderFetcher placeholderFetcher = new PlaceholderFetcher(logger);
 
         public static void RegisterWithShell(string folderPath)
         {
@@ -56,6 +56,18 @@ namespace OnedataDrive
 
             info.RecycleBinUri = new Uri("https://www.abcd.abcd.com/recyclebin");
             info.Context = CryptographicBuffer.ConvertStringToBinary(folderPath, BinaryStringEncoding.Utf8);
+
+            StorageProviderItemPropertyDefinition customStatusColumn = new StorageProviderItemPropertyDefinition()
+            {
+                // Must match the exact ID integer used later in your StorageProviderItemProperty instances
+                Id = 1,
+
+                // Resource pointer to the title of the File Explorer column (e.g., "Sync Status")
+                DisplayNameResource = "ms-resource:/Resource/StatusColumnHeader",
+            };
+
+            // 3. Bind the property definition to the sync root schema
+            info.StorageProviderItemPropertyDefinitions.Add(customStatusColumn);
 
             StorageProviderSyncRootManager.Register(info);
             logger.Debug("SyncRoot ID: {0}", info.Id);
@@ -185,138 +197,17 @@ namespace OnedataDrive
         {
             CfDisconnectSyncRoot(connectionKey);
         }
-
+        
         public static void OnFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            string opID = IdGenerator.GenerateId8();
-
-            PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "START", opID: opID);
-            CF_OPERATION_INFO oi = new()
-            {
-                Type = CF_OPERATION_TYPE.CF_OPERATION_TYPE_TRANSFER_PLACEHOLDERS,
-                ConnectionKey = CallbackInfo.ConnectionKey,
-                TransferKey = CallbackInfo.TransferKey
-            };
-            oi.StructSize = (uint)Marshal.SizeOf(oi);
-            nint placeholderArrayPointer = IntPtr.Zero;
-            PlaceholderCreateInfo placeholderCreateInfo = new();
-            CF_PLACEHOLDER_CREATE_INFO[] infoArr = [];
-
-            try
-            {
-                CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp;
-                string folderPath = PathUtils.GetFullPath(CallbackInfo);
-                bool addToMonitored = false;
-                if (!Directory.Exists(folderPath))
-                {
-                    throw new Exception($"Directory does not exist: {folderPath}");
-                }
-                else if (PathUtils.IsRootPath(folderPath))
-                {
-                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "spaces", opID: opID);
-                    tp = new()
-                    {
-                        Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION
-                            | CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR,
-                        CompletionStatus = NTStatus.STATUS_SUCCESS,
-                        PlaceholderTotalCount = 0,
-                        EntriesProcessed = 0,
-                        PlaceholderCount = 0
-                    };
-                }
-                else
-                {
-                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "regular folder", opID: opID);
-                    placeholderCreateInfo = Placeholders.FetchPlaceholdersInfo(folderPath);
-                    int placeholderArrLen = 0;
-                    if (placeholderCreateInfo.Count() > 0)
-                    {
-                        CF_PLACEHOLDER_CREATE_INFO[] placeholderArr = placeholderCreateInfo.GetArray();
-                        placeholderArrLen = placeholderCreateInfo.Get().Count;
-
-                        // copy arr to unmanaged memory
-                        placeholderArrayPointer = Marshal.AllocCoTaskMem(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)) * placeholderArrLen);
-                        for (int i = 0; i < placeholderArrLen; i++)
-                        {
-                            Marshal.StructureToPtr(placeholderArr[i], placeholderArrayPointer + (i * Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO))), false);
-                        }
-                    }
-
-                    tp = new()
-                    {
-                        CompletionStatus = NTStatus.STATUS_SUCCESS,
-                        Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION
-                            | CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR,
-                        PlaceholderTotalCount = placeholderArrLen,
-                        EntriesProcessed = 0,
-                        PlaceholderCount = (uint)placeholderArrLen,
-                        PlaceholderArray = placeholderArrayPointer
-                    };
-                    addToMonitored = true;
-
-                }
-                CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(tp);
-                HRESULT hres = CfExecute(oi, ref op);
-                if (hres != NTStatus.STATUS_SUCCESS)
-                {
-                    throw new Exception($"Fetch placeholders CfExecute FAIL - HRES: {hres}");
-                }
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "OK", opID: opID);
-                if (addToMonitored) 
-                {
-                    string spaceName = PathUtils.GetSpaceName(folderPath);
-                    if (CloudSync.spaces.TryGetValue(spaceName, out SpaceFolder? spaceFolder))
-                    {
-                        spaceFolder.autoRefresh?.AddToMonitored(PathUtils.GetPlaceholderId(folderPath), folderPath);
-                        Debug.Print("Added to monitored: {0} - {1}", spaceName, folderPath);
-                    }
-                    else
-                    {
-                        Debug.Print("Failed to find SPACE");
-                    }  
-                }
-                return;
-            }
-            catch (Exception e)
-            {
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL", exception: e, opID: opID);
-                NTStatus status = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_UNSUCCESSFUL);
-                if (e.InnerException is NoSuchCloudFile)
-                {
-                    status = new NTStatus((uint)CloudFilterEnum.STATUS_NOT_A_CLOUD_FILE);
-                }
-                CF_OPERATION_PARAMETERS.TRANSFERPLACEHOLDERS tp = new()
-                {
-                    Flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_STOP_ON_ERROR,
-                    CompletionStatus = status,
-                    PlaceholderTotalCount = 0,
-                    EntriesProcessed = 0,
-                    PlaceholderArray = IntPtr.Zero,
-                    PlaceholderCount = 0
-                };
-                CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(tp);
-                HRESULT hres = CfExecute(oi, ref op);
-                if (hres != HRESULT.S_OK)
-                {
-                    string errorMessage = $"Last resort Fetch placeholders CfExecute FAIL - HRES: {hres}";
-                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "FETCH PLACEHOLDERS", "FAIL", moreInfo: [errorMessage], opID: opID);
-                }
-            }
-            finally
-            {
-                if (placeholderArrayPointer != IntPtr.Zero)
-                {
-                    Marshal.FreeCoTaskMem(placeholderArrayPointer);
-                    placeholderArrayPointer = IntPtr.Zero;
-                }
-                placeholderCreateInfo.Dispose();
-                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "FETCH PLACEHOLDERS", "FINISHED", opID: opID);
-            }
+            Callback callback = new(CallbackInfo, CallbackParameters);
+            placeholderFetcher.FetchPlaceholders(callback);
         }
 
         public static void OnCancelFetchPlaceholders(in CF_CALLBACK_INFO CallbackInfo, in CF_CALLBACK_PARAMETERS CallbackParameters)
         {
-            Debug.Print("CANCEL FETCH PLACEHOLDERS - not implemented");
+            Callback callback = new(CallbackInfo, CallbackParameters);
+            placeholderFetcher.CancelFetchPlaceholders(callback);
             return;
         }
 
@@ -348,6 +239,26 @@ namespace OnedataDrive
             };
             oi.StructSize = (uint)Marshal.SizeOf(oi);
 
+            if (CloudSync.configuration.readOnly)
+            {
+                PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "DELETE", "IGNORED - read-only mode");
+                NotificationCentre.ReadOnlyNotification();  
+
+                CF_OPERATION_PARAMETERS.ACKDELETE del = new()
+                {
+                    CompletionStatus = new NTStatus(((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED)),
+                    Flags = CF_OPERATION_ACK_DELETE_FLAGS.CF_OPERATION_ACK_DELETE_FLAG_NONE
+                };
+                CF_OPERATION_PARAMETERS op = CF_OPERATION_PARAMETERS.Create(del);
+
+                var hres = CfExecute(oi, ref op);
+                if (hres != HRESULT.S_OK)
+                {
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Warn, "DELETE", $"FAIL - read-only mode, HRES: {((uint)hres):X}");
+                }
+                return;
+            }
+
             try
             {
                 if (CloudSync.configuration.root_path + PathUtils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath) ==
@@ -355,9 +266,13 @@ namespace OnedataDrive
                 {
                     throw new Exception("Can not delete space folder");
                 }
+
+                SpaceFolder spaceFolder = CloudSync.spaces[PathUtils.GetSpaceName(PathUtils.GetFullPath(CallbackInfo))];
+                string fileID = CldApiUtils.GetFileIdFromPointer(CallbackInfo.FileIdentity, CallbackInfo.FileIdentityLength);
+
                 var task = RestClient.Delete(
-                    CloudSync.spaces[PathUtils.GetSpaceName(CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath)].providerInfos,
-                    Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int)CallbackInfo.FileIdentityLength / 2) ?? "");
+                    spaceFolder.providerInfos,
+                    fileID);
                 task.Wait();
 
                 CF_OPERATION_PARAMETERS.ACKDELETE del = new()
@@ -372,6 +287,9 @@ namespace OnedataDrive
                 {
                     throw new Exception($"Delete CfExecute FAIL - HRES: {hres} int value: {((int)hres)}");
                 }
+
+                spaceFolder.autoRefresh?.RemoveFromMonitored(fileID);
+
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "DELETE", "OK");
             }
             catch (Exception e) when (e is NoSuchCloudFile || e.InnerException is NoSuchCloudFile)
@@ -416,7 +334,35 @@ namespace OnedataDrive
             try
             {
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "START");
-                CloudSync.watcher?.Pause();
+
+                if (CloudSync.configuration.readOnly)
+                {
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "IGNORED - read-only mode");
+                    NotificationCentre.ReadOnlyNotification();
+
+                    CF_OPERATION_PARAMETERS.ACKRENAME ackRename = new()
+                    {
+                        CompletionStatus = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_REQUEST_ABORTED),
+                        Flags = CF_OPERATION_ACK_RENAME_FLAGS.CF_OPERATION_ACK_RENAME_FLAG_NONE
+                    };
+                    CF_OPERATION_PARAMETERS opRO = CF_OPERATION_PARAMETERS.Create(ackRename);
+
+                    CF_OPERATION_INFO oiRO = new()
+                    {
+                        Type = CF_OPERATION_TYPE.CF_OPERATION_TYPE_ACK_RENAME,
+                        ConnectionKey = CallbackInfo.ConnectionKey,
+                        TransferKey = CallbackInfo.TransferKey
+                    };
+                    oiRO.StructSize = (uint)Marshal.SizeOf(oiRO);
+
+                    HRESULT hresRO = CfExecute(oiRO, ref opRO);
+                    if (hresRO != HRESULT.S_OK)
+                    {
+                        PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Warn, "RENAME/MOVE", $"FAIL - read-only mode, HRES: {((uint)hresRO):X}");
+                    }
+
+                    return;
+                }
 
                 NTStatus status;
 
@@ -426,7 +372,7 @@ namespace OnedataDrive
                 }
                 else
                 {
-                    status = new NTStatus((uint)1);
+                    status = new NTStatus((uint)CloudFilterEnum.STATUS_CLOUD_FILE_UNSUCCESSFUL);
                 }
 
                 CF_OPERATION_PARAMETERS.ACKRENAME rename = new()
@@ -460,16 +406,19 @@ namespace OnedataDrive
                     throw new Exception(string.Join("\n\t", errorMessages));
                 }
 
+                SpaceFolder spaceFolder = PathUtils.GetSpaceFolder(PathUtils.GetFullPath(CallbackInfo));
+                string newPath = PathUtils.GetFullPath(CallbackInfo.VolumeDosName, CallbackParameters.Rename.TargetPath);
+                if (Directory.Exists(newPath))
+                {
+                    string fileId = CldApiUtils.GetFileIdFromPointer(CallbackInfo.FileIdentity, CallbackInfo.FileIdentityLength);
+                    spaceFolder.autoRefresh?.RenameMonitoredPath(fileId, newPath);
+                }
+                
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "OK");
             }
             catch (Exception e)
             {
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "RENAME/MOVE", "FAIL", e);
-            }
-            finally
-            {
-                Thread.Sleep(250);
-                CloudSync.watcher?.Resume();
             }
         }
 
@@ -576,32 +525,19 @@ namespace OnedataDrive
             string destPath = CallbackInfo.VolumeDosName + CallbackInfo.NormalizedPath;
             if (destPath.StartsWith(CloudSync.configuration.root_path))
             {
-                SafeHCFFILE? protectedHandle = null;
                 try
                 {
-                    HRESULT hresOpen = CfOpenFileWithOplock(destPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE, out protectedHandle);
-                    HRESULT hresSync = CfSetInSyncState(protectedHandle.DangerousGetHandle(), CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
-                    if (hresSync == HRESULT.S_OK)
+                    using CfHandle handle = new(destPath, CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE);
+                    HRESULT hresSync = CfSetInSyncState(handle.GetDangerousHandle(), CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
+                    if (hresSync != HRESULT.S_OK)
                     {
-                        Debug.Print("Set InSync OK");
-                        PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME COMPLETION", "OK");
+                        throw new Exception($"Failed to set in sync state. HRES {((uint)hresSync):X}: {hresSync}");
                     }
-                    else
-                    {
-                        List<string> moreInfo = new List<string>()
-                    {
-                        $"CfOpenFileWithOplock HRES: {hresOpen.ToString()}".Replace("\n", ""),
-                        $"CfSetInSyncState HRES: {hresSync.ToString().Replace("\n", "")}"
-                    };
-                        PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "RENAME COMPLETION", "FAIL", moreInfo: moreInfo);
-                    }
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME COMPLETION", "OK");
                 }
-                finally
+                catch (Exception e)
                 {
-                    if (protectedHandle != null && !protectedHandle.IsInvalid)
-                    {
-                        protectedHandle.Dispose();
-                    }
+                    PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Error, "RENAME COMPLETION", "FAIL", exception: e);
                 }
             }
         }

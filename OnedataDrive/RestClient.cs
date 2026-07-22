@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Web;
 using Vanara.PInvoke;
 
@@ -64,7 +65,7 @@ namespace OnedataDrive
             msg.Headers.Add("x-auth-token", PROVIDER_TOKEN);
         }
 
-        private static void HandleFailedStatucCode(HttpResponseMessage response, string url)
+        private static void HandleFailedStatusCode(HttpResponseMessage response, string url)
         {
             if (!response.IsSuccessStatusCode)
             {
@@ -98,10 +99,10 @@ namespace OnedataDrive
                 catch (HttpRequestException e)
                 {
                     exceptionList.Add(e);
-                    Debug.Print(e.Message);
+                    Debug.Print($"MultiProviderWorker exception: {e.Message}");
                 }
             }
-            throw new AggregateException("Failed to put file.", exceptionList);
+            throw new AggregateException("MultiProviderWorker FAILED.", exceptionList);
         }
 
         private static async Task<T> MultiProviderWorker<T>(List<ProviderInfo> providerInfos, Func<ProviderInfo, Task<T>> function)
@@ -120,22 +121,25 @@ namespace OnedataDrive
                 catch (HttpRequestException e)
                 {
                     exceptionList.Add(e);
-                    Debug.Print(e.Message);
+                    Debug.Print($"MultiProviderWorker exception: {e.Message}");
                 }
             }
-            throw new AggregateException("Failed to put file.", exceptionList);
+            throw new AggregateException("MultiProviderWorker FAILED.", exceptionList);
         }
 
         ////////////////////////////////////////////////////////////////
         /// Http methods
 
-        private static async Task<T> OnedataGet<T>(string url, CancellationToken token = default)
+        private static async Task<T> OnedataGet<T>(string url, HttpContent? content = null, CancellationToken token = default)
         {
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url)
+            {
+                Content = content
+            };
             AddDefaultHeaders(request);
 
             var response = await client.SendAsync(request, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             T? data = JsonSerializer.Deserialize<T>(response.Content.ReadAsStream());
             response.Dispose();
@@ -149,7 +153,7 @@ namespace OnedataDrive
             AddDefaultHeaders(request);
 
             var response = await client.SendAsync(request, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             return await response.Content.ReadAsByteArrayAsync();
         }
@@ -170,7 +174,7 @@ namespace OnedataDrive
             request.Headers.Add("Range", byteRange);
             
             var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             response.EnsureSuccessStatusCode();
             return response.Content.ReadAsStream();
@@ -182,7 +186,7 @@ namespace OnedataDrive
             AddDefaultHeaders(request);
 
             var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             response.EnsureSuccessStatusCode();
             return response.Content.ReadAsStream();
@@ -194,7 +198,7 @@ namespace OnedataDrive
             AddDefaultHeaders(request);
 
             var response = await client.SendAsync(request, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             response.EnsureSuccessStatusCode();
             return;
@@ -209,28 +213,14 @@ namespace OnedataDrive
             AddDefaultHeaders(request);
 
             var response = await client.SendAsync(request, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             return JsonSerializer.Deserialize<T>(response.Content.ReadAsStream()) ??
              throw new JsonReturnedNullException();
         }
 
-        private static async Task OnedataPut(string url, HttpContent content, CancellationToken token = default)
-        {
-            HttpRequestMessage request = new(HttpMethod.Put, url)
-            {
-                Content = content
-            };
-            AddDefaultHeaders(request);
-
-            var response = await client.SendAsync(request, token);
-            HandleFailedStatucCode(response, url);
-
-            return;
-        }
-
         /////////////////////////////////////////////////////////////////////////////
-        /// No auth token in headers
+        /// No auth cancelToken in headers
 
 
         public static async Task<TokenAccess> InferAccessTokenScope(CancellationToken token)
@@ -245,13 +235,20 @@ namespace OnedataDrive
             content.Headers.Add("Content-Type", "application/json");
 
             var response = await client.PostAsync(url, content, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             return JsonSerializer.Deserialize<TokenAccess>(response.Content.ReadAsStream()) ??
              throw new JsonReturnedNullException();
         }
 
-        public static async Task<TokenExamine> ExamineToken(CancellationToken token)
+        /// <summary>
+        /// Examine Onedata Token (not cancellation token), which was used to initialize REST client.
+        /// </summary>
+        /// <param name="token">Cancellation token used to cancel the operation</param>
+        /// <returns></returns>
+        /// <exception cref="JsonReturnedNullException"></exception>
+        /// <exception cref="OperationCanceledException"></exception>
+        public static async Task<TokenExamine> ExamineOnedataToken(CancellationToken token)
         {
             string url = ZONE_PROTOCOL
                 + ZONE_HOST
@@ -263,7 +260,7 @@ namespace OnedataDrive
             content.Headers.Add("Content-Type", "application/json");
 
             var response = await client.PostAsync(url, content, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             return JsonSerializer.Deserialize<TokenExamine>(response.Content.ReadAsStream()) ??
              throw new JsonReturnedNullException();
@@ -272,15 +269,30 @@ namespace OnedataDrive
         /////////////////////////////////////////////////////////////////////////////
         /// No Timeout client
 
-        private static async Task<Stream> OnedataPostStreamNH(string url, HttpContent? content, CancellationToken token = default)
+        private static async Task OnedataPut(string url, HttpContent content, CancellationToken token = default)
         {
-            HttpRequestMessage request = new(HttpMethod.Post, url)
+            HttpRequestMessage request = new(HttpMethod.Put, url)
             {
                 Content = content
             };
             AddDefaultHeaders(request);
+
+            var response = await clientNoTimeout.SendAsync(request, token);
+            HandleFailedStatusCode(response, url);
+
+            return;
+        }
+
+        private static async Task<Stream> OnedataPostStream(string url, HttpContent? content, CancellationToken token = default)
+        {
+            HttpRequestMessage request = new(HttpMethod.Post, url)
+            {
+                Content = content,
+            };
+            AddDefaultHeaders(request);
+
             var response = await clientNoTimeout.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
-            HandleFailedStatucCode(response, url);
+            HandleFailedStatusCode(response, url);
 
             return await response.Content.ReadAsStreamAsync();
         }
@@ -306,7 +318,7 @@ namespace OnedataDrive
 
                 StringContent content = new StringContent(json, mediaType: new MediaTypeHeaderValue("application/json"));
 
-                return await OnedataPostStreamNH(url, content, token);
+                return await OnedataPostStream(url, content, token);
             };
 
             return await MultiProviderWorker(providerInfos, func);
@@ -332,20 +344,29 @@ namespace OnedataDrive
             return await OnedataGet<DirChildren>(url);
         }
 
-        public static async Task<DirChildren> GetFilesAndSubdirs(string dirId, List<ProviderInfo> providerInfos)
+        public static async Task<DirChildren> GetFilesAndSubdirs(string dirId, List<ProviderInfo> providerInfos, uint limit = 1000,
+            string nextPageToken = "", CancellationToken cancelToken = default)
         {
+            JsonObject json = new JsonObject();
+            json["attributes"] = new JsonArray("size", "name", "type", "atime", "mtime", "ctime", "fileId");
+            json["limit"] = limit;
+            if (!string.IsNullOrEmpty(nextPageToken))
+            {
+                json["token"] = nextPageToken;
+            }
+            StringContent content = new StringContent(json.ToJsonString(), mediaType: new MediaTypeHeaderValue("application/json"));
+
             Func<ProviderInfo, Task<DirChildren>> func = async (info) =>
             {
                 string url = "https://"
                         + info.providerDomain
                         + "/api/v3/oneprovider/data/"
                         + dirId
-                        + "/children?attribute=size&attribute=name&attribute=type&attribute=atime&attribute=mtime&attribute=" +
-                        "ctime&attribute=file_id&limit=1000";
-                return await OnedataGet<DirChildren>(url);
+                        + "/children";
+                return await OnedataGet<DirChildren>(url, content: content, token: cancelToken);
             };
 
-            return await MultiProviderWorker<DirChildren>(providerInfos, func);
+            return await MultiProviderWorker(providerInfos, func);
         }
 
         public static async Task<byte[]> GetData(string provider_domain, string fileId)
@@ -430,7 +451,8 @@ namespace OnedataDrive
             return await MultiProviderWorker(providerInfos, func);
         }
 
-        public static async Task PostFileContent(List<ProviderInfo> providerInfos, string id, FileStream stream)
+        public static async Task PostFileContent(List<ProviderInfo> providerInfos, string id, FileStream stream, 
+            CancellationToken token = default)
         {
             Func<ProviderInfo, Task> func = async (info) => {
                 string url = "https://" + info.providerDomain + "/api/v3/oneprovider/data/" + id + "/content";
@@ -438,7 +460,7 @@ namespace OnedataDrive
                 StreamContent content = new StreamContent(stream);
                 content.Headers.Add("Content-Type", "application/octet-stream");
 
-                await OnedataPut(url, content);
+                await OnedataPut(url, content, token);
                 return;
             };
 
@@ -497,7 +519,7 @@ namespace OnedataDrive
                         + providerDomain
                         + "/api/v3/oneprovider/data/"
                         + fileId;
-            return await OnedataGet<FileAttribute>(url, token);
+            return await OnedataGet<FileAttribute>(url, token: token);
         }
 
         public static async Task<FileAttribute> GetFileAttribute(string fileId, List<ProviderInfo> providerInfos, 
@@ -508,7 +530,7 @@ namespace OnedataDrive
                         + info.providerDomain
                         + "/api/v3/oneprovider/data/"
                         + fileId;
-                return await OnedataGet<FileAttribute>(url, token);
+                return await OnedataGet<FileAttribute>(url, token: token);
             };
 
             return await MultiProviderWorker(providerInfos, func);

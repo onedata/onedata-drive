@@ -31,6 +31,7 @@ namespace OnedataDrive
                 foreach (Step step in _step)
                 {
                     token.ThrowIfCancellationRequested();
+                    CloudSync.SendStatusMessage($"{step.Name}");
                     await step.Run(token);
                     executedSteps.Push(step);
                 }
@@ -50,7 +51,8 @@ namespace OnedataDrive
                         Debug.Print($"Error during undo of step '{step.Name}': {undoEx}");
                     }
                 }
-                if (ex is OperationCanceledException)
+                if (ex is OperationCanceledException 
+                    || (ex is AggregateException && ex.InnerException is OperationCanceledException))
                 {
                     Debug.Print("Startup CANCELED: {0}", ex);
                 }

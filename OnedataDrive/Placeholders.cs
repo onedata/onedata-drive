@@ -7,7 +7,7 @@ using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 namespace OnedataDrive
 {
-    class PlaceholderData
+    public class PlaceholderData
     {
         public string FileIdentity;
         public long Size;
@@ -41,10 +41,7 @@ namespace OnedataDrive
             this.Name = fileAttribute.name;
             this.Type = fileAttribute.type;
         }
-    }
 
-    class Placeholders
-    {
         public const int ENCODING_SIZE = 2;
 
         public static CF_PLACEHOLDER_CREATE_INFO CreateRegInfo(PlaceholderData data)
@@ -54,7 +51,7 @@ namespace OnedataDrive
                 FileIdentity = Marshal.StringToCoTaskMemUni(data.FileIdentity),
                 FileIdentityLength = (uint)(data.FileIdentity.Length * Marshal.SizeOf(data.FileIdentity[0])) * ENCODING_SIZE,
                 RelativeFileName = data.Name,
-                Flags = CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_MARK_IN_SYNC,
+                Flags = CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_MARK_IN_SYNC | CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_SUPERSEDE,
                 FsMetadata = CreateFSMetadata(data)
             };
             return info;
@@ -67,7 +64,7 @@ namespace OnedataDrive
                 FileIdentity = Marshal.StringToCoTaskMemUni(data.FileIdentity),
                 FileIdentityLength = (uint)(data.FileIdentity.Length * Marshal.SizeOf(data.FileIdentity[0])) * ENCODING_SIZE,
                 RelativeFileName = data.Name,
-                Flags = CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_MARK_IN_SYNC,
+                Flags = CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_MARK_IN_SYNC | CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_SUPERSEDE,
                 FsMetadata = CreateFSMetadata(data, directory: true)
             };
             return info;
@@ -88,7 +85,7 @@ namespace OnedataDrive
             {
                 return CreateDirInfo(data);
             }
-            throw new ArgumentException("Unknown placeholder type: " + data.Type);
+            throw new ArgumentException($"Unknown placeholder type: {data.Type}, placeholder name: {data.Name}");
         }
 
         public static CF_FS_METADATA CreateFSMetadata(FileAttribute fileAttribute, bool directory = false)
@@ -133,7 +130,7 @@ namespace OnedataDrive
             };
         }
 
-        public static PlaceholderCreateInfo FetchPlaceholdersInfo(string folderPath)
+        public static PlaceholderCreateInfoList FetchPlaceholdersInfo(string folderPath)
         {
             // get folder id
             string id = PathUtils.GetPlaceholderId(folderPath);
@@ -144,12 +141,14 @@ namespace OnedataDrive
             task.Wait();
             DirChildren children = task.Result;
             // create array
-            PlaceholderCreateInfo placeholderCreateInfo = new();
+            PlaceholderCreateInfoList placeholderCreateInfo = new();
+            HashSet<string> placeholderNames = new();
             foreach (Child child in children.children)
             {
-                string windowsCorrectName = NameConvertor.DistinctWindowsName(child, placeholderCreateInfo);
-                PlaceholderData data = new(child.file_id, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
+                string windowsCorrectName = NameConvertor.DistinctWindowsName(child, placeholderNames);
+                PlaceholderData data = new(child.fileId, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
                 placeholderCreateInfo.Add(CreateInfo(data));
+                placeholderNames.Add(windowsCorrectName.ToLower());
             }
             return placeholderCreateInfo;
         }

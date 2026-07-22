@@ -4,7 +4,6 @@ using OnedataDrive.ErrorHandling;
 using OnedataDrive.Interfaces;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
-using System.Diagnostics;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
 
@@ -21,7 +20,7 @@ namespace OnedataDrive
 
         public new void AddEvent(FileEvent fileEvent)
         {
-            Event<FileEvent> newEvent = new Event<FileEvent>(fileEvent);
+            EventPenalizable<FileEvent> newEvent = new EventPenalizable<FileEvent>(fileEvent);
             if (fileEvent.eventType == FileEvent.EVENT_DELETED)
             {
                 events.RemoveAll(e => e.@event.fileId == fileEvent.fileId);
@@ -67,7 +66,15 @@ namespace OnedataDrive
             return null;
         }
 
-        protected override bool ProcessEventWorker(Event<FileEvent> processedEvent, string opID)
+        private void TestIfCanBeCreated(FileAttribute attribute)
+        {
+            if (attribute.name == ".trash")
+            {
+                throw new InvalidFileEventException($"Prohibited file/direcotry name: {attribute.name}");
+            }
+        }
+
+        protected override bool ProcessEventWorker(EventPenalizable<FileEvent> processedEvent)
         {
             bool eventCompleted = false;
             List<string> moreInfo = EventMoreInfo(processedEvent.@event);
@@ -88,20 +95,25 @@ namespace OnedataDrive
                         if (string.IsNullOrWhiteSpace(processedEvent.localFileName))
                         {
                             logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Processing event - Create new",
-                                moreInfo: moreInfo, opID: opID, filePath: spaceName);
+                                moreInfo: moreInfo, opID: processedEvent.@event.eventId, filePath: spaceNameWPrefix);
                             List<ProviderInfo> providerInfos = autoRefresh.spaceFolder.providerInfos;
                             FileAttribute attribute = RestClient.GetFileAttribute(processedEvent.@event.fileId, providerInfos).Result;
-                            using (PlaceholderCreateInfo createInfo = new())
+
+                            logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Processing event - Create new",
+                                moreInfo: [$"New placeholder name: {attribute.name}", $"Type: {attribute.type}"], opID: processedEvent.@event.eventId, filePath: spaceNameWPrefix);
+
+                            TestIfCanBeCreated(attribute);
+
+                            using (PlaceholderCreateInfoList createInfo = new())
                             {
                                 PlaceholderData placeholderData = new(attribute);
-                                createInfo.Add(Placeholders.CreateInfo(placeholderData));
+                                createInfo.Add(PlaceholderData.CreateInfo(placeholderData));
                                 CF_PLACEHOLDER_CREATE_INFO[] infoArr = createInfo.GetArray();
                                 HRESULT hres = CfCreatePlaceholders(parentFolder, infoArr, (uint)infoArr.Length,
                                     CF_CREATE_FLAGS.CF_CREATE_FLAG_NONE, out uint entriesProcessed);
                                 if (hres == HRESULT.S_OK || entriesProcessed == infoArr.Length)
                                 {
                                     eventCompleted = true;
-                                    Debug.Print($"File Created: {processedEvent.@event.fileId}");
                                 }
                             }
                         }
@@ -109,15 +121,15 @@ namespace OnedataDrive
                         else
                         {
                             logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Processing event - Update",
-                                moreInfo: moreInfo, opID: opID, filePath: spaceName);
-                            UpdatePlaceholderMetadata(processedEvent, filePath, directory, opID);
+                                moreInfo: moreInfo, opID: processedEvent.@event.eventId, filePath: spaceNameWPrefix);
+                            UpdatePlaceholderMetadata(processedEvent, filePath, directory, processedEvent.@event.eventId);
                             eventCompleted = true;
                         }    
                         break;
                     case FileEvent.EVENT_DELETED:
                         // delete
                         logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Processing event - Delete",
-                                moreInfo: moreInfo,opID: opID, filePath: spaceName);
+                                moreInfo: moreInfo,opID: processedEvent.@event.eventId, filePath: spaceNameWPrefix);
                         if (string.IsNullOrWhiteSpace(processedEvent.localFileName))
                         {
                             eventCompleted = true;
@@ -126,7 +138,7 @@ namespace OnedataDrive
                         {
                             if (directory)
                             {
-                                Directory.Delete(filePath, true);
+                                DirectoryOD.Delete(filePath, processedEvent.@event.fileId);
                             }
                             else
                             {
@@ -138,101 +150,104 @@ namespace OnedataDrive
                     default:
                         logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR",
                             $"Unknown event type - Discarding event: {processedEvent.@event.eventType}",
-                            moreInfo: moreInfo, filePath: spaceName, opID: opID);
+                            moreInfo: moreInfo, filePath: spaceNameWPrefix, opID: processedEvent.@event.eventId);
                         eventCompleted = true;
                         break;
                 }
             }
-            catch (NoSuchCloudFile e)
+            catch (InvalidFileEventException e)
             {
                 eventCompleted = true;
-                logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "File does not exist on cloud anymore",
-                    e, moreInfo: moreInfo, filePath: spaceName, opID: opID);
+                logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "Invalid file event - discarding event",
+                    e, moreInfo: moreInfo, filePath: spaceNameWPrefix, opID: processedEvent.@event.eventId);
+            }
+            catch (Exception e) when (e is NoSuchCloudFile || e is AggregateException && e.InnerException is NoSuchCloudFile)
+            {
+                eventCompleted = true;
+                logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "File does not exist on cloud anymore - discarding event",
+                    e, moreInfo: moreInfo, filePath: spaceNameWPrefix, opID: processedEvent.@event.eventId);
             }
             catch (ThreadSafeMonitored.DirectoryNotMonitoredException e)
             {
                 eventCompleted = true;
                 logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "Parent folder not monitored - Unknown parent id - discarding event",
-                    e, moreInfo: moreInfo, filePath: spaceName, opID: opID);
+                    e, moreInfo: moreInfo, filePath: spaceNameWPrefix, opID: processedEvent.@event.eventId);
+            }
+            catch (DirectoryNotFoundException e)
+            {
+                eventCompleted = true;
+                logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "Directory not found - discarding event",
+                    e, moreInfo: moreInfo, filePath: spaceNameWPrefix, opID: processedEvent.@event.eventId);
             }
             catch (Exception e)
             {
                 logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR", "Process event error", e,
-                    filePath: spaceName, opID: opID);
+                    filePath: spaceNameWPrefix, opID: processedEvent.@event.eventId);
             }
             return eventCompleted;
         }
 
-        private void UpdatePlaceholderMetadata(Event<FileEvent> processedEvent, string placeholderPath, bool directory, string opID)
+        private void UpdatePlaceholderMetadata(EventPenalizable<FileEvent> processedEvent, string placeholderPath, bool directory, string opID)
         {
             CF_FS_METADATA metadata = new();
             if (processedEvent.@event.data.size is not null) metadata.FileSize = (long)processedEvent.@event.data.size;
 
-            SafeHCFFILE? handle = null;
+            //SafeHCFFILE? handle = null;
             CF_OPEN_FILE_FLAGS flags = CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE;
             if (!directory)
             {
                 flags = CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE;
             }
-            try
-            {
-                HRESULT openHres = CfOpenFileWithOplock(placeholderPath,
-                    flags,
-                    out handle);
-                if (openHres != HRESULT.S_OK)
-                {
-                    throw new Exception($"CfOpenFileWithOplock HRES number: {((int)openHres)}" +
-                        $"\n HRES text: {openHres}");
-                }
-                long updateUsn = 0;
-                HRESULT updateHres = CfUpdatePlaceholder(FileHandle: handle.DangerousGetHandle(),
-                                    FsMetadata: metadata,
-                                    FileIdentity: 0,
-                                    FileIdentityLength: 0,
-                                    DehydrateRangeCount: 0,
-                                    UpdateFlags: CF_UPDATE_FLAGS.CF_UPDATE_FLAG_MARK_IN_SYNC,
-                                    UpdateUsn: ref updateUsn
-                                    );
-                if (updateHres != HRESULT.S_OK)
-                {
-                    throw new Exception($"CfUpdatePlaceholder HRES number: {((int)updateHres)}" +
-                        $"\n HRES text: {updateHres}");
-                }
 
-                // rename if needed
-                if (processedEvent.@event.data.name is not null)
-                {
-                    string oldName = PathUtils.GetLastInPath(placeholderPath);
-                    string newName = processedEvent.@event.data.name;
-                    if (oldName != newName)
-                    {
-                        if (directory)
-                        {
-                            FileSystem.RenameDirectory(placeholderPath, newName);
-                        }
-                        else
-                        {
-                            FileSystem.RenameFile(placeholderPath, newName);
-                        }
-                        processedEvent.localFileName = newName;
-                        HRESULT inSyncHres = CfSetInSyncState(handle.DangerousGetHandle(),
-                        CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
-                        if (inSyncHres != HRESULT.S_OK)
-                        {
-                            throw new Exception($"CfSetInSync HRES number: {((int)inSyncHres)}" +
-                                $"\n HRES text: {inSyncHres}");
-                        }
-                        List<string> moreInfo = new List<string>() { $"{oldName} -> {newName}" };
-                        logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Placeholder renamed", moreInfo: moreInfo,
-                            opID: opID, filePath: spaceName);
-                    }
-                }
-            }
-            finally
+            using CfHandle handle = new(placeholderPath, flags);
+            long updateUsn = 0;
+            HRESULT updateHres = CfUpdatePlaceholder(FileHandle: handle.GetDangerousHandle(),
+                                FsMetadata: metadata,
+                                FileIdentity: 0,
+                                FileIdentityLength: 0,
+                                DehydrateRangeCount: 0,
+                                UpdateFlags: CF_UPDATE_FLAGS.CF_UPDATE_FLAG_NONE,
+                                UpdateUsn: ref updateUsn
+                                );
+            if (updateHres != HRESULT.S_OK)
             {
-                if (handle != null && !handle.IsInvalid)
+                throw new Exception($"CfUpdatePlaceholder HRES number: {((uint)updateHres):X}" +
+                    $"\n HRES text: {updateHres}");
+            }
+
+            // rename if needed
+            if (processedEvent.@event.data.name is not null)
+            {
+                CF_PLACEHOLDER_BASIC_INFO basicInfo = CldApiUtils.GetBasicInfo(handle);
+
+                string oldName = PathUtils.GetLastInPath(placeholderPath);
+                string newName = processedEvent.@event.data.name;
+                if (oldName != newName)
                 {
-                    handle.Dispose();
+                    if (directory)
+                    {
+                        FileSystem.RenameDirectory(placeholderPath, newName);
+                        autoRefresh.RenameMonitored(processedEvent.@event.fileId, newName);
+                    }
+                    else
+                    {
+                        FileSystem.RenameFile(placeholderPath, newName);
+                    }
+                    processedEvent.localFileName = newName;
+
+                    string newPath = Path.Combine(PathUtils.GetParentPath(placeholderPath), newName);
+                    using CfHandle handleNewPath = new(newPath, flags);
+
+                    HRESULT inSyncHres = CfSetInSyncState(handleNewPath.GetDangerousHandle(),
+                    basicInfo.InSyncState, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
+                    if (inSyncHres != HRESULT.S_OK)
+                    {
+                        throw new Exception($"CfSetInSync HRES number: {((int)inSyncHres)}" +
+                            $"\n HRES text: {inSyncHres}");
+                    }
+                    List<string> moreInfo = new List<string>() { $"{oldName} -> {newName}" };
+                    logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Placeholder renamed", moreInfo: moreInfo,
+                        opID: opID, filePath: spaceNameWPrefix);
                 }
             }
         }
@@ -264,7 +279,7 @@ namespace OnedataDrive
         {
             return new List<string> {
                 $"Merged: {fileEvent.isMerged}",
-                $"EventId: {fileEvent.eventId}",
+                $"EventId: {fileEvent.SSEventId}",
                 $"EventType: {fileEvent.eventType}",
                 $"FileId: {fileEvent.fileId}",
                 $"ParentId: {fileEvent.parentFileId}" };

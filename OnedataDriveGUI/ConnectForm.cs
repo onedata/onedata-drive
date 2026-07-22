@@ -1,7 +1,7 @@
-﻿using OnedataDrive.ErrorHandling;
+﻿using NLog;
 using OnedataDrive;
+using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
-using NLog;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -9,7 +9,7 @@ namespace OnedataDriveGUI
 {
     public partial class ConnectForm : Form
     {
-        private const string ROOT_DIR = CloudSync.APP_NAME;
+        private const string ROOT_DIR = "OnedataDrive";
 
         private string loggerPath;
         private Logger logger;
@@ -17,6 +17,7 @@ namespace OnedataDriveGUI
         private string userProfilePath { get; } = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         private string defaultRootPath { get => userProfilePath + "\\" + ROOT_DIR; }
         private CustomSettings userSettings = new();
+        public GuiStatus Status { get; private set; }
 
         public ConnectForm()
         {
@@ -25,12 +26,23 @@ namespace OnedataDriveGUI
             NLog.GlobalDiagnosticsContext.Set("logdir", loggerPath);
             logger = LogManager.GetCurrentClassLogger();
             logger.Info("APP GUI LAUNCHED - version: " + CloudSync.VERSION);
+            Status = GuiStatus.NOT_CONNECTED;
 
             InitializeComponent();
 
             InitGuiValuesDefaults();
 
             LoadLastConfig();
+
+            CloudSync.OnMessageGenerated += PrintStatusMessage;
+        }
+
+        private void PrintStatusMessage(string message)
+        {
+            if (Status == GuiStatus.CONNECTING)
+            {
+                secondaryStatusMessage.Text = message;
+            }
         }
 
         private void InitGuiValuesDefaults()
@@ -39,7 +51,10 @@ namespace OnedataDriveGUI
             rootFolder_textBox.PlaceholderText = defaultRootPath;
             rootFolder_folderBrowserDialog.InitialDirectory = userProfilePath;
             version_label.Text = CloudSync.VERSION;
+            oneproviderTokenKeep_checkBox.Checked = true;
             disableRefresh_checkBox.Checked = false;
+            readOnly_checkBox.Checked = true;
+            rootFolderDelete_checkBox.Checked = false;
         }
 
         private void LoadLastConfig()
@@ -51,28 +66,7 @@ namespace OnedataDriveGUI
             oneproviderTokenKeep_checkBox.Checked = userSettings.OneproviderTokenKeep;
             rootFolderDelete_checkBox.Checked = userSettings.RootFolderDeleteCheckBox;
             disableRefresh_checkBox.Checked = userSettings.DisableRefreshCheckbox;
-        }
-
-        private async Task<CloudSyncReturnCodes> LaunchCloudSyncAsync(Config config)
-        {
-            CloudSyncReturnCodes status;
-
-            config.deleteExistingRootDir = rootFolderDelete_checkBox.Checked;
-            config.enableRefresh = !disableRefresh_checkBox.Checked;
-            status = await CloudSync.RunAsync(config);
-
-            if (status == CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY && !rootFolderDelete_checkBox.Checked)
-            {
-                string message = "Can not connect, because Root Folder "
-                + config.root_path
-                + " is not empty. Do you want to delete contents of this folder?";
-                if (MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.Yes)
-                {
-                    config.deleteExistingRootDir = true;
-                    status = await CloudSync.RunAsync(config);
-                }
-            }
-            return status;
+            readOnly_checkBox.Checked = userSettings.ReadOnlyCheckbox;
         }
 
         private void SaveLastConfig()
@@ -82,6 +76,7 @@ namespace OnedataDriveGUI
             userSettings.RootFolderPath = rootFolder_textBox.Text;
             userSettings.OneproviderTokenKeep = oneproviderTokenKeep_checkBox.Checked;
             userSettings.DisableRefreshCheckbox = disableRefresh_checkBox.Checked;
+            userSettings.ReadOnlyCheckbox = readOnly_checkBox.Checked;
             if (oneproviderTokenKeep_checkBox.Checked)
             {
                 userSettings.OneproviderToken = oneproviderToken_textBox.Text;
@@ -94,30 +89,31 @@ namespace OnedataDriveGUI
             userSettings.Save();
         }
 
-        private void SetDisplayStatus(Status status)
+        private void SetDisplayStatus(GuiStatus status)
         {
-            Dictionary<Status, bool> mask = new()
+            Status = status;
+            Dictionary<GuiStatus, bool> mask = new()
             {
-                { Status.CONNECTED, false },
-                { Status.NOT_CONNECTED, false },
-                { Status.ERROR, false },
-                { Status.CONNECTING, false },
-                { Status.DISCONNECTING, false },
+                { GuiStatus.CONNECTED, false },
+                { GuiStatus.NOT_CONNECTED, false },
+                { GuiStatus.ERROR, false },
+                { GuiStatus.CONNECTING, false },
+                { GuiStatus.DISCONNECTING, false },
             };
 
             mask[status] = true;
 
-            statusImageBlue.Visible = mask[Status.CONNECTING] || mask[Status.DISCONNECTING];
-            statusImageGrey.Visible = mask[Status.NOT_CONNECTED];
-            statusImageGreen.Visible = mask[Status.CONNECTED];
-            statusImageRed.Visible = mask[Status.ERROR];
+            statusImageBlue.Visible = mask[GuiStatus.CONNECTING] || mask[GuiStatus.DISCONNECTING];
+            statusImageGrey.Visible = mask[GuiStatus.NOT_CONNECTED];
+            statusImageGreen.Visible = mask[GuiStatus.CONNECTED];
+            statusImageRed.Visible = mask[GuiStatus.ERROR];
 
-            EnableDisableControl(advanced_panel, mask[Status.NOT_CONNECTED] || mask[Status.ERROR]);
-            EnableDisableControl(form_panel, mask[Status.NOT_CONNECTED] || mask[Status.ERROR]);
+            EnableDisableControl(advanced_panel, mask[GuiStatus.NOT_CONNECTED] || mask[GuiStatus.ERROR]);
+            EnableDisableControl(form_panel, mask[GuiStatus.NOT_CONNECTED] || mask[GuiStatus.ERROR]);
             advanced_button.Enabled = true;
             openLogFolder_button.Enabled = true;
 
-            connect_button.Enabled = mask[Status.NOT_CONNECTED] || mask[Status.ERROR];
+            connect_button.Enabled = mask[GuiStatus.NOT_CONNECTED] || mask[GuiStatus.ERROR];
             disconect_button.Enabled = !connect_button.Enabled;
         }
 
@@ -127,6 +123,25 @@ namespace OnedataDriveGUI
             {
                 control.Enabled = enabled;
             }
+        }
+
+        public static async Task<CloudSyncReturnCodes> LaunchCloudSyncAsync(Config config)
+        {
+            CloudSyncReturnCodes status;
+            status = await CloudSync.RunAsync(config);
+
+            if (status == CloudSyncReturnCodes.ROOT_FOLDER_NOT_EMPTY && !config.deleteExistingRootDir)
+            {
+                string message = "Can not connect, because Root Folder "
+                + config.root_path
+                + " is not empty. In order to connect this directory needs to be empty. Do you want to delete contents of this directory?";
+                if (MessageBox.Show(message, "Onedata Drive", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    config.deleteExistingRootDir = true;
+                    status = await CloudSync.RunAsync(config);
+                }
+            }
+            return status;
         }
 
         /// <summary>
@@ -154,6 +169,33 @@ namespace OnedataDriveGUI
         /* ---------- EVENT FUNCTIONS ---------- */
         /*          |                 |          */
         /*          V                 V          */
+
+        // Form events
+
+        private void ConnectForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            SetDisplayStatus(GuiStatus.DISCONNECTING);
+            statusMessage.Text = "Disconnecting";
+            if (CloudSync.Running)
+            {
+                CloudSync.Stop();
+            }
+            logger.Info("APP GUI STOPPED");
+        }
+
+        private void ConnectForm_Closing(object sender, FormClosingEventArgs e)
+        {
+            string message = $"Are you sure you want to quit? This will disconnect {CloudSync.APP_NAME}";
+            if (statusImageGreen.Visible &&
+                MessageBox.Show(message, CloudSync.APP_NAME, MessageBoxButtons.YesNo) == DialogResult.No)
+            {
+                e.Cancel = true;
+            }
+        }
+
+
+        // Button clicked events //
+
         private async void connect_button_Click(object sender, EventArgs e)
         {
             // prohibit double click
@@ -163,24 +205,27 @@ namespace OnedataDriveGUI
             }
             connectClicked = true;
 
-            SetDisplayStatus(Status.CONNECTING);
+            SetDisplayStatus(GuiStatus.CONNECTING);
+            statusMessage.Text = "In progress";
             SaveLastConfig();
             Config config = new();
             config.Init(
                 path: rootFolder_textBox.Text.Length == 0 ? defaultRootPath : rootFolder_textBox.Text,
                 token: oneproviderToken_textBox.Text,
                 host: onezone_comboBox.Text);
-            statusMessage.Text = "In progress";
+            config.deleteExistingRootDir = rootFolderDelete_checkBox.Checked;
+            config.enableRefresh = !disableRefresh_checkBox.Checked;
+            config.readOnly = readOnly_checkBox.Checked;
 
             CloudSyncReturnCodes returnCode = await LaunchCloudSyncAsync(config);
 
             if (returnCode == CloudSyncReturnCodes.SUCCESS)
             {
-                SetDisplayStatus(Status.CONNECTED);
+                SetDisplayStatus(GuiStatus.CONNECTED);
             }
             else
             {
-                SetDisplayStatus(Status.ERROR);
+                SetDisplayStatus(GuiStatus.ERROR);
             }
 
             switch (returnCode)
@@ -209,11 +254,16 @@ namespace OnedataDriveGUI
                 case CloudSyncReturnCodes.STARTUP_CANCELED:
                     statusMessage.Text = "Startup Canceled";
                     break;
+                case CloudSyncReturnCodes.ROOT_FOLDER_EXCEPTION:
+                    statusMessage.Text = "Can not create root folder";
+                    break;
                 default:
-                    SetDisplayStatus(Status.ERROR);
+                    SetDisplayStatus(GuiStatus.ERROR);
                     statusMessage.Text = "Unknown Error";
                     break;
             }
+
+            secondaryStatusMessage.Text = "";
 
             // prohibit double click
             connectClicked = false;
@@ -221,11 +271,11 @@ namespace OnedataDriveGUI
 
         private async void disconect_button_ClickAsync(object sender, EventArgs e)
         {
-            SetDisplayStatus(Status.DISCONNECTING);
+            SetDisplayStatus(GuiStatus.DISCONNECTING);
             statusMessage.Text = "Disconnecting";
             await CloudSync.Stop();
             statusMessage.Text = "Disconected";
-            SetDisplayStatus(Status.NOT_CONNECTED);
+            SetDisplayStatus(GuiStatus.NOT_CONNECTED);
         }
 
         private void folderBrowser_button_Click(object sender, EventArgs e)
@@ -278,7 +328,7 @@ namespace OnedataDriveGUI
 
 
                     string filePath = config_saveFileDialog.FileName;
-                    
+
                     File.WriteAllText(config_saveFileDialog.FileName, content);
                 }
                 catch (Exception)
@@ -286,17 +336,6 @@ namespace OnedataDriveGUI
                     statusMessage.Text = "Failed to save file";
                 }
             }
-        }
-
-        private void ConnectForm_FormClosed(object sender, FormClosedEventArgs e)
-        {
-            SetDisplayStatus(Status.DISCONNECTING);
-            statusMessage.Text = "Disconnecting";
-            if (CloudSync.running)
-            {
-                CloudSync.Stop();
-            }
-            logger.Info("APP GUI STOPPED");
         }
 
         private void advanced_button_Click(object sender, EventArgs e)
@@ -310,16 +349,6 @@ namespace OnedataDriveGUI
             {
                 this.Size = new System.Drawing.Size(this.Size.Width, this.Size.Height + advanced_panel.Size.Height);
                 advanced_panel.Show();
-            }
-        }
-
-        private void ConnectForm_Closing(object sender, FormClosingEventArgs e)
-        {
-            string message = $"Are you sure you want to quit? This will disconnect {ROOT_DIR}";
-            if (statusImageGreen.Visible &&
-                MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.No)
-            {
-                e.Cancel = true;
             }
         }
 
@@ -338,11 +367,11 @@ namespace OnedataDriveGUI
         {
             try
             {
-                logger.Info("Unregister SyncRoot START, CloudSync running: {0}", CloudSync.running);
-                if (!CloudSync.running)
+                logger.Info("Unregister SyncRoot START, CloudSync running: {0}", CloudSync.Running);
+                if (!CloudSync.Running)
                 {
                     string message = "Use this only after crash or when you can not remove SyncRoot by using Disconnect. Do you want to proceed?";
-                    if (MessageBox.Show(message, ROOT_DIR, MessageBoxButtons.YesNo) == DialogResult.Yes)
+                    if (MessageBox.Show(message, CloudSync.APP_NAME, MessageBoxButtons.YesNo) == DialogResult.Yes)
                     {
                         CloudProvider.UnregisterSafely();
                         statusMessage.Text = "Unregister SyncRoot OK";
@@ -353,6 +382,49 @@ namespace OnedataDriveGUI
             {
                 statusMessage.Text = "Unregister SyncRoot FAIL";
                 logger.Error("Unregister SyncRoot", exception);
+            }
+        }
+
+        private void createToken_linkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            string host = onezone_comboBox.Text?.Trim() ?? "";
+            string url;
+
+            if (string.IsNullOrEmpty(host))
+            {
+                MessageBox.Show("Select/write a Onezone, to generate token creation link", CloudSync.APP_NAME, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            else
+            {
+                // remove any scheme if the user included it
+                if (host.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+                {
+                    host = host.Substring("http://".Length);
+                }
+                else if (host.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                {
+                    host = host.Substring("https://".Length);
+                }
+
+                // remove trailing slashes
+                host = host.TrimEnd('/');
+
+                // build token creation path based on selected onezone host
+                url = $"https://{host}/ozw/onezone/i#/onedata/tokens/new?options=";
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Failed to open web browser.", CloudSync.APP_NAME, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

@@ -15,11 +15,18 @@ namespace OnedataDrive
             this.merged = false;
         }
 
-        public void Merge(WatcherEvent mergeWith)
+        public WatcherEvent(object sender, RenamedEventArgs eventArgs)
+        {
+            this.sender = sender;
+            this.eventArgs = eventArgs;
+            this.merged = false;
+        }
+
+        public override void Merge(WatcherEvent mergeWith)
         {
             if (this.eventArgs.FullPath != mergeWith.eventArgs.FullPath)
             {
-                throw new ArgumentException("Cannot merge UploadRequests with different file paths!");
+                throw new ArgumentException("Cannot merge WatcherEvents with different file paths!");
             }
             WatcherChangeTypes changeTypes = this.eventArgs.ChangeType | mergeWith.eventArgs.ChangeType;
 
@@ -35,9 +42,28 @@ namespace OnedataDrive
             this.merged = true;
         }
 
-        public string RelationKey()
+        public override string RelationKey()
         {
             return eventArgs.FullPath;
+        }
+
+        public override string ToString()
+        {
+            List<string> list = MoreInfo();
+            return $"[{string.Join("| ", list)}]";
+        }
+
+        public override List<string> MoreInfo()
+        {
+            List<string> list = new()
+                {
+                    "WatcherEvent: ",
+                    $"ChangeType={eventArgs.ChangeType}",
+                    $"FullPath/RelationKey={eventArgs.FullPath}",
+                    $"Name={eventArgs.Name}",
+                    $"Merged={merged}",
+                };
+            return list;
         }
     }
 }

@@ -2,20 +2,31 @@
 
 **The application is currently under development. Available installation packages are alpha versions. It is not intended for use with production data!**
 
-Onedata Drive is a GUI application allowing Windows users to work with data stored in Onedata system. 
+**We recommend running the application in `read-only` mode, as concurrent data modifications or unexpected crashes could lead to data corruption.**
 
-<img width="586" height="356" alt="Onedata Drive GUI" src="https://github.com/user-attachments/assets/a793e590-d901-4702-9a58-b9a8d3cd346a" />
+<hr>
 
-To log in, you need to fill in the desired instance of the Onezone service and the token. The spaces available to the user are then mounted to the user's home directory.
+**Onedata Drive** is a GUI application allowing Windows users to work with data stored in Onedata system. 
+<p align="center">
+    <img width="586" height="356" alt="Onedata Drive GUI" src="image/interface.png" />
+</p>
 
-<img width="647" height="423" alt="Mounted spaces from Onedata" src="https://github.com/user-attachments/assets/affdd129-77aa-4d66-9f73-6aacfc3d81f7" />
+<p align="center">
+    <img width="647" height="423" alt="Mounted spaces from Onedata" src="image/explorer.png" />
+</p>
+
+
 
 ## Requirements
 - Supported Windows version: **Windows 10 (version 1803 +)** and **Windows 11**
-- **.NET Desktop Runtime 9** must be installed
+- **.NET Desktop Runtime 10**
+- Compatible only with **Oneprovider 25.0+**
+
+## Installation
+- If you encounter an `untrusted certificate` error during installation, it is likely because your current version of the application was signed using a self-signed certificate.
+    - In order to install the unsigned version of the application, you have to install the certificate from the installer.
+    - `Properties -> Digital Signatures -> Details -> View Certificate -> Install Certificate -> Local Machine -> Place all certificates in the following store -> Trusted People.`
 - Before the installation of the new version, **versions older than 0.5.x should be uninstalled**
-- You should not need to run as admin, as long you have access to the Root Folder
-- Compatible only with **Oneprovider event-sse-v3**
 
 ## Running the app
 - in order to access files Onedata Drive must be running
@@ -23,8 +34,23 @@ To log in, you need to fill in the desired instance of the Onezone service and t
 - **Oneprovider Token** must have REST/CDMI access
 - changes performed on cloud side are synced usually within 60s
 
+
+### Configuration
+In order to run the application you need to fill:
+- **Onezone URL** (e.g. `datahub.egi.eu`)
+- **Oneprovider token**
+
+### Token creation
+1. Go to Onezone web interface and log in with your credentials.
+1. Go to `Tokens` and click `Create new token`.
+1. From `Basic` select `Oneprovider REST/CDMI access`
+1. Hit `Create token`
+<p align="center">
+    <img width="880" alt="Mounted spaces from Onedata" src="image/token_creation.png" />
+</p>
+
 ### Filling the connect form
-All options can be set in the graphicall user interface. You can fill the connect form manually or you can load existing configuration file (`Advanced` -> `Load configuration from file`). 
+All options can be set in the graphical user interface. You can fill the connect form manually or you can load an existing configuration file (`Advanced` -> `Load configuration from file`). 
 
 **Configuration JSON file example:**
 ```
@@ -35,20 +61,8 @@ All options can be set in the graphicall user interface. You can fill the connec
 }
 ```
 
-### Configuration
-
-Selected configuration options:
-
-- **Root Folder**
-    - path to the local folder where directories and files are synced,
-    - the original contents of the directory will be deleted when connecting.
-- **Oneprovider token**
-    - must have REST/CDMI access,
-    - must have access to Oneproviders (Onezone access is not required),
-    - limiting token access to specific paths (during token creation) might not work as expected.
-
-## Logging
-Files with logs can be found at `C:\Users\Andrej\AppData\Local\Packages\<packageName>\LocalState\Logs`. 
+## Application logs
+App logs can be accessed in `Advanced` -> `Open folder with logs`
 
 ## In case of app failure
 - If the app crashes and you can not reconnect to the cloud restarting computer should fix the issue.

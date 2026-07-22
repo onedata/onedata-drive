@@ -46,11 +46,14 @@
             loadFromFile_button = new Button();
             config_openFileDialog = new OpenFileDialog();
             form_panel = new Panel();
+            createToken_linkLabel = new LinkLabel();
+            readOnly_checkBox = new CheckBox();
             onezone_comboBox = new ComboBox();
             oneproviderTokenKeep_checkBox = new CheckBox();
             advanced_button = new Button();
             rootFolderErase_button = new Button();
             advanced_panel = new Panel();
+            disableRefresh_checkBox = new CheckBox();
             saveToFile_button = new Button();
             removeSyncRoot_button = new Button();
             openLogFolder_button = new Button();
@@ -62,11 +65,10 @@
             statusImageGreen = new ToolStripStatusLabel();
             statusLabel = new ToolStripStatusLabel();
             statusMessage = new ToolStripStatusLabel();
-            refreshStatusMessage = new ToolStripStatusLabel();
+            secondaryStatusMessage = new ToolStripStatusLabel();
             connectForm_toolTip = new ToolTip(components);
             scrollPanel = new Panel();
             config_saveFileDialog = new SaveFileDialog();
-            disableRefresh_checkBox = new CheckBox();
             header_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             form_panel.SuspendLayout();
@@ -139,7 +141,7 @@
             // 
             // oneproviderToken_textBox
             // 
-            oneproviderToken_textBox.Location = new Point(161, 86);
+            oneproviderToken_textBox.Location = new Point(161, 88);
             oneproviderToken_textBox.Margin = new Padding(2, 3, 2, 3);
             oneproviderToken_textBox.Name = "oneproviderToken_textBox";
             oneproviderToken_textBox.Size = new Size(474, 25);
@@ -148,7 +150,7 @@
             // oneproviderToken_label
             // 
             oneproviderToken_label.AutoSize = true;
-            oneproviderToken_label.Location = new Point(17, 87);
+            oneproviderToken_label.Location = new Point(17, 89);
             oneproviderToken_label.Margin = new Padding(2, 0, 2, 0);
             oneproviderToken_label.Name = "oneproviderToken_label";
             oneproviderToken_label.Size = new Size(127, 19);
@@ -204,7 +206,7 @@
             // loadFromFile_button
             // 
             loadFromFile_button.BackColor = SystemColors.Window;
-            loadFromFile_button.Location = new Point(177, 135);
+            loadFromFile_button.Location = new Point(177, 136);
             loadFromFile_button.Margin = new Padding(2, 3, 2, 3);
             loadFromFile_button.Name = "loadFromFile_button";
             loadFromFile_button.Size = new Size(234, 33);
@@ -220,6 +222,8 @@
             // 
             // form_panel
             // 
+            form_panel.Controls.Add(createToken_linkLabel);
+            form_panel.Controls.Add(readOnly_checkBox);
             form_panel.Controls.Add(onezone_comboBox);
             form_panel.Controls.Add(oneproviderTokenKeep_checkBox);
             form_panel.Controls.Add(advanced_button);
@@ -229,8 +233,30 @@
             form_panel.Dock = DockStyle.Top;
             form_panel.Location = new Point(0, 119);
             form_panel.Name = "form_panel";
-            form_panel.Size = new Size(767, 181);
+            form_panel.Size = new Size(767, 247);
             form_panel.TabIndex = 20;
+            // 
+            // createToken_linkLabel
+            // 
+            createToken_linkLabel.AutoSize = true;
+            createToken_linkLabel.Location = new Point(161, 64);
+            createToken_linkLabel.Name = "createToken_linkLabel";
+            createToken_linkLabel.Size = new Size(171, 19);
+            createToken_linkLabel.TabIndex = 25;
+            createToken_linkLabel.TabStop = true;
+            createToken_linkLabel.Text = "Create Oneprovider Token";
+            createToken_linkLabel.LinkClicked += createToken_linkLabel_LinkClicked;
+            // 
+            // readOnly_checkBox
+            // 
+            readOnly_checkBox.AutoSize = true;
+            readOnly_checkBox.Location = new Point(161, 158);
+            readOnly_checkBox.Margin = new Padding(2, 3, 2, 3);
+            readOnly_checkBox.Name = "readOnly_checkBox";
+            readOnly_checkBox.Size = new Size(91, 23);
+            readOnly_checkBox.TabIndex = 24;
+            readOnly_checkBox.Text = "Read Only";
+            readOnly_checkBox.UseVisualStyleBackColor = true;
             // 
             // onezone_comboBox
             // 
@@ -244,7 +270,7 @@
             // oneproviderTokenKeep_checkBox
             // 
             oneproviderTokenKeep_checkBox.AutoSize = true;
-            oneproviderTokenKeep_checkBox.Location = new Point(161, 120);
+            oneproviderTokenKeep_checkBox.Location = new Point(161, 124);
             oneproviderTokenKeep_checkBox.Name = "oneproviderTokenKeep_checkBox";
             oneproviderTokenKeep_checkBox.Size = new Size(204, 23);
             oneproviderTokenKeep_checkBox.TabIndex = 16;
@@ -257,7 +283,7 @@
             advanced_button.FlatStyle = FlatStyle.Flat;
             advanced_button.Image = (Image)resources.GetObject("advanced_button.Image");
             advanced_button.ImageAlign = ContentAlignment.MiddleRight;
-            advanced_button.Location = new Point(15, 148);
+            advanced_button.Location = new Point(15, 198);
             advanced_button.Name = "advanced_button";
             advanced_button.Size = new Size(110, 28);
             advanced_button.TabIndex = 15;
@@ -292,17 +318,28 @@
             advanced_panel.Controls.Add(rootFolder_textBox);
             advanced_panel.Controls.Add(folderBrowser_button);
             advanced_panel.Dock = DockStyle.Top;
-            advanced_panel.Location = new Point(0, 300);
+            advanced_panel.Location = new Point(0, 366);
             advanced_panel.Name = "advanced_panel";
-            advanced_panel.Size = new Size(767, 336);
+            advanced_panel.Size = new Size(767, 330);
             advanced_panel.TabIndex = 21;
             advanced_panel.Visible = false;
             advanced_panel.Paint += advanced_panel_paint;
             // 
+            // disableRefresh_checkBox
+            // 
+            disableRefresh_checkBox.AutoSize = true;
+            disableRefresh_checkBox.Location = new Point(179, 98);
+            disableRefresh_checkBox.Margin = new Padding(2, 3, 2, 3);
+            disableRefresh_checkBox.Name = "disableRefresh_checkBox";
+            disableRefresh_checkBox.Size = new Size(400, 23);
+            disableRefresh_checkBox.TabIndex = 23;
+            disableRefresh_checkBox.Text = "Debug: Disable file refresh (Oneprovider -> Local Computer)";
+            disableRefresh_checkBox.UseVisualStyleBackColor = true;
+            // 
             // saveToFile_button
             // 
             saveToFile_button.BackColor = SystemColors.Window;
-            saveToFile_button.Location = new Point(177, 183);
+            saveToFile_button.Location = new Point(177, 184);
             saveToFile_button.Margin = new Padding(2, 3, 2, 3);
             saveToFile_button.Name = "saveToFile_button";
             saveToFile_button.Size = new Size(234, 33);
@@ -314,7 +351,7 @@
             // removeSyncRoot_button
             // 
             removeSyncRoot_button.BackColor = SystemColors.Window;
-            removeSyncRoot_button.Location = new Point(177, 279);
+            removeSyncRoot_button.Location = new Point(177, 280);
             removeSyncRoot_button.Margin = new Padding(2, 3, 2, 3);
             removeSyncRoot_button.Name = "removeSyncRoot_button";
             removeSyncRoot_button.Size = new Size(234, 33);
@@ -326,7 +363,7 @@
             // openLogFolder_button
             // 
             openLogFolder_button.BackColor = SystemColors.Window;
-            openLogFolder_button.Location = new Point(177, 231);
+            openLogFolder_button.Location = new Point(177, 232);
             openLogFolder_button.Margin = new Padding(2, 3, 2, 3);
             openLogFolder_button.Name = "openLogFolder_button";
             openLogFolder_button.Size = new Size(234, 33);
@@ -340,15 +377,15 @@
             controls_panel.Controls.Add(connect_button);
             controls_panel.Controls.Add(disconect_button);
             controls_panel.Dock = DockStyle.Top;
-            controls_panel.Location = new Point(0, 636);
+            controls_panel.Location = new Point(0, 696);
             controls_panel.Name = "controls_panel";
             controls_panel.Size = new Size(767, 97);
             controls_panel.TabIndex = 22;
             // 
             // statusStrip
             // 
-            statusStrip.Items.AddRange(new ToolStripItem[] { statusImageGrey, statusImageBlue, statusImageRed, statusImageGreen, statusLabel, statusMessage, refreshStatusMessage });
-            statusStrip.Location = new Point(0, 464);
+            statusStrip.Items.AddRange(new ToolStripItem[] { statusImageGrey, statusImageBlue, statusImageRed, statusImageGreen, statusLabel, statusMessage, secondaryStatusMessage });
+            statusStrip.Location = new Point(0, 489);
             statusStrip.Name = "statusStrip";
             statusStrip.Size = new Size(784, 22);
             statusStrip.TabIndex = 23;
@@ -392,10 +429,10 @@
             statusMessage.Name = "statusMessage";
             statusMessage.Size = new Size(0, 17);
             // 
-            // refreshStatusMessage
+            // secondaryStatusMessage
             // 
-            refreshStatusMessage.Name = "refreshStatusMessage";
-            refreshStatusMessage.Size = new Size(0, 17);
+            secondaryStatusMessage.Name = "secondaryStatusMessage";
+            secondaryStatusMessage.Size = new Size(0, 17);
             // 
             // scrollPanel
             // 
@@ -407,30 +444,19 @@
             scrollPanel.Dock = DockStyle.Fill;
             scrollPanel.Location = new Point(0, 0);
             scrollPanel.Name = "scrollPanel";
-            scrollPanel.Size = new Size(784, 464);
+            scrollPanel.Size = new Size(784, 489);
             scrollPanel.TabIndex = 24;
             // 
             // config_saveFileDialog
             // 
             config_saveFileDialog.FileName = "config.json";
             // 
-            // disableRefresh_checkBox
-            // 
-            disableRefresh_checkBox.AutoSize = true;
-            disableRefresh_checkBox.Location = new Point(179, 98);
-            disableRefresh_checkBox.Margin = new Padding(2, 3, 2, 3);
-            disableRefresh_checkBox.Name = "disableRefresh_checkBox";
-            disableRefresh_checkBox.Size = new Size(141, 23);
-            disableRefresh_checkBox.TabIndex = 23;
-            disableRefresh_checkBox.Text = "Disable file refresh";
-            disableRefresh_checkBox.UseVisualStyleBackColor = true;
-            // 
             // ConnectForm
             // 
             AutoScaleDimensions = new SizeF(8F, 19F);
             AutoScaleMode = AutoScaleMode.Font;
             AutoScroll = true;
-            ClientSize = new Size(784, 486);
+            ClientSize = new Size(784, 511);
             Controls.Add(scrollPanel);
             Controls.Add(statusStrip);
             Font = new Font("Microsoft YaHei", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
@@ -438,7 +464,7 @@
             Margin = new Padding(2, 3, 2, 3);
             MaximizeBox = false;
             MaximumSize = new Size(900, 1080);
-            MinimumSize = new Size(800, 525);
+            MinimumSize = new Size(800, 550);
             Name = "ConnectForm";
             FormClosing += ConnectForm_Closing;
             FormClosed += ConnectForm_FormClosed;
@@ -490,10 +516,12 @@
         private ComboBox onezone_comboBox;
         private Label version_label;
         private Button openLogFolder_button;
-        private ToolStripStatusLabel refreshStatusMessage;
         private Button removeSyncRoot_button;
         private Button saveToFile_button;
         private SaveFileDialog config_saveFileDialog;
         private CheckBox disableRefresh_checkBox;
+        private CheckBox readOnly_checkBox;
+        private LinkLabel createToken_linkLabel;
+        private ToolStripStatusLabel secondaryStatusMessage;
     }
 }

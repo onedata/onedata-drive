@@ -7,21 +7,29 @@ namespace OnedataDrive.Utils
 {
     public static class PathUtils
     {
-        public static string GetFullPath(CF_CALLBACK_INFO CallbackInfo)
+        public static string GetFullPath(string volumeDosName, string normalizedPath)
         {
-            string volumeName = CallbackInfo.VolumeDosName;
-            string normalizedPath = CallbackInfo.NormalizedPath;
-            if (volumeName == string.Empty || normalizedPath == string.Empty)
+            if (volumeDosName == string.Empty || normalizedPath == string.Empty)
             {
-                throw new ArgumentException($"Empty parameter -> volumeName: {volumeName == string.Empty}," +
-                    $"   normalizedPath: {normalizedPath == string.Empty}");
+                throw new ArgumentException($"Empty parameter -> volumeDosName: {string.IsNullOrEmpty(volumeDosName)}," +
+                    $"   normalizedPath: {string.IsNullOrEmpty(normalizedPath)}");
             }
-            string fullPath = volumeName + normalizedPath;
+            string fullPath = volumeDosName + normalizedPath;
             if (fullPath.Last() != '\\')
             {
                 fullPath += '\\';
             }
             return fullPath;
+        }
+
+        public static string GetFullPath(CF_CALLBACK_INFO CallbackInfo)
+        {
+            return GetFullPath(CallbackInfo.VolumeDosName, CallbackInfo.NormalizedPath);
+        }
+
+        public static string GetFullPath(Callback callback)
+        {
+            return GetFullPath(callback.volumeDosName, callback.normalizedPath);
         }
 
         public static string GetSpaceName(string fullPath)
@@ -38,6 +46,13 @@ namespace OnedataDrive.Utils
             return temp;
         }
 
+        /// <summary>
+        /// Checks if the given path is leading to a space folder, meaning that it starts with 
+        /// root path and the first folder after root path is one of the space folders, 
+        /// followed by either end of path or another folder/file.
+        /// </summary>
+        /// <param name="fullPath"></param>
+        /// <returns></returns>
         public static bool IsSpacePath(string fullPath)
         {
             if (fullPath.StartsWith(CloudSync.configuration.root_path))
@@ -48,6 +63,11 @@ namespace OnedataDrive.Utils
             return false;
         }
 
+        /// <summary>
+        /// Checks if the given path points exactly to the root folder
+        /// </summary>
+        /// <param name="fullPath"></param>
+        /// <returns></returns>
         public static bool IsRootPath(string fullPath)
         {
             if (fullPath == string.Empty || fullPath.Last() != '\\')
@@ -55,6 +75,11 @@ namespace OnedataDrive.Utils
                 fullPath += '\\';
             }
             return fullPath == CloudSync.configuration.root_path;
+        }
+
+        public static bool IsOnedataDrivePath(string fullPath)
+        {
+            return fullPath.StartsWith(CloudSync.configuration.root_path);
         }
 
         public static string GetLastInPath(string fullPath, char separator = '\\')

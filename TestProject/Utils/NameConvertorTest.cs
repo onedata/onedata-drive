@@ -151,5 +151,34 @@ namespace TestProject.Utils
                     " -> " + value.description);
             }
         }
+
+        [TestMethod]
+        public void MakeWindowsCorrectDistinct()
+        {
+            NameConvertor nameConvertor = new();
+            const string FILE_ID = "000000000052F57F67756964233939393438626238356161646331373166646138393261363461646637373132636839366364233534663561353262343730323434323239353333643033343934643963343732636839366364";
+
+            HashSet<string> names1 = new() { };
+            HashSet<string> names2 = new() { "_@3393939343", "abcd" };
+            HashSet<string> names3 = new() { "_@3393939343", "_@3393939343(2)" };
+
+            List<(string input, string description, string expected, string fileId, HashSet<string> names)> values = new() {
+                ("", "Empty name", "_@3393939343", FILE_ID, names1),
+                ("", "Empty name, duplicity 1x", "_@3393939343(2)", FILE_ID, names2),
+                ("", "Empty name, duplicity 2x", "_@3393939343(3)", FILE_ID, names3),
+                ("ABCD", "Duplicity with different case", "ABCD@3393939343", FILE_ID, names2),
+            };
+
+            foreach (var value in values)
+            {
+                string output = nameConvertor.MakeWindowsCorrectDistinct(value.input, value.fileId, value.names);
+
+                Assert.AreEqual(
+                    value.expected,
+                    output,
+                    " -> " + value.description
+                    );
+            }
+        }
     }
 }

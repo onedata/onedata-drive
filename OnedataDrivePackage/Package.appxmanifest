@@ -10,7 +10,8 @@
   <Identity
     Name="d97aa3fc-e760-4a1a-b382-b0487c177db3"
     Publisher="CN=Masarykova univerzita, O=Masarykova univerzita, S=Jihomoravský kraj, C=CZ"
-    Version="0.5.7.1" />
+    Version="25.1.0.0" />
+
 
   <Properties>
     <DisplayName>Onedata Drive</DisplayName>
@@ -48,7 +49,16 @@
       </uap:VisualElements>
 	  <Extensions>
 	    <desktop3:Extension Category="windows.cloudFiles">
-		  <desktop3:CloudFiles>
+		  <desktop3:CloudFiles IconResource="Images\CloudFilesIcon.png">
+		    <desktop3:ThumbnailProviderHandler
+	          Clsid="441D329F-009F-4E58-B05B-2D9B85A92469"/>
+			<desktop3:CustomStateHandler
+			  Clsid="441D329F-009F-4E58-B05B-2D9B85A92469"/>
+			<desktop3:CloudFilesContextMenus></desktop3:CloudFilesContextMenus>
+			<desktop3:ExtendedPropertyHandler 
+		      Clsid="441D329F-009F-4E58-B05B-2D9B85A92469"/>
+			<desktop3:BannersHandler 
+		      Clsid="441D329F-009F-4E58-B05B-2D9B85A92469"/>
 		  </desktop3:CloudFiles>
 	    </desktop3:Extension>
 	  </Extensions>

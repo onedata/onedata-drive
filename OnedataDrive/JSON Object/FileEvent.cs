@@ -1,5 +1,7 @@
 ﻿using OnedataDrive.Interfaces;
+using System;
 using System.ComponentModel;
+using System.Diagnostics.Tracing;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -14,8 +16,7 @@ namespace OnedataDrive.JSON_Object
         public const string EVENT_DELETED = "deleted";
         [JsonIgnore]
         public bool isMerged { get; private set; }
-
-        public string eventId { get; set; }
+        public string SSEventId { get; set; }
         public string eventType { get; set; }
         public string fileId { get; set; }
         public string parentFileId { get; set; }
@@ -34,7 +35,7 @@ namespace OnedataDrive.JSON_Object
         public FileEvent()
         {
             isMerged = false;
-            eventId = string.Empty;
+            SSEventId = string.Empty;
             eventType = string.Empty;
             fileId = string.Empty;
             parentFileId = string.Empty;
@@ -46,7 +47,7 @@ namespace OnedataDrive.JSON_Object
             FileEvent? fe = JsonSerializer.Deserialize<FileEvent>(sseEvent.data);
             if (fe != null)
             {
-                eventId = sseEvent.eventId;
+                SSEventId = sseEvent.SSEventId;
                 eventType = sseEvent.eventType;
                 fileId = fe.fileId;
                 parentFileId = fe.parentFileId;
@@ -55,30 +56,52 @@ namespace OnedataDrive.JSON_Object
         }
 
         /// <summary>
-        /// Merges properties: eventId, eventType, data.size, data.mtime, data.name, data.type
+        /// Merges properties: SSEventId, eventType, data.size, data.mtime, data.name, data.type
         /// </summary>
-        /// <param name="updateFrom"></param>
+        /// <param name="newEvent"></param>
         /// <exception cref="ArgumentException"></exception>
-        public void Merge(FileEvent updateFrom)
+        public override void Merge(FileEvent newEvent)
         {
-            if (this.fileId != updateFrom.fileId)
+            if (this.fileId != newEvent.fileId)
             {
                 throw new ArgumentException("Cannot update FileEvent with different fileId");
             }
 
-            eventId = updateFrom.eventId;
-            if (!string.IsNullOrWhiteSpace(updateFrom.eventType) && updateFrom.eventId == EVENT_DELETED) eventType = updateFrom.eventType;
-            if (updateFrom.data.size != null) data.size = updateFrom.data.size;
-            if (updateFrom.data.mtime != null) data.mtime = updateFrom.data.mtime;
-            if (!string.IsNullOrWhiteSpace(updateFrom.data.name)) data.name = updateFrom.data.name;
-            if (!string.IsNullOrWhiteSpace(updateFrom.data.type)) data.type = updateFrom.data.type;
+            SSEventId = newEvent.SSEventId;
+            if (!string.IsNullOrWhiteSpace(newEvent.eventType) && newEvent.eventType == EVENT_DELETED) this.eventType = newEvent.eventType;
+            if (newEvent.data.size != null) data.size = newEvent.data.size;
+            if (newEvent.data.mtime != null) data.mtime = newEvent.data.mtime;
+            if (!string.IsNullOrWhiteSpace(newEvent.data.name)) data.name = newEvent.data.name;
+            if (!string.IsNullOrWhiteSpace(newEvent.data.type)) data.type = newEvent.data.type;
 
             isMerged = true;
         }
 
-        public string RelationKey()
+        public override string RelationKey()
         {
             return fileId;
+        }
+
+        public override string ToString()
+        {
+            List<string> list = MoreInfo();
+            return $"[{string.Join("| ", list)}]";
+        }
+
+        public override List<string> MoreInfo()
+        {
+            List<string> list = new()
+            {
+                "FileEvent: ",
+                $"SSEventId={SSEventId}",
+                $"EventType={eventType}",
+                $"Name={data.name}",
+                $"Merged={isMerged}",
+                $"Size={data.size}",
+                $"FileId/RelationKey={fileId}",
+                $"ParentId={parentFileId}"
+            };
+            return list;
         }
     }
 
