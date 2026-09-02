@@ -179,6 +179,12 @@ namespace OnedataDrive
                 logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "Directory not found - discarding event",
                     e, moreInfo: moreInfo, filePath: spaceNameWPrefix, opID: processedEvent.@event.eventId);
             }
+            catch (ArgumentException e)
+            {
+                eventCompleted = true;
+                logFormatter.LogFileOP(LogLevel.Warn, "EVENT PROCESSOR", "Invalid argument - discarding event",
+                    e, moreInfo: moreInfo, filePath: spaceNameWPrefix, opID: processedEvent.@event.eventId);
+            }
             catch (Exception e)
             {
                 logFormatter.LogFileOP(LogLevel.Error, "EVENT PROCESSOR", "Process event error", e,
