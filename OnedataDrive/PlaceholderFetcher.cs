@@ -92,6 +92,10 @@ namespace OnedataDrive
                         {
                             string windowsCorrectName = NameConvertor.DistinctWindowsName(child, placeholderNames);
                             PlaceholderData data = new(child.fileId, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
+                            if (data.Type != PlaceholderData.REGULAR_FILE && data.Type != PlaceholderData.DIRECTORY)
+                            {
+                                continue;
+                            }
                             placeholderCreateInfo.Add(PlaceholderData.CreateInfo(data));
                             placeholderNames.Add(windowsCorrectName.ToLower());
                         }

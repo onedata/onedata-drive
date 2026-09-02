@@ -8,8 +8,8 @@ using static Vanara.PInvoke.CldApi;
 
 static class CldApiUtils
 {
-    // size of memory block needed for CF_PLACEHOLDER_INFO (basic 388, standard 420)
-    private const int BLOB_LENGTH = 500;
+    // size of memory block needed for CF_PLACEHOLDER_INFO (basic 388, standard 420 - for 180 character ID)
+    private const int BLOB_LENGTH = 4256;
     public const uint NOT_A_CLOUD_FILE = 0x80070178u;
 
     public static CF_PLACEHOLDER_BASIC_INFO GetBasicInfo(string fullPath)
