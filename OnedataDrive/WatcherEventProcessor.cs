@@ -366,7 +366,7 @@ namespace OnedataDrive
                 }
                 if (hresConvert != HRESULT.S_OK)
                 {
-                    throw new Exception("CfConvertToPlaceholder HRES: " + hresConvert);
+                    throw new Exception($"CfConvertToPlaceholder HRES 0x{((uint)hresConvert):X}: {hresConvert}");
                 }
             }
             finally
