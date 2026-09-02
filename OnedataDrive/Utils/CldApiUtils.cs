@@ -119,7 +119,7 @@ static class CldApiUtils
         }
         else if (hres != HRESULT.S_OK)
         {
-            throw new Exception($"CfGetPlaceholderInfo PATH: {fullPath} \n" + hres);
+            throw new Exception($"CfGetPlaceholderInfo PATH: {fullPath} \n" + $"HRES 0x{((uint)hres):X}: {hres}");
         }
     }
 }
