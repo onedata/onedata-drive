@@ -4,6 +4,7 @@ using OnedataDrive.ErrorHandling;
 using OnedataDrive.Interfaces;
 using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
+using System.Runtime.InteropServices.ComTypes;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
 
@@ -196,9 +197,20 @@ namespace OnedataDrive
         private void UpdatePlaceholderMetadata(EventPenalizable<FileEvent> processedEvent, string placeholderPath, bool directory, string opID)
         {
             CF_FS_METADATA metadata = new();
-            if (processedEvent.@event.data.size is not null) metadata.FileSize = (long)processedEvent.@event.data.size;
+            if (processedEvent.@event.data.size is not null) 
+            { 
+                metadata.FileSize = (long)processedEvent.@event.data.size;
+            }
+            if (processedEvent.@event.data.mtime is not null) 
+            {
+                DateTime mtime = DateTimeOffset.FromUnixTimeSeconds(processedEvent.@event.data.mtime ?? 0).UtcDateTime;
+                metadata.BasicInfo.LastWriteTime = new FILETIME
+                {
+                    dwHighDateTime = (int)mtime.ToFileTime().HighPart(),
+                    dwLowDateTime = (int)mtime.ToFileTime().LowPart()
+                };
+            }
 
-            //SafeHCFFILE? handle = null;
             CF_OPEN_FILE_FLAGS flags = CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_NONE;
             if (!directory)
             {
@@ -206,26 +218,47 @@ namespace OnedataDrive
             }
 
             using CfHandle handle = new(placeholderPath, flags);
+            CF_PLACEHOLDER_BASIC_INFO standardInfo = CldApiUtils.GetBasicInfo(handle);
+
+            CF_FILE_RANGE[] dehydrateRanges = [];
+            if (!directory && processedEvent.@event.data.mtime != null)
+            {
+                FileInfo fileInfo = new(placeholderPath);
+                DateTime lastWriteTime = fileInfo.LastWriteTimeUtc;
+
+                DateTime cloudMTime = DateTimeOffset.FromUnixTimeSeconds((long)processedEvent.@event.data.mtime).UtcDateTime;
+                if (lastWriteTime != cloudMTime)
+                {
+                    dehydrateRanges = [new CF_FILE_RANGE { StartingOffset = 0, Length = -1 }];
+                }
+            }
+
             long updateUsn = 0;
+            
             HRESULT updateHres = CfUpdatePlaceholder(FileHandle: handle.GetDangerousHandle(),
                                 FsMetadata: metadata,
                                 FileIdentity: 0,
                                 FileIdentityLength: 0,
-                                DehydrateRangeCount: 0,
+                                DehydrateRangeArray: dehydrateRanges,
+                                DehydrateRangeCount: (uint)dehydrateRanges.Length,
                                 UpdateFlags: CF_UPDATE_FLAGS.CF_UPDATE_FLAG_NONE,
                                 UpdateUsn: ref updateUsn
                                 );
             if (updateHres != HRESULT.S_OK)
             {
-                throw new Exception($"CfUpdatePlaceholder HRES number: {((uint)updateHres):X}" +
+                throw new Exception($"CfUpdatePlaceholder HRES number: 0x{((uint)updateHres):X}" +
                     $"\n HRES text: {updateHres}");
+            }
+
+            if (dehydrateRanges.Length > 0)
+            {
+                logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Placeholder data invalidated", 
+                    opID: opID, filePath: spaceNameWPrefix);
             }
 
             // rename if needed
             if (processedEvent.@event.data.name is not null)
             {
-                CF_PLACEHOLDER_BASIC_INFO basicInfo = CldApiUtils.GetBasicInfo(handle);
-
                 string oldName = PathUtils.GetLastInPath(placeholderPath);
                 string newName = processedEvent.@event.data.name;
                 if (oldName != newName)
@@ -245,7 +278,7 @@ namespace OnedataDrive
                     using CfHandle handleNewPath = new(newPath, flags);
 
                     HRESULT inSyncHres = CfSetInSyncState(handleNewPath.GetDangerousHandle(),
-                    basicInfo.InSyncState, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
+                    standardInfo.InSyncState, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
                     if (inSyncHres != HRESULT.S_OK)
                     {
                         throw new Exception($"CfSetInSync HRES number: {((int)inSyncHres)}" +
