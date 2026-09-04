@@ -8,8 +8,8 @@
   IgnorableNamespaces="uap rescap desktop3">
 
   <Identity
-    Name="d97aa3fc-e760-4a1a-b382-b0487c177db3-develop"
-    Publisher="CN=Andrej Gafrik"
+    Name="MasarykUniversity.OnedataDrive"
+    Publisher="CN=7009A658-F823-4851-A639-9DC428B5F494"
     Version="25.1.1.0" />
 
   <Properties>
