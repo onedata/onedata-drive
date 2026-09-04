@@ -241,19 +241,14 @@ namespace OnedataDrive
                                 FileIdentityLength: 0,
                                 DehydrateRangeArray: dehydrateRanges,
                                 DehydrateRangeCount: (uint)dehydrateRanges.Length,
-                                UpdateFlags: CF_UPDATE_FLAGS.CF_UPDATE_FLAG_NONE,
+                                UpdateFlags: dehydrateRanges.Length > 0 ? CF_UPDATE_FLAGS.CF_UPDATE_FLAG_DEHYDRATE : CF_UPDATE_FLAGS.CF_UPDATE_FLAG_NONE | CF_UPDATE_FLAGS.CF_UPDATE_FLAG_VERIFY_IN_SYNC,
                                 UpdateUsn: ref updateUsn
                                 );
             if (updateHres != HRESULT.S_OK)
             {
                 throw new Exception($"CfUpdatePlaceholder HRES number: 0x{((uint)updateHres):X}" +
-                    $"\n HRES text: {updateHres}");
-            }
-
-            if (dehydrateRanges.Length > 0)
-            {
-                logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Placeholder data invalidated", 
-                    opID: opID, filePath: spaceNameWPrefix);
+                    $"\n HRES text: {updateHres}" +
+                    $"\n Dehydrate: {dehydrateRanges.Length > 0}");
             }
 
             // rename if needed
