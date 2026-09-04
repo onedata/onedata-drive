@@ -10,7 +10,7 @@ namespace OnedataDrive
 {
     public static class CloudSync
     {
-        public const string VERSION = "25.1.0";
+        public const string VERSION = "25.1.1";
         public const string APP_NAME = "Onedata Drive";
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public static Config configuration = new();
