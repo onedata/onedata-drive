@@ -10,7 +10,7 @@
   <Identity
     Name="MasarykUniversity.OnedataDrive"
     Publisher="CN=7009A658-F823-4851-A639-9DC428B5F494"
-    Version="25.1.1.0" />
+    Version="25.1.2.0" />
 
   <Properties>
     <DisplayName>Onedata Drive</DisplayName>
@@ -32,7 +32,7 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="Onedata Drive Develop"
+        DisplayName="Onedata Drive"
         Description="Onedata Drive"
         BackgroundColor="transparent"
         Square150x150Logo="Images\Square150x150Logo.png"
