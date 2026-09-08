@@ -19,6 +19,7 @@ namespace OnedataDrive
 
         public const string REGULAR_FILE = "REG";
         public const string DIRECTORY = "DIR";
+        public const string SYMLINK = "SYMLNK";
 
         public PlaceholderData(string FileIdentity, string Name, long Size, long Atime, long Mtime, long Ctime, string Type = REGULAR_FILE)
         {

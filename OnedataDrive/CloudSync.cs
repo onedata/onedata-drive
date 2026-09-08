@@ -10,7 +10,7 @@ namespace OnedataDrive
 {
     public static class CloudSync
     {
-        public const string VERSION = "25.1.0";
+        public const string VERSION = "25.1.2";
         public const string APP_NAME = "Onedata Drive";
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public static Config configuration = new();
@@ -434,7 +434,7 @@ namespace OnedataDrive
                 HRESULT hres = CfCreatePlaceholders(path, infoArr, (uint)infoArr.Length, CF_CREATE_FLAGS.CF_CREATE_FLAG_NONE, out entriesProcessed);
                 if (hres != HRESULT.S_OK)
                 {
-                    logger.Error("FAILED to init placeholders (CfCreatePlaceholders). HRESULT: {0}", hres);
+                    logger.Error($"FAILED to init placeholders (CfCreatePlaceholders). HRES 0x{((uint)hres):X}: {hres}");
                 }
             }
             logger.Debug("Placeholders created in dirPath:{0} -> {1} / {2}", path, entriesProcessed, infoArr.Length);

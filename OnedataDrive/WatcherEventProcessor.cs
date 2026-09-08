@@ -148,7 +148,7 @@ namespace OnedataDrive
 
             if (hresHydrate != HRESULT.S_OK)
             {
-                throw new Exception("CfHydratePlaceholder: " + hresHydrate);
+                throw new Exception("CfHydratePlaceholder: " + $"HRES 0x{((uint)hresHydrate):X}: {hresHydrate}");
             }
 
             loggerFormater.LogFileOP(LogLevel.Info, "Hydrate", "OK", opID: opID);
@@ -166,7 +166,7 @@ namespace OnedataDrive
 
             if (hresDehydrate != HRESULT.S_OK || hresPinState != HRESULT.S_OK)
             {
-                throw new Exception("CfDehydratePlaceholder: " + hresDehydrate + ", CfSetPinState: " + hresPinState);
+                throw new Exception($"CfDehydratePlaceholder: HRES 0x{((uint)hresDehydrate):X}: {hresDehydrate}, CfSetPinState: HRES 0x{((uint)hresPinState):X}: {hresPinState}");
             }
 
             loggerFormater.LogFileOP(LogLevel.Info, "Dehydrate", "OK", opID: opID);
@@ -238,7 +238,7 @@ namespace OnedataDrive
                                 );
             if (hres != HRESULT.S_OK)
             {
-                throw new Exception("CfUpdatePlaceholder HRES: " + hres);
+                throw new Exception($"CfUpdatePlaceholder HRES 0x{((uint)hres):X}: {hres}");
             }
         }
 
@@ -366,7 +366,7 @@ namespace OnedataDrive
                 }
                 if (hresConvert != HRESULT.S_OK)
                 {
-                    throw new Exception("CfConvertToPlaceholder HRES: " + hresConvert);
+                    throw new Exception($"CfConvertToPlaceholder HRES 0x{((uint)hresConvert):X}: {hresConvert}");
                 }
             }
             finally

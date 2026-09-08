@@ -397,7 +397,7 @@ namespace OnedataDrive
                     List<string> errorMessages = new();
                     if (hres != HRESULT.S_OK)
                     {
-                        errorMessages.Add($"Rename CfExecute FAIL - HRES: {hres}");
+                        errorMessages.Add($"Rename CfExecute FAIL - HRES 0x{((uint)hres):X}: {hres}");
                     }
                     if (status != (uint)NTStatus.STATUS_SUCCESS)
                     {
@@ -531,7 +531,7 @@ namespace OnedataDrive
                     HRESULT hresSync = CfSetInSyncState(handle.GetDangerousHandle(), CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
                     if (hresSync != HRESULT.S_OK)
                     {
-                        throw new Exception($"Failed to set in sync state. HRES {((uint)hresSync):X}: {hresSync}");
+                        throw new Exception($"Failed to set in sync state. HRES 0x{((uint)hresSync):X}: {hresSync}");
                     }
                     PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME COMPLETION", "OK");
                 }
