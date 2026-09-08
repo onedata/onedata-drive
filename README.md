@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-    <img width="647" height="423" alt="Mounted spaces from Onedata" src="image/explorer.png" />
+    <img width="647" height="423" alt="Onedata Drive in Windows File Explorer" src="image/explorer.png" />
 </p>
 
 
@@ -46,7 +46,7 @@ In order to run the application you need to fill:
 1. From `Basic` select `Oneprovider REST/CDMI access`
 1. Hit `Create token`
 <p align="center">
-    <img width="880" alt="Mounted spaces from Onedata" src="image/token_creation.png" />
+    <img width="880" alt="Token creation in web GUI" src="image/token_creation.png" />
 </p>
 
 ### Filling the connect form
