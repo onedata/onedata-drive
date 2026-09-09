@@ -1,7 +1,7 @@
 # Release notes for project Onedata Drive
 
 ## 25.1.2
-- Fix app label
+- Change app display name
 
 ## 25.1.1
 - Ignore symlinks
