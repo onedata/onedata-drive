@@ -348,7 +348,7 @@ namespace OnedataDrive
             string nextPageToken = "", CancellationToken cancelToken = default)
         {
             JsonObject json = new JsonObject();
-            json["attributes"] = new JsonArray("size", "name", "type", "atime", "mtime", "ctime", "fileId");
+            json["attributes"] = new JsonArray("size", "name", "type", "atime", "mtime", "ctime", "fileId", "symlinkValue");
             json["limit"] = limit;
             if (!string.IsNullOrEmpty(nextPageToken))
             {
@@ -520,6 +520,25 @@ namespace OnedataDrive
                         + "/api/v3/oneprovider/data/"
                         + fileId;
             return await OnedataGet<FileAttribute>(url, token: token);
+        }
+
+        /// <summary>
+        /// Resolves a full space path (including the space name, e.g. "/MySpace/dir/file.txt")
+        /// to the file id of the file or directory it points to.
+        /// The path may point to a symlink's target or the symlink itself.
+        /// </summary>
+        public static async Task<FileId> LookupFileId(List<ProviderInfo> providerInfos, string path,
+            CancellationToken token = default)
+        {
+            Func<ProviderInfo, Task<FileId>> func = async (info) => {
+                string url = "https://"
+                            + info.providerDomain
+                            + "/api/v3/oneprovider/lookup-file-id/"
+                            + HttpEncodePath(path);
+                return await OnedataPost<FileId>(url, null, token: token);
+            };
+
+            return await MultiProviderWorker(providerInfos, func);
         }
 
         public static async Task<FileAttribute> GetFileAttribute(string fileId, List<ProviderInfo> providerInfos, 
