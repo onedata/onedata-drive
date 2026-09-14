@@ -94,16 +94,7 @@ namespace OnedataDrive
                             PlaceholderData data = new(child.fileId, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
                             if (data.Type == PlaceholderData.SYMLINK)
                             {
-                                // A symlink is materialized locally as the entry it points to. Resolve its
-                                // target path to a file id and fetch its attributes, so the placeholder is
-                                // created with the correct type (directory or regular file).
-                                // NOTE: child.symlinkValue has the form "<__onedata_space_id:{spaceId}>/path/to/target"
-                                // (e.g. "<__onedata_space_id:4ef7...>/Playground/files 1000"). Strip the leading
-                                // space id token so the remaining string is the full path the lookup expects.
                                 int spaceIdTokenEnd = child.symlinkValue.IndexOf('>');
-                                // The leading "<__onedata_space_id:{spaceId}>" token denotes the space; the rest is
-                                // the path within it (e.g. "/Playground/files 1000"). LookupFileId expects a full
-                                // path of the form "/spacename/path/to/target", so replace the token with the space name.
                                 string pathInSpace = spaceIdTokenEnd >= 0
                                     ? child.symlinkValue.Substring(spaceIdTokenEnd + 1)
                                     : child.symlinkValue;
