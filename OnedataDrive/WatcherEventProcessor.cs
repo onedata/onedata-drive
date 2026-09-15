@@ -346,15 +346,14 @@ namespace OnedataDrive
 
         private void ConvertToPlaceholder(string fullPath, FileId id, bool isDir = false, bool setInSync = true)
         {
-            nint fileIdentity = IntPtr.Zero;
             try
             {
                 CF_OPEN_FILE_FLAGS openFlags = CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_FOREGROUND
                 | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE;
                 using CfHandle handle = new(fullPath, openFlags);
 
-                fileIdentity = Marshal.StringToCoTaskMemUni(id.fileId);
-                uint fileIdentityLength = (uint)id.fileId.Length * 2;
+                FileIdentity fileIdentity = new(id.fileId, isDir ? FileTypeOD.DIR : FileTypeOD.REG);
+                using UnmanagedMem fileIdentityMem = fileIdentity.ToUnmanagedMemory();
 
                 HRESULT hresConvert;
                 CF_CONVERT_FLAGS inSyncFlags =
@@ -362,18 +361,11 @@ namespace OnedataDrive
                 unsafe
                 {
                     hresConvert = CfConvertToPlaceholder(handle.GetDangerousHandle(),
-                        fileIdentity, fileIdentityLength, inSyncFlags);
+                        fileIdentityMem.GetPointer(), fileIdentityMem.GetSize(), inSyncFlags);
                 }
                 if (hresConvert != HRESULT.S_OK)
                 {
                     throw new Exception($"CfConvertToPlaceholder HRES 0x{((uint)hresConvert):X}: {hresConvert}");
-                }
-            }
-            finally
-            {
-                if (fileIdentity != IntPtr.Zero)
-                {
-                    Marshal.FreeCoTaskMem(fileIdentity);
                 }
             }
 
