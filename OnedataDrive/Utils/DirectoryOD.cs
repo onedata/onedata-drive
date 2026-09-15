@@ -9,8 +9,8 @@ namespace OnedataDrive.Utils
         public static void Delete(Callback callback)
         {
             string fullPath = PathUtils.GetFullPath(callback);
-            string fileIdentity = callback.fileIdentity;
-            Delete(fullPath, fileIdentity);
+            FileIdentity fileIdentity = callback.fileIdentity;
+            Delete(fullPath, fileIdentity.fileID);
         }
 
         public static void Delete(string fullPath, string fileIdentity)

@@ -56,10 +56,10 @@ namespace OnedataDrive
 
             try
             {
-                string fileIdentity = callback.fileIdentity;
+                FileIdentity fileIdentity = callback.fileIdentity;
                 SpaceFolder space = CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)];
 
-                FileAttribute fileAttribute = await RestClient.GetFileAttribute(fileIdentity, space.providerInfos, token);
+                FileAttribute fileAttribute = await RestClient.GetFileAttribute(fileIdentity.fileID, space.providerInfos, token);
                 if (fileAttribute.size != callback.fileSize && fileAttribute.fileType != FileTypeOD.SYMLNK)
                 {
                     loggerFormater.LogFileOP(LogLevel.Warn, "FETCH DATA", $"Size mismatch detected (local: {callback.fileSize}, cloud: {fileAttribute.size}), restarting hydration", opID: opID);
@@ -97,7 +97,7 @@ namespace OnedataDrive
                 using (LivelinessChcecker livelinessChcecker = new(10 * 1000, turnOffWhenDead: false))
                 using (Stream stream = await RestClient.GetStream(
                     CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)].providerInfos,
-                    callback.fileIdentity,
+                    callback.fileIdentity.fileID,
                     token,
                     callback.offset,
                     callback.fileSize - 1))
