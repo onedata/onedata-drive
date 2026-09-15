@@ -92,7 +92,7 @@ namespace OnedataDrive
                         {
                             string windowsCorrectName = NameConvertor.DistinctWindowsName(child, placeholderNames);
                             PlaceholderData data = new(child.fileId, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
-                            if (data.Type == PlaceholderData.SYMLINK)
+                            if (data.Type == FileTypeOD.SYMLNK)
                             {
                                 int spaceIdTokenEnd = child.symlinkValue.IndexOf('>');
                                 string pathInSpace = spaceIdTokenEnd >= 0
@@ -101,9 +101,9 @@ namespace OnedataDrive
                                 string targetPath = "/" + space.name + pathInSpace;
                                 FileId targetFile = await RestClient.LookupFileId(space.providerInfos, targetPath, token);
                                 FileAttribute target = await RestClient.GetFileAttribute(targetFile.fileId, space.providerInfos, token);
-                                data.Type = target.fileType == FileTypeOD.REG ? PlaceholderData.REGULAR_FILE : target.fileType == FileTypeOD.DIR ? PlaceholderData.DIRECTORY : PlaceholderData.SYMLINK;
+                                data.Type = target.fileType;
                             }
-                            if (data.Type != PlaceholderData.REGULAR_FILE && data.Type != PlaceholderData.DIRECTORY)
+                            if (data.Type != FileTypeOD.REG && data.Type != FileTypeOD.DIR)
                             {
                                 continue;
                             }

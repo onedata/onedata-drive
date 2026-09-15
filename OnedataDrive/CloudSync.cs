@@ -386,7 +386,7 @@ namespace OnedataDrive
                                 PlaceholderData placeholderData = new(fileInfo)
                                 {
                                     Name = spaceName,
-                                    Type = PlaceholderData.DIRECTORY
+                                    Type = FileTypeOD.DIR
                                 };
                                 info.Add(PlaceholderData.CreateDirInfo(placeholderData));
 

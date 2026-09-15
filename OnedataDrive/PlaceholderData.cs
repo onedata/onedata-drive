@@ -15,13 +15,9 @@ namespace OnedataDrive
         public long Mtime;
         public long Ctime;
         public string Name;
-        public string Type;
+        public FileTypeOD Type;
 
-        public const string REGULAR_FILE = "REG";
-        public const string DIRECTORY = "DIR";
-        public const string SYMLINK = "SYMLNK";
-
-        public PlaceholderData(string FileIdentity, string Name, long Size, long Atime, long Mtime, long Ctime, string Type = REGULAR_FILE)
+        public PlaceholderData(string FileIdentity, string Name, long Size, long Atime, long Mtime, long Ctime, FileTypeOD Type = FileTypeOD.REG)
         {
             this.Size = Size;
             this.FileIdentity = FileIdentity;
@@ -40,18 +36,7 @@ namespace OnedataDrive
             this.Mtime = fileAttribute.mtime;
             this.Ctime = fileAttribute.ctime;
             this.Name = fileAttribute.name;
-            this.Type = ConvertFileTypeODToString(fileAttribute.fileType);
-        }
-
-        private static string ConvertFileTypeODToString(FileTypeOD fileType)
-        {
-            return fileType switch
-            {
-                FileTypeOD.REG => REGULAR_FILE,
-                FileTypeOD.DIR => DIRECTORY,
-                FileTypeOD.SYMLNK => SYMLINK,
-                _ => REGULAR_FILE
-            };
+            this.Type = fileAttribute.fileType;
         }
 
         public const int ENCODING_SIZE = 2;
@@ -89,11 +74,11 @@ namespace OnedataDrive
         /// <returns></returns>
         public static CF_PLACEHOLDER_CREATE_INFO CreateInfo(PlaceholderData data)
         {
-            if (data.Type == PlaceholderData.REGULAR_FILE)
+            if (data.Type == FileTypeOD.REG)
             {
                 return CreateRegInfo(data);
             }
-            else if (data.Type == PlaceholderData.DIRECTORY)
+            else if (data.Type == FileTypeOD.DIR)
             {
                 return CreateDirInfo(data);
             }
