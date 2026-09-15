@@ -346,29 +346,25 @@ namespace OnedataDrive
 
         private void ConvertToPlaceholder(string fullPath, FileId id, bool isDir = false, bool setInSync = true)
         {
-            try
+            CF_OPEN_FILE_FLAGS openFlags = CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_FOREGROUND
+            | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE;
+            using CfHandle handle = new(fullPath, openFlags);
+
+            FileIdentity fileIdentity = new(id.fileId, isDir ? FileTypeOD.DIR : FileTypeOD.REG);
+            using UnmanagedMem fileIdentityMem = fileIdentity.ToUnmanagedMemory();
+
+            HRESULT hresConvert;
+            CF_CONVERT_FLAGS inSyncFlags =
+                setInSync ? CF_CONVERT_FLAGS.CF_CONVERT_FLAG_MARK_IN_SYNC : CF_CONVERT_FLAGS.CF_CONVERT_FLAG_NONE;
+            unsafe
             {
-                CF_OPEN_FILE_FLAGS openFlags = CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_FOREGROUND
-                | CF_OPEN_FILE_FLAGS.CF_OPEN_FILE_FLAG_EXCLUSIVE;
-                using CfHandle handle = new(fullPath, openFlags);
-
-                FileIdentity fileIdentity = new(id.fileId, isDir ? FileTypeOD.DIR : FileTypeOD.REG);
-                using UnmanagedMem fileIdentityMem = fileIdentity.ToUnmanagedMemory();
-
-                HRESULT hresConvert;
-                CF_CONVERT_FLAGS inSyncFlags =
-                    setInSync ? CF_CONVERT_FLAGS.CF_CONVERT_FLAG_MARK_IN_SYNC : CF_CONVERT_FLAGS.CF_CONVERT_FLAG_NONE;
-                unsafe
-                {
-                    hresConvert = CfConvertToPlaceholder(handle.GetDangerousHandle(),
-                        fileIdentityMem.GetPointer(), fileIdentityMem.GetSize(), inSyncFlags);
-                }
-                if (hresConvert != HRESULT.S_OK)
-                {
-                    throw new Exception($"CfConvertToPlaceholder HRES 0x{((uint)hresConvert):X}: {hresConvert}");
-                }
+                hresConvert = CfConvertToPlaceholder(handle.GetDangerousHandle(),
+                    fileIdentityMem.GetPointer(), fileIdentityMem.GetSize(), inSyncFlags);
             }
-
+            if (hresConvert != HRESULT.S_OK)
+            {
+                throw new Exception($"CfConvertToPlaceholder HRES 0x{((uint)hresConvert):X}: {hresConvert}");
+            }
         }
     }
 }
