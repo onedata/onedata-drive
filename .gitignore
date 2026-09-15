@@ -6,6 +6,7 @@ Debug/
 Release/
 AppPackages/
 *.assets.cache
+UpgradeLog.htm
 
 local-config*
 *.pfx
