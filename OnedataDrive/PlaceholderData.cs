@@ -43,8 +43,7 @@ namespace OnedataDrive
 
         public static CF_PLACEHOLDER_CREATE_INFO CreateRegInfo(PlaceholderData data)
         {
-            UnmanagedMem fileIdentityMem = new((uint)Marshal.SizeOf(data.FileIdentity));
-            Marshal.StructureToPtr(data.FileIdentity, fileIdentityMem.GetPointer(), false);
+            using UnmanagedMem fileIdentityMem = data.FileIdentity.ToUnmanagedMemory();
             CF_PLACEHOLDER_CREATE_INFO info = new()
             {
                 FileIdentity = fileIdentityMem.GetPointer(),
@@ -58,8 +57,7 @@ namespace OnedataDrive
 
         public static CF_PLACEHOLDER_CREATE_INFO CreateDirInfo(PlaceholderData data)
         {
-            UnmanagedMem fileIdentityMem = new((uint)Marshal.SizeOf(data.FileIdentity));
-            Marshal.StructureToPtr(data.FileIdentity, fileIdentityMem.GetPointer(), false);
+            using UnmanagedMem fileIdentityMem = data.FileIdentity.ToUnmanagedMemory();
             CF_PLACEHOLDER_CREATE_INFO info = new()
             {
                 FileIdentity = fileIdentityMem.GetPointer(),

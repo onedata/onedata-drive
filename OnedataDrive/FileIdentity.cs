@@ -25,7 +25,7 @@ namespace OnedataDrive
         /// Converts FileIdentity to unmanaged memory with layout:
         /// [fileType size][4 bytes: string length][N bytes: UTF-8 string data]
         /// </summary>
-        public UnmanagedMem GetUnmanagedMemory()
+        public UnmanagedMem ToUnmanagedMemory()
         {
             byte[] fileIDBytes = Encoding.UTF8.GetBytes(fileID ?? "");
             uint stringLength = (uint)fileIDBytes.Length;
