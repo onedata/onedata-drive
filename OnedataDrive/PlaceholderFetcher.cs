@@ -89,9 +89,10 @@ namespace OnedataDrive
                         // create placeholder create infos and make names distinct
                         using PlaceholderCreateInfoList placeholderCreateInfo = new();
                         foreach (Child child in dirChildren.children)
-                        {
+                        {   
+                            FileIdentity fileIdentity = new(child.fileId, child.fileType);
                             string windowsCorrectName = NameConvertor.DistinctWindowsName(child, placeholderNames);
-                            PlaceholderData data = new(child.fileId, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
+                            PlaceholderData data = new(fileIdentity, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.fileType);
                             if (data.Type == FileTypeOD.SYMLNK)
                             {
                                 int spaceIdTokenEnd = child.symlinkValue.IndexOf('>');
