@@ -101,7 +101,7 @@ namespace OnedataDrive
                             FileAttribute attribute = RestClient.GetFileAttribute(processedEvent.@event.fileId, providerInfos).Result;
 
                             logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Processing event - Create new",
-                                moreInfo: [$"New placeholder name: {attribute.name}", $"Type: {attribute.type}"], opID: processedEvent.@event.eventId, filePath: spaceNameWPrefix);
+                                moreInfo: [$"New placeholder name: {attribute.name}", $"Type: {attribute.fileType}"], opID: processedEvent.@event.eventId, filePath: spaceNameWPrefix);
 
                             TestIfCanBeCreated(attribute);
 

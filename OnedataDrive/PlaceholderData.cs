@@ -40,7 +40,18 @@ namespace OnedataDrive
             this.Mtime = fileAttribute.mtime;
             this.Ctime = fileAttribute.ctime;
             this.Name = fileAttribute.name;
-            this.Type = fileAttribute.type;
+            this.Type = ConvertFileTypeODToString(fileAttribute.fileType);
+        }
+
+        private static string ConvertFileTypeODToString(FileTypeOD fileType)
+        {
+            return fileType switch
+            {
+                FileTypeOD.REG => REGULAR_FILE,
+                FileTypeOD.DIR => DIRECTORY,
+                FileTypeOD.SYMLNK => SYMLINK,
+                _ => REGULAR_FILE
+            };
         }
 
         public const int ENCODING_SIZE = 2;

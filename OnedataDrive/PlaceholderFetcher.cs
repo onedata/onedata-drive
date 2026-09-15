@@ -101,7 +101,7 @@ namespace OnedataDrive
                                 string targetPath = "/" + space.name + pathInSpace;
                                 FileId targetFile = await RestClient.LookupFileId(space.providerInfos, targetPath, token);
                                 FileAttribute target = await RestClient.GetFileAttribute(targetFile.fileId, space.providerInfos, token);
-                                data.Type = target.type;
+                                data.Type = target.fileType == FileTypeOD.REG ? PlaceholderData.REGULAR_FILE : target.fileType == FileTypeOD.DIR ? PlaceholderData.DIRECTORY : PlaceholderData.SYMLINK;
                             }
                             if (data.Type != PlaceholderData.REGULAR_FILE && data.Type != PlaceholderData.DIRECTORY)
                             {

@@ -60,7 +60,7 @@ namespace OnedataDrive
                 SpaceFolder space = CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)];
 
                 FileAttribute fileAttribute = await RestClient.GetFileAttribute(fileIdentity, space.providerInfos, token);
-                if (fileAttribute.size != callback.fileSize && fileAttribute.type != PlaceholderData.SYMLINK)
+                if (fileAttribute.size != callback.fileSize && fileAttribute.fileType != FileTypeOD.SYMLNK)
                 {
                     loggerFormater.LogFileOP(LogLevel.Warn, "FETCH DATA", $"Size mismatch detected (local: {callback.fileSize}, cloud: {fileAttribute.size}), restarting hydration", opID: opID);
 

@@ -1,9 +1,15 @@
 namespace OnedataDrive.JSON_Object
 {
+    using System.Text.Json.Serialization;
+
     public class FileAttribute
     {
         public string name { get; set; } = "";
-        public string type { get; set; } = "";
+
+        [JsonConverter(typeof(FileTypeODConverter))]
+        [JsonPropertyName("type")]
+        public FileTypeOD fileType { get; set; } = FileTypeOD.EMPTY;
+
         public string mode { get; set; } = "";
         public long size { get; set; }
         public long atime { get; set; }
