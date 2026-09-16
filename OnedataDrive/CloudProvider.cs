@@ -268,11 +268,11 @@ namespace OnedataDrive
                 }
 
                 SpaceFolder spaceFolder = CloudSync.spaces[PathUtils.GetSpaceName(PathUtils.GetFullPath(CallbackInfo))];
-                string fileID = CldApiUtils.GetFileIdFromPointer(CallbackInfo.FileIdentity, CallbackInfo.FileIdentityLength);
+                FileIdentity fileIdentity = FileIdentity.FromUnmanagedMemory(CallbackInfo.FileIdentity, CallbackInfo.FileIdentityLength);
 
                 var task = RestClient.Delete(
                     spaceFolder.providerInfos,
-                    fileID);
+                    fileIdentity.fileID);
                 task.Wait();
 
                 CF_OPERATION_PARAMETERS.ACKDELETE del = new()
@@ -288,7 +288,7 @@ namespace OnedataDrive
                     throw new Exception($"Delete CfExecute FAIL - HRES: {hres} int value: {((int)hres)}");
                 }
 
-                spaceFolder.autoRefresh?.RemoveFromMonitored(fileID);
+                spaceFolder.autoRefresh?.RemoveFromMonitored(fileIdentity.fileID);
 
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "DELETE", "OK");
             }
@@ -410,8 +410,8 @@ namespace OnedataDrive
                 string newPath = PathUtils.GetFullPath(CallbackInfo.VolumeDosName, CallbackParameters.Rename.TargetPath);
                 if (Directory.Exists(newPath))
                 {
-                    string fileId = CldApiUtils.GetFileIdFromPointer(CallbackInfo.FileIdentity, CallbackInfo.FileIdentityLength);
-                    spaceFolder.autoRefresh?.RenameMonitoredPath(fileId, newPath);
+                    FileIdentity fileIdentity = FileIdentity.FromUnmanagedMemory(CallbackInfo.FileIdentity, CallbackInfo.FileIdentityLength);
+                    spaceFolder.autoRefresh?.RenameMonitoredPath(fileIdentity.fileID, newPath);
                 }
                 
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "RENAME/MOVE", "OK");
@@ -444,7 +444,7 @@ namespace OnedataDrive
 
                 PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "Rename/Move on Cloud", "START", moreInfo: paths);
 
-                string fileIdentity = Marshal.PtrToStringAuto(CallbackInfo.FileIdentity, (int)CallbackInfo.FileIdentityLength / 2) ?? "";
+                FileIdentity fileIdentity = FileIdentity.FromUnmanagedMemory(CallbackInfo.FileIdentity, CallbackInfo.FileIdentityLength);
 
                 string spacePath = CloudSync.configuration.root_path + PathUtils.GetSpaceName(sourcePath) + "\\";
 
@@ -508,7 +508,7 @@ namespace OnedataDrive
                     List<string> msg = new List<string> { "Delete file on cloud" };
                     PrintInfo(CallbackInfo, CallbackParameters, LogLevel.Info, "Move out of Cloud", "CONTINUE", moreInfo: msg);
                     List<ProviderInfo> providerInfos = CloudSync.spaces[PathUtils.GetSpaceName(sourcePath)].providerInfos;
-                    var taskRemove = RestClient.Delete(providerInfos, fileIdentity);
+                    var taskRemove = RestClient.Delete(providerInfos, fileIdentity.fileID);
                     taskRemove.Wait();
                 }
                 return true;

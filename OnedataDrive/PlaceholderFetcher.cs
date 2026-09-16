@@ -70,6 +70,7 @@ namespace OnedataDrive
 
                     HashSet<string> placeholderNames = new HashSet<string>();
                     using UnmanagedMem placeholderArrayMemory = new UnmanagedMem((uint)(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)) * PLACEHOLDER_BATCH_SIZE));
+                    string parentId = PathUtils.GetPlaceholderId(folderPath);
                     SpaceFolder space = PathUtils.GetSpaceFolder(folderPath);
                     int placeholderTotalCount = 0;
                     int entriesProcessed = 0;
