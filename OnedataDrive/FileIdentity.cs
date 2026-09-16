@@ -59,6 +59,19 @@ namespace OnedataDrive
         /// </summary>
         /// 
 
+        public static FileIdentity FromUnmanagedMemory(byte[] managedMem, uint size)
+        {
+            GCHandle handle = GCHandle.Alloc(managedMem, GCHandleType.Pinned);
+            try
+            {
+                return FromUnmanagedMemory(handle.AddrOfPinnedObject(), size);
+            }
+            finally
+            {
+                handle.Free();
+            }
+        }
+
         public static FileIdentity FromUnmanagedMemory(UnmanagedMem unmanagedMem)
         {
             return FromUnmanagedMemory(unmanagedMem.GetPointer(), unmanagedMem.GetSize());

@@ -105,8 +105,8 @@ namespace OnedataDrive.Utils
             while (pathFromSpace.Length != 0 && pathFromSpace != "\\")
             {
                 CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(path);
-                string fileId = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
-                var task = RestClient.GetFileAttribute(fileId, providerInfos);
+                FileIdentity fileIdentity = FileIdentity.FromUnmanagedMemory(info.FileIdentity, info.FileIdentityLength);
+                var task = RestClient.GetFileAttribute(fileIdentity.fileID, providerInfos);
                 task.Wait();
                 FileAttribute fa = task.Result;
                 correctedPath = fa.name + "/" + correctedPath;
@@ -129,8 +129,8 @@ namespace OnedataDrive.Utils
         public static string GetPlaceholderId(string placeholderPath)
         {
             CF_PLACEHOLDER_BASIC_INFO info = CldApiUtils.GetBasicInfo(placeholderPath);
-            string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
-            return id;
+            FileIdentity fileIdentity = FileIdentity.FromUnmanagedMemory(info.FileIdentity, info.FileIdentityLength);
+            return fileIdentity.fileID;
         }
 
         public static SpaceFolder GetSpaceFolder(string fullPath)

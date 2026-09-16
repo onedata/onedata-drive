@@ -215,10 +215,10 @@ namespace OnedataDrive
 
         private void UpdatePlaceholderMetadata(CF_PLACEHOLDER_STANDARD_INFO info, SafeHCFFILE handle, string path)
         {
-            string id = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
+            FileIdentity fileIdentity = FileIdentity.FromUnmanagedMemory(info.FileIdentity, info.FileIdentityLength);
 
             var task = RestClient.GetFileAttribute(
-                id,
+                fileIdentity.fileID,
                 CloudSync.spaces[PathUtils.GetSpaceName(path)].providerInfos
             );
             task.Wait();
@@ -244,10 +244,10 @@ namespace OnedataDrive
 
         private void PushToCloudUpdate(string fullPath, CF_PLACEHOLDER_STANDARD_INFO info, CancellationToken cancellationToken)
         {
-            string fileId = System.Text.Encoding.Unicode.GetString(info.FileIdentity);
+            FileIdentity fileIdentity = FileIdentity.FromUnmanagedMemory(info.FileIdentity, info.FileIdentityLength);
             List<ProviderInfo> providers = CloudSync.spaces[PathUtils.GetSpaceName(fullPath)].providerInfos;
 
-            PushToCloudUpdate(fullPath, fileId, providers, cancellationToken);
+            PushToCloudUpdate(fullPath, fileIdentity.fileID, providers, cancellationToken);
         }
 
         private void PushToCloudUpdate(string fullPath, string fileId, List<ProviderInfo> providers, CancellationToken cancellationToken)
@@ -270,7 +270,7 @@ namespace OnedataDrive
 
             string parentPath = PathUtils.GetParentPath(fullPath);
             CF_PLACEHOLDER_BASIC_INFO parentInfo = CldApiUtils.GetBasicInfo(parentPath);
-            string parentId = System.Text.Encoding.Unicode.GetString(parentInfo.FileIdentity);
+            FileIdentity parentFileIdentity = FileIdentity.FromUnmanagedMemory(parentInfo.FileIdentity, parentInfo.FileIdentityLength);
             SpaceFolder spaceFolder = CloudSync.spaces[PathUtils.GetSpaceName(fullPath)];
             List<ProviderInfo> providers = spaceFolder.providerInfos;
 
@@ -280,7 +280,7 @@ namespace OnedataDrive
             bool isDir = (attributes & FileAttributes.Directory) == FileAttributes.Directory;
 
             // push empty file/folder to cloud
-            id = CreateCloudEntry(fullPath, parentId, providers, directory: isDir);
+            id = CreateCloudEntry(fullPath, parentFileIdentity.fileID, providers, directory: isDir);
             loggerFormater.LogFileOP(LogLevel.Info, "RegisterFile", "Created empty cloud entry", opID: opID);
 
             // register it as placeholder - not in sync

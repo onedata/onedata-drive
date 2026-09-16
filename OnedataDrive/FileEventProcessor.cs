@@ -218,7 +218,7 @@ namespace OnedataDrive
             }
 
             using CfHandle handle = new(placeholderPath, flags);
-            CF_PLACEHOLDER_BASIC_INFO standardInfo = CldApiUtils.GetBasicInfo(handle);
+            CF_PLACEHOLDER_BASIC_INFO basicInfo = CldApiUtils.GetBasicInfo(handle);
 
             CF_FILE_RANGE[] dehydrateRanges = [];
             if (!directory && processedEvent.@event.data.mtime != null)
@@ -273,7 +273,7 @@ namespace OnedataDrive
                     using CfHandle handleNewPath = new(newPath, flags);
 
                     HRESULT inSyncHres = CfSetInSyncState(handleNewPath.GetDangerousHandle(),
-                    standardInfo.InSyncState, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
+                    basicInfo.InSyncState, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
                     if (inSyncHres != HRESULT.S_OK)
                     {
                         throw new Exception($"CfSetInSync HRES number: {((int)inSyncHres)}" +

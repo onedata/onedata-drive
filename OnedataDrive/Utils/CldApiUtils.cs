@@ -28,7 +28,6 @@ static class CldApiUtils
         PlaceholderExceptionGen(hresInfo, handle.path);
 
         CF_PLACEHOLDER_BASIC_INFO info = Marshal.PtrToStructure<CF_PLACEHOLDER_BASIC_INFO>(memory.GetPointer());
-        info.FileIdentity = Encoding.Unicode.GetBytes(Marshal.PtrToStringAuto((nint)(memory.GetPointer() + returnedLength - info.FileIdentityLength), (int)info.FileIdentityLength / 2) ?? "");
 
         return info;
     }
@@ -49,7 +48,6 @@ static class CldApiUtils
         PlaceholderExceptionGen(hresInfo, handle.path);
 
         CF_PLACEHOLDER_STANDARD_INFO info = Marshal.PtrToStructure<CF_PLACEHOLDER_STANDARD_INFO>(memory.GetPointer());
-        info.FileIdentity = Encoding.Unicode.GetBytes(Marshal.PtrToStringAuto((nint)(memory.GetPointer() + returnedLength - info.FileIdentityLength), (int)info.FileIdentityLength / 2) ?? "");
 
         return info;
     }
