@@ -30,6 +30,13 @@ static class CldApiUtils
 
         CF_PLACEHOLDER_BASIC_INFO info = Marshal.PtrToStructure<CF_PLACEHOLDER_BASIC_INFO>(memory.GetPointer());
 
+        if (info.FileIdentityLength > 0)
+        {
+            IntPtr fileIdentityPtr = IntPtr.Add(memory.GetPointer(), Marshal.OffsetOf<CF_PLACEHOLDER_BASIC_INFO>(nameof(CF_PLACEHOLDER_BASIC_INFO.FileIdentity)).ToInt32());
+            info.FileIdentity = new byte[info.FileIdentityLength];
+            Marshal.Copy(fileIdentityPtr, info.FileIdentity, 0, (int)info.FileIdentityLength);
+        }
+
         return info;
     }
 
@@ -54,9 +61,9 @@ static class CldApiUtils
         // Read the full FileIdentity based on actual length using Vanara extension
         if (info.FileIdentityLength > 0)
         {
-            IntPtr fileIdPtr = IntPtr.Add(memory.GetPointer(), Marshal.OffsetOf<CF_PLACEHOLDER_STANDARD_INFO>(nameof(CF_PLACEHOLDER_STANDARD_INFO.FileIdentity)).ToInt32());
+            IntPtr fileIdentityPtr = IntPtr.Add(memory.GetPointer(), Marshal.OffsetOf<CF_PLACEHOLDER_STANDARD_INFO>(nameof(CF_PLACEHOLDER_STANDARD_INFO.FileIdentity)).ToInt32());
             info.FileIdentity = new byte[info.FileIdentityLength];
-            Marshal.Copy(fileIdPtr, info.FileIdentity, 0, (int)info.FileIdentityLength);
+            Marshal.Copy(fileIdentityPtr, info.FileIdentity, 0, (int)info.FileIdentityLength);
         }
 
         return info;

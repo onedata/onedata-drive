@@ -89,6 +89,7 @@ namespace OnedataDrive
                 throw new ArgumentException("Invalid unmanaged memory size (too short)");
             }
 
+
             int offset = 0;
 
             // Read fileType
