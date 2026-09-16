@@ -70,7 +70,6 @@ namespace OnedataDrive
 
                     HashSet<string> placeholderNames = new HashSet<string>();
                     using UnmanagedMem placeholderArrayMemory = new UnmanagedMem((uint)(Marshal.SizeOf(typeof(CF_PLACEHOLDER_CREATE_INFO)) * PLACEHOLDER_BATCH_SIZE));
-                    string parentId = PathUtils.GetPlaceholderId(folderPath);
                     SpaceFolder space = PathUtils.GetSpaceFolder(folderPath);
                     int placeholderTotalCount = 0;
                     int entriesProcessed = 0;
@@ -82,7 +81,7 @@ namespace OnedataDrive
                         CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION;
 
                         // fetch placeholders - done
-                        DirChildren dirChildren = await RestClient.GetFilesAndSubdirs(parentId, space.providerInfos, limit: PLACEHOLDER_BATCH_SIZE, nextPageToken: nextPageToken, cancelToken: token);
+                        DirChildren dirChildren = await RestClient.GetFilesAndSubdirs(callback.fileIdentity.fileID, space.providerInfos, limit: PLACEHOLDER_BATCH_SIZE, nextPageToken: nextPageToken, cancelToken: token);
                         nextPageToken = dirChildren.nextPageToken;
                         isLast = dirChildren.isLast;
 
