@@ -7,6 +7,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Web;
+using System.Xml.Linq;
 using Vanara.PInvoke;
 
 namespace OnedataDrive
@@ -519,11 +520,16 @@ namespace OnedataDrive
             {
                 throw new ArgumentException("File ID cannot be null or empty", nameof(fileId));
             }
+
+            JsonObject json = new JsonObject();
+            json["attributes"] = new JsonArray("fileId", "index", "type", "activePermissionsType", "posixPermissions", "name", "conflictingName", "parentFileId", "creationTime", "atime", "mtime", "ctime", "size", "directShareIds", "symlinkValue");
+            StringContent content = new StringContent(json.ToJsonString(), mediaType: new MediaTypeHeaderValue("application/json"));
+
             string url = "https://"
                         + providerDomain
                         + "/api/v3/oneprovider/data/"
                         + fileId;
-            return await OnedataGet<FileAttribute>(url, token: token);
+            return await OnedataGet<FileAttribute>(url, content: content, token: token);
         }
 
         /// <summary>
@@ -557,12 +563,17 @@ namespace OnedataDrive
             {
                 throw new ArgumentException("File ID cannot be null or empty", nameof(fileId));
             }
+
+            JsonObject json = new JsonObject();
+            json["attributes"] = new JsonArray("fileId", "index", "type", "activePermissionsType", "posixPermissions", "name", "conflictingName", "parentFileId", "creationTime", "atime", "mtime", "ctime", "size", "directShareIds", "symlinkValue");
+            StringContent content = new StringContent(json.ToJsonString(), mediaType: new MediaTypeHeaderValue("application/json"));
+
             Func<ProviderInfo, Task<FileAttribute>> func = async (info) => {
                 string url = "https://"
                         + info.providerDomain
                         + "/api/v3/oneprovider/data/"
                         + fileId;
-                return await OnedataGet<FileAttribute>(url, token: token);
+                return await OnedataGet<FileAttribute>(url, content: content, token: token);
             };
 
             return await MultiProviderWorker(providerInfos, func);

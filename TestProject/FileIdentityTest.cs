@@ -25,7 +25,7 @@ namespace TestProject
         {
             Assert.AreEqual(expected.fileType, actual.fileType, message + " - fileType");
             Assert.AreEqual(expected.fileID, actual.fileID, message + " - fileID");
-            Assert.AreEqual(expected.symlinkTargetId, actual.symlinkTargetId, message + " - symlinkTarget");
+            Assert.AreEqual(expected.symlinkTargetPath, actual.symlinkTargetPath, message + " - symlinkTarget");
         }
 
         private static byte[] ReadAll(UnmanagedMem unmanagedMem)
@@ -288,7 +288,7 @@ namespace TestProject
         {
             FileIdentity fileIdentity = new();
 
-            Assert.IsNull(fileIdentity.symlinkTargetId, "Default symlinkTarget is null (no symlink)");
+            Assert.IsNull(fileIdentity.symlinkTargetPath, "Default symlinkTarget is null (no symlink)");
         }
 
         [TestMethod]
@@ -296,7 +296,7 @@ namespace TestProject
         {
             FileIdentity fileIdentity = new("1234567890abcdef", FileTypeOD.REG);
 
-            Assert.IsNull(fileIdentity.symlinkTargetId, "Omitted symlinkTarget is null");
+            Assert.IsNull(fileIdentity.symlinkTargetPath, "Omitted symlinkTarget is null");
         }
 
         [TestMethod]
@@ -412,7 +412,7 @@ namespace TestProject
 
             FileIdentity restored = RoundTrip(original);
 
-            Assert.IsNull(restored.symlinkTargetId,
+            Assert.IsNull(restored.symlinkTargetPath,
                 "Null stays null - it is not turned into an empty string");
         }
 
@@ -423,7 +423,7 @@ namespace TestProject
 
             FileIdentity restored = RoundTrip(original);
 
-            Assert.AreEqual("", restored.symlinkTargetId,
+            Assert.AreEqual("", restored.symlinkTargetPath,
                 "Empty target comes back as empty string, not null");
         }
 
@@ -464,7 +464,7 @@ namespace TestProject
 
                 FileIdentity restored = RoundTrip(original);
 
-                Assert.AreEqual(target.Length, restored.symlinkTargetId?.Length,
+                Assert.AreEqual(target.Length, restored.symlinkTargetPath?.Length,
                     "Nothing truncated at target length " + length);
                 AssertIdentity(original, restored, "Long symlinkTarget is reversible");
             }
@@ -488,7 +488,7 @@ namespace TestProject
 
             Assert.AreEqual(FileTypeOD.DIR, restored.fileType, "fileType read from the legacy header");
             Assert.AreEqual(fileID, restored.fileID, "fileID read from the legacy payload");
-            Assert.IsNull(restored.symlinkTargetId, "Missing target section reads as null");
+            Assert.IsNull(restored.symlinkTargetPath, "Missing target section reads as null");
         }
 
         [TestMethod]
@@ -505,7 +505,7 @@ namespace TestProject
             FileIdentity restored = FileIdentity.FromUnmanagedMemory(unmanagedMem);
 
             Assert.AreEqual("abc", restored.fileID, "fileID is still read");
-            Assert.AreEqual("", restored.symlinkTargetId, "Over-long target does not run past the block");
+            Assert.AreEqual("", restored.symlinkTargetPath, "Over-long target does not run past the block");
         }
 
         [TestMethod]
@@ -520,7 +520,7 @@ namespace TestProject
             FileIdentity restored = FileIdentity.FromUnmanagedMemory(unmanagedMem);
 
             Assert.AreEqual("", restored.fileID, "fileID is still read");
-            Assert.AreEqual("", restored.symlinkTargetId, "Negative length is treated as no target data");
+            Assert.AreEqual("", restored.symlinkTargetPath, "Negative length is treated as no target data");
         }
 
         #endregion

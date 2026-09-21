@@ -1,15 +1,20 @@
+using OnedataDrive.ErrorHandling;
 using OnedataDrive.JSON_Object;
 
 namespace OnedataDrive.Utils
 {
     public static class SymlinkTargetResolver
     {
-        public static async Task<FileAttribute> ResolveSymlinkTarget(string symlinkTarget, List<ProviderInfo> providerInfos, CancellationToken token)
+        public static FileAttribute ResolveSymlinkTarget(string symlinkTarget, List<ProviderInfo> providerInfos, CancellationToken token, out string resolvedTargetPath)
         {
-            if (string.IsNullOrEmpty(symlinkTarget))
+            try
             {
-                throw new ArgumentException("Symlink target cannot be null or empty", nameof(symlinkTarget));
-            }
+                resolvedTargetPath = string.Empty;
+
+                if (string.IsNullOrEmpty(symlinkTarget))
+                {
+                    throw new ArgumentException("Symlink target cannot be null or empty", nameof(symlinkTarget));
+                }
                 int spaceIdTokenStart = symlinkTarget.IndexOf('<');
                 int spaceIdTokenEnd = symlinkTarget.IndexOf('>');
                 string? spaceId = spaceIdTokenStart >= 0 && spaceIdTokenEnd > spaceIdTokenStart
@@ -32,19 +37,31 @@ namespace OnedataDrive.Utils
                     ? symlinkTarget.Substring(spaceIdTokenEnd + 1)
                     : symlinkTarget;
 
-                FileAttribute space = await RestClient.GetFileAttribute(spaceId, providerInfos, token);
+                FileAttribute space = RestClient.GetFileAttribute(spaceId, providerInfos, token).Result;
                 string targetPath = "/" + space.name + pathInSpace;
 
-                FileId targetFile = await RestClient.LookupFileId(providerInfos, targetPath, token);
-                FileAttribute target = await RestClient.GetFileAttribute(targetFile.fileId, providerInfos, token);
+                FileId targetFile = RestClient.LookupFileId(providerInfos, targetPath, token).Result;
+                FileAttribute target = RestClient.GetFileAttribute(targetFile.fileId, providerInfos, token).Result;
                 if (target.fileType == FileTypeOD.SYMLNK)
                 {
-                    return await ResolveSymlinkTarget(target.symlinkValue, providerInfos, token);
+                    return ResolveSymlinkTarget(target.symlinkValue, providerInfos, token, out resolvedTargetPath);
                 }
                 else
                 {
+                    resolvedTargetPath = symlinkTarget;
                     return target;
                 }
+            }
+            catch (AggregateException e) when (e.InnerException is NoSuchCloudFile)
+            {
+                throw new CanNotResolveSymlinkTarget($"Failed to resolve symlink target: {symlinkTarget}", e);
+            }
         }
+    }
+
+    public class CanNotResolveSymlinkTarget : Exception
+    {
+        public CanNotResolveSymlinkTarget(string message) : base(message) { }
+        public CanNotResolveSymlinkTarget(string message, Exception innerException) : base(message, innerException) { }
     }
 }

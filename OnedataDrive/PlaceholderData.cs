@@ -31,7 +31,7 @@ namespace OnedataDrive
         public PlaceholderData(FileAttribute fileAttribute)
         {
             this.Size = fileAttribute.size;
-            this.FileIdentity = new FileIdentity(fileAttribute.file_id, fileAttribute.fileType);
+            this.FileIdentity = new FileIdentity(fileAttribute.fileId, fileAttribute.fileType);
             this.Atime = fileAttribute.atime;
             this.Mtime = fileAttribute.mtime;
             this.Ctime = fileAttribute.ctime;

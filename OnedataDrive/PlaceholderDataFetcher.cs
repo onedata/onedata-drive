@@ -62,7 +62,7 @@ namespace OnedataDrive
                 FileAttribute fileAttribute;
                 if (fileIdentity.fileType == FileTypeOD.SYMLNK)
                 {
-                    fileAttribute = await RestClient.GetFileAttribute(fileIdentity.symlinkTargetId ?? "", space.providerInfos, token);
+                    fileAttribute = SymlinkTargetResolver.ResolveSymlinkTarget(fileIdentity.symlinkTargetPath ?? "", space.providerInfos, token, out _);
                     if (fileAttribute.fileType != FileTypeOD.REG)
                     {
                         throw new Exception($"Symlink target is not a regular file. Actual: {fileAttribute.fileType}");

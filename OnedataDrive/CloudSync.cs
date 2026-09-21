@@ -392,7 +392,7 @@ namespace OnedataDrive
 
                                 placeholderAdded = true;
 
-                                spaceFolder = new(spaceName, fileInfo.file_id, space.Key,
+                                spaceFolder = new(spaceName, fileInfo.fileId, space.Key,
                                     new ProviderInfo(providerId, providerDomain), configuration.enableRefresh);
                             }
                             else

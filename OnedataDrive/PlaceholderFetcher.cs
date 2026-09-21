@@ -97,13 +97,19 @@ namespace OnedataDrive
                             {
                                 try
                                 {
-                                    FileAttribute symlinkTarget = await SymlinkTargetResolver.ResolveSymlinkTarget(child.symlinkValue, space.providerInfos, token);
+                                    FileAttribute symlinkTarget = SymlinkTargetResolver.ResolveSymlinkTarget(child.symlinkValue, space.providerInfos, token, out string resolvedTargetPath);
                                     data.Type = symlinkTarget.fileType;
-                                    data.FileIdentity.symlinkTargetId = symlinkTarget.file_id;
+                                    data.FileIdentity.symlinkTargetPath = child.symlinkValue;
                                 }
-                                catch (NoSuchCloudFile e)
+                                catch (CanNotResolveSymlinkTarget)
                                 {
                                     data.Type = FileTypeOD.REG;
+                                    data.FileIdentity.symlinkTargetPath = child.symlinkValue;
+                                }
+                                catch (ArgumentException)
+                                {
+                                    loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS", "Failed to resolve symlink target", moreInfo: [$"Symlink value: {child.symlinkValue}", $"File name: {child.name}"], opID: opID);
+                                    throw;
                                 }
                             }
                             if (data.Type != FileTypeOD.REG && data.Type != FileTypeOD.DIR)
