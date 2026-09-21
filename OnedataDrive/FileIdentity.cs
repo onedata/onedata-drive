@@ -14,20 +14,20 @@ namespace OnedataDrive
 
         public string fileID { get; set; }
         public FileTypeOD fileType { get; set; }
-        public string? symlinkTarget { get; set; }
+        public string? symlinkTargetId { get; set; }
 
         public FileIdentity()
         {
             this.fileType = FileTypeOD.EMPTY;
             this.fileID = "";
-            this.symlinkTarget = null;
+            this.symlinkTargetId = null;
         }
 
-        public FileIdentity(string fileID, FileTypeOD fileType, string? symlinkTarget = null)
+        public FileIdentity(string fileID, FileTypeOD fileType, string? symlinkTargetId = null)
         {
             this.fileID = fileID;
             this.fileType = fileType;
-            this.symlinkTarget = symlinkTarget;
+            this.symlinkTargetId = symlinkTargetId;
         }
 
         /// <summary>
@@ -42,9 +42,9 @@ namespace OnedataDrive
             uint stringLength = (uint)fileIDBytes.Length;
 
             // symlinkTarget == null means "no target at all", empty string means "target is empty"
-            byte[] symlinkTargetBytes = symlinkTarget != null ? Encoding.UTF8.GetBytes(symlinkTarget) : [];
-            uint symlinkTargetLength = symlinkTarget != null ? (uint)symlinkTargetBytes.Length : 0;
-            bool writeSymlinkTarget = symlinkTarget != null;
+            byte[] symlinkTargetBytes = symlinkTargetId != null ? Encoding.UTF8.GetBytes(symlinkTargetId) : [];
+            uint symlinkTargetLength = symlinkTargetId != null ? (uint)symlinkTargetBytes.Length : 0;
+            bool writeSymlinkTarget = symlinkTargetId != null;
 
             // Layout: sizeof(FileTypeOD) + sizeof(int) + N (fileID) [+ sizeof(int) + M (symlinkTarget)]
             uint totalSize = (uint)sizeof(FileTypeOD) + sizeof(int) + stringLength;

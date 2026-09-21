@@ -95,14 +95,9 @@ namespace OnedataDrive
                             PlaceholderData data = new(fileIdentity, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.fileType);
                             if (data.Type == FileTypeOD.SYMLNK)
                             {
-                                int spaceIdTokenEnd = child.symlinkValue.IndexOf('>');
-                                string pathInSpace = spaceIdTokenEnd >= 0
-                                    ? child.symlinkValue.Substring(spaceIdTokenEnd + 1)
-                                    : child.symlinkValue;
-                                string targetPath = "/" + space.name + pathInSpace;
-                                FileId targetFile = await RestClient.LookupFileId(space.providerInfos, targetPath, token);
-                                FileAttribute target = await RestClient.GetFileAttribute(targetFile.fileId, space.providerInfos, token);
-                                data.Type = target.fileType;
+                                FileAttribute symlinkTarget = await SymlinkTargetResolver.ResolveSymlinkTarget(child.symlinkValue, space.providerInfos, token);
+                                data.Type = symlinkTarget.fileType;
+                                data.FileIdentity.symlinkTargetId = symlinkTarget.file_id;
                             }
                             if (data.Type != FileTypeOD.REG && data.Type != FileTypeOD.DIR)
                             {

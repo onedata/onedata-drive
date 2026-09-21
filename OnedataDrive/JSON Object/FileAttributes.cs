@@ -24,5 +24,6 @@ namespace OnedataDrive.JSON_Object
         public List<string> shares { get; set; } = new();
         public int hardlinks_count { get; set; }
         public string index { get; set; } = "";
+        public string symlinkValue { get; set; } = "";
     }
 }
