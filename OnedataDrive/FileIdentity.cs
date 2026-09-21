@@ -8,17 +8,20 @@ namespace OnedataDrive
     {
         public string fileID { get; set; }
         public FileTypeOD fileType { get; set; }
+        public string? symlinkTarget { get; set; }
 
         public FileIdentity()
         {
             this.fileType = FileTypeOD.EMPTY;
             this.fileID = "";
+            this.symlinkTarget = null;
         }
 
-        public FileIdentity(string fileID, FileTypeOD fileType)
+        public FileIdentity(string fileID, FileTypeOD fileType, string? symlinkTarget = null)
         {
             this.fileID = fileID;
             this.fileType = fileType;
+            this.symlinkTarget = symlinkTarget;
         }
 
         /// <summary>
