@@ -1,5 +1,8 @@
 # Release notes for project Onedata Drive
 
+## 25.1.3
+- Handle symlinks as regular files/directories
+
 ## 25.1.2
 - Change app display name
 
