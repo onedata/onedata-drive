@@ -95,9 +95,16 @@ namespace OnedataDrive
                             PlaceholderData data = new(fileIdentity, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.fileType);
                             if (data.Type == FileTypeOD.SYMLNK)
                             {
-                                FileAttribute symlinkTarget = await SymlinkTargetResolver.ResolveSymlinkTarget(child.symlinkValue, space.providerInfos, token);
-                                data.Type = symlinkTarget.fileType;
-                                data.FileIdentity.symlinkTargetId = symlinkTarget.file_id;
+                                try
+                                {
+                                    FileAttribute symlinkTarget = await SymlinkTargetResolver.ResolveSymlinkTarget(child.symlinkValue, space.providerInfos, token);
+                                    data.Type = symlinkTarget.fileType;
+                                    data.FileIdentity.symlinkTargetId = symlinkTarget.file_id;
+                                }
+                                catch (NoSuchCloudFile e)
+                                {
+                                    data.Type = FileTypeOD.REG;
+                                }
                             }
                             if (data.Type != FileTypeOD.REG && data.Type != FileTypeOD.DIR)
                             {

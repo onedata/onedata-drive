@@ -515,6 +515,10 @@ namespace OnedataDrive
 
         public static async Task<FileAttribute> GetFileAttribute(string fileId, string providerDomain, CancellationToken token = default)
         {
+            if (string.IsNullOrEmpty(fileId))
+            {
+                throw new ArgumentException("File ID cannot be null or empty", nameof(fileId));
+            }
             string url = "https://"
                         + providerDomain
                         + "/api/v3/oneprovider/data/"
@@ -530,11 +534,16 @@ namespace OnedataDrive
         public static async Task<FileId> LookupFileId(List<ProviderInfo> providerInfos, string path,
             CancellationToken token = default)
         {
+            string encodedPath = HttpEncodePath(path);
+            if (encodedPath.StartsWith("/"))
+            {
+                encodedPath = encodedPath.Substring(1);
+            }
             Func<ProviderInfo, Task<FileId>> func = async (info) => {
                 string url = "https://"
                             + info.providerDomain
                             + "/api/v3/oneprovider/lookup-file-id/"
-                            + HttpEncodePath(path);
+                            + encodedPath;
                 return await OnedataPost<FileId>(url, null, token: token);
             };
 
@@ -544,6 +553,10 @@ namespace OnedataDrive
         public static async Task<FileAttribute> GetFileAttribute(string fileId, List<ProviderInfo> providerInfos, 
             CancellationToken token = default)
         {
+            if (string.IsNullOrEmpty(fileId))
+            {
+                throw new ArgumentException("File ID cannot be null or empty", nameof(fileId));
+            }
             Func<ProviderInfo, Task<FileAttribute>> func = async (info) => {
                 string url = "https://"
                         + info.providerDomain

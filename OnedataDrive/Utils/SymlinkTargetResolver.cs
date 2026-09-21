@@ -15,10 +15,17 @@ namespace OnedataDrive.Utils
                 string? spaceId = spaceIdTokenStart >= 0 && spaceIdTokenEnd > spaceIdTokenStart
                     ? symlinkTarget.Substring(spaceIdTokenStart + 1, spaceIdTokenEnd - spaceIdTokenStart - 1)
                     : null;
-                
+
                 if (spaceId == null)
                 {
                     throw new ArgumentException($"Symlink target does not contain a valid space ID. Actual: {symlinkTarget}", nameof(symlinkTarget));
+                }
+
+                // The token may carry a "__onedata_space_id:" prefix - the space ID itself follows it
+                const string SPACE_ID_PREFIX = "__onedata_space_id:";
+                if (spaceId.StartsWith(SPACE_ID_PREFIX))
+                {
+                    spaceId = spaceId.Substring(SPACE_ID_PREFIX.Length);
                 }
 
                 string pathInSpace = spaceIdTokenEnd >= 0

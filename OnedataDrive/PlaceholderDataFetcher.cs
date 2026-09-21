@@ -59,8 +59,22 @@ namespace OnedataDrive
                 FileIdentity fileIdentity = callback.fileIdentity;
                 SpaceFolder space = CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)];
 
-                FileAttribute fileAttribute = await RestClient.GetFileAttribute(fileIdentity.fileID, space.providerInfos, token);
-                if (fileAttribute.size != callback.fileSize && fileAttribute.fileType != FileTypeOD.SYMLNK)
+                FileAttribute fileAttribute;
+                if (fileIdentity.fileType == FileTypeOD.SYMLNK)
+                {
+                    fileAttribute = await RestClient.GetFileAttribute(fileIdentity.symlinkTargetId ?? "", space.providerInfos, token);
+                    if (fileAttribute.fileType != FileTypeOD.REG)
+                    {
+                        throw new Exception($"Symlink target is not a regular file. Actual: {fileAttribute.fileType}");
+                    }
+                }
+                else
+                {
+                    fileAttribute = await RestClient.GetFileAttribute(fileIdentity.fileID, space.providerInfos, token);
+                }
+                
+                
+                if (fileAttribute.size != callback.fileSize)
                 {
                     loggerFormater.LogFileOP(LogLevel.Warn, "FETCH DATA", $"Size mismatch detected (local: {callback.fileSize}, cloud: {fileAttribute.size}), restarting hydration", opID: opID);
 
