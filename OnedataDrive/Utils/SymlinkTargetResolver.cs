@@ -18,7 +18,7 @@ namespace OnedataDrive.Utils
                 
                 if (spaceId == null)
                 {
-                    throw new ArgumentException("Symlink target does not contain a valid space ID", nameof(symlinkTarget));
+                    throw new ArgumentException($"Symlink target does not contain a valid space ID. Actual: {symlinkTarget}", nameof(symlinkTarget));
                 }
 
                 string pathInSpace = spaceIdTokenEnd >= 0
