@@ -25,6 +25,7 @@ namespace TestProject
         {
             Assert.AreEqual(expected.fileType, actual.fileType, message + " - fileType");
             Assert.AreEqual(expected.fileID, actual.fileID, message + " - fileID");
+            Assert.AreEqual(expected.symlinkTarget, actual.symlinkTarget, message + " - symlinkTarget");
         }
 
         private static byte[] ReadAll(UnmanagedMem unmanagedMem)
@@ -280,6 +281,250 @@ namespace TestProject
 
         #endregion
 
+        #region symlinkTarget
+
+        [TestMethod]
+        public void DefaultConstructor_SymlinkTargetIsNull()
+        {
+            FileIdentity fileIdentity = new();
+
+            Assert.IsNull(fileIdentity.symlinkTarget, "Default symlinkTarget is null (no symlink)");
+        }
+
+        [TestMethod]
+        public void Constructor_SymlinkTargetDefaultsToNull()
+        {
+            FileIdentity fileIdentity = new("1234567890abcdef", FileTypeOD.REG);
+
+            Assert.IsNull(fileIdentity.symlinkTarget, "Omitted symlinkTarget is null");
+        }
+
+        [TestMethod]
+        public void ToUnmanagedMemory_NullSymlinkTarget_KeepsLegacySize()
+        {
+            // No target section at all - identities without a symlink stay byte compatible
+            const string fileID = "1234567890abcdef";
+
+            using UnmanagedMem unmanagedMem = new FileIdentity(fileID, FileTypeOD.REG).ToUnmanagedMemory();
+
+            Assert.AreEqual(HEADER_SIZE + Encoding.UTF8.GetByteCount(fileID), unmanagedMem.GetSize(),
+                "Null symlinkTarget allocates nothing extra");
+        }
+
+        [TestMethod]
+        public void ToUnmanagedMemory_SymlinkTarget_SizeIsBothSections()
+        {
+            const string fileID = "1234567890abcdef";
+            const string symlinkTarget = "/MySpace/dir/target";
+
+            using UnmanagedMem unmanagedMem = new FileIdentity(fileID, FileTypeOD.SYMLNK, symlinkTarget)
+                .ToUnmanagedMemory();
+
+            uint expectedSize = HEADER_SIZE + (uint)Encoding.UTF8.GetByteCount(fileID)
+                + sizeof(int) + (uint)Encoding.UTF8.GetByteCount(symlinkTarget);
+
+            Assert.AreEqual(expectedSize, unmanagedMem.GetSize(),
+                "Target length prefix and UTF-8 bytes are appended");
+        }
+
+        [TestMethod]
+        public void ToUnmanagedMemory_SymlinkTarget_Layout_MatchesDocumentedBytes()
+        {
+            // fileType = SYMLNK (3), fileID length = 3, data = "abc",
+            // symlinkTarget length = 3, data = "xyz"
+            using UnmanagedMem unmanagedMem = new FileIdentity("abc", FileTypeOD.SYMLNK, "xyz")
+                .ToUnmanagedMemory();
+
+            Assert.AreEqual("03000000030000006162630300000078797A",
+                Convert.ToHexString(ReadAll(unmanagedMem)),
+                "Target length and raw UTF-8 bytes follow the fileID");
+        }
+
+        [TestMethod]
+        public void ToUnmanagedMemory_EmptySymlinkTarget_WritesZeroLengthSection()
+        {
+            // Empty string is a real value distinct from null - it still occupies a length prefix
+            using UnmanagedMem unmanagedMem = new FileIdentity("abc", FileTypeOD.SYMLNK, "")
+                .ToUnmanagedMemory();
+
+            Assert.AreEqual(HEADER_SIZE + 3 + sizeof(int), unmanagedMem.GetSize(),
+                "Empty target is a length prefix with no payload");
+        }
+
+        [TestMethod]
+        public void ToUnmanagedMemory_SymlinkTarget_NoTrailingBytes()
+        {
+            const string fileID = "1234567890abcdef";
+            const string symlinkTarget = "/MySpace/Playground/files 1000";
+
+            using UnmanagedMem unmanagedMem = new FileIdentity(fileID, FileTypeOD.SYMLNK, symlinkTarget)
+                .ToUnmanagedMemory();
+            byte[] bytes = ReadAll(unmanagedMem);
+
+            int fileIDLength = BitConverter.ToInt32(bytes, sizeof(int));
+            int targetLength = BitConverter.ToInt32(bytes, (int)HEADER_SIZE + fileIDLength);
+
+            Assert.AreEqual(Encoding.UTF8.GetByteCount(symlinkTarget), targetLength,
+                "Target length prefix written after the fileID payload");
+            Assert.AreEqual((int)HEADER_SIZE + fileIDLength + sizeof(int) + targetLength, bytes.Length,
+                "Reported size covers both sections only");
+        }
+
+        [TestMethod]
+        public void RoundTrip_SymlinkTarget_Variants()
+        {
+            List<(string target, string description)> values = new() {
+                ("", "Empty target"),
+                ("/", "Root of the space"),
+                ("/Playground/files 1000", "Target with a space in the name"),
+                ("/MySpace/ěščřžýáíé", "Accented Latin - multi byte UTF-8"),
+                ("/MySpace/ファイル", "CJK"),
+                ("/MySpace/🙂🙃", "Emoji - surrogate pairs"),
+                ("<__onedata_space_id:4ef7>/Playground", "Space id token kept verbatim"),
+                ("relative/target", "Relative target"),
+            };
+
+            foreach (var value in values)
+            {
+                FileIdentity original = new("1234567890abcdef", FileTypeOD.SYMLNK, value.target);
+
+                AssertIdentity(original, RoundTrip(original),
+                    "symlinkTarget is reversible - " + value.description);
+            }
+        }
+
+        [TestMethod]
+        public void RoundTrip_SymlinkTarget_OnAllFileTypes()
+        {
+            foreach (FileTypeOD fileType in Enum.GetValues<FileTypeOD>())
+            {
+                FileIdentity original = new("file-id-" + fileType, fileType, "/MySpace/target");
+
+                AssertIdentity(original, RoundTrip(original),
+                    "symlinkTarget is reversible for fileType " + fileType);
+            }
+        }
+
+        [TestMethod]
+        public void RoundTrip_NullSymlinkTarget_StaysNull()
+        {
+            FileIdentity original = new("1234567890abcdef", FileTypeOD.REG, null);
+
+            FileIdentity restored = RoundTrip(original);
+
+            Assert.IsNull(restored.symlinkTarget,
+                "Null stays null - it is not turned into an empty string");
+        }
+
+        [TestMethod]
+        public void RoundTrip_EmptySymlinkTarget_StaysEmpty()
+        {
+            FileIdentity original = new("1234567890abcdef", FileTypeOD.SYMLNK, "");
+
+            FileIdentity restored = RoundTrip(original);
+
+            Assert.AreEqual("", restored.symlinkTarget,
+                "Empty target comes back as empty string, not null");
+        }
+
+        [TestMethod]
+        public void RoundTrip_NullAndEmptySymlinkTarget_AreDistinguishable()
+        {
+            FileIdentity withNull = new("1234567890abcdef", FileTypeOD.SYMLNK, null);
+            FileIdentity withEmpty = new("1234567890abcdef", FileTypeOD.SYMLNK, "");
+
+            Assert.AreNotEqual(RoundTrip(withNull), RoundTrip(withEmpty),
+                "null (no symlink) and empty target serialize differently");
+        }
+
+        [TestMethod]
+        public void RoundTrip_SymlinkTarget_IsIdempotent()
+        {
+            FileIdentity original = new("1234567890abcdef", FileTypeOD.SYMLNK, "/MySpace/Playground/files 1000");
+
+            using UnmanagedMem first = original.ToUnmanagedMemory();
+            FileIdentity restored = FileIdentity.FromUnmanagedMemory(first);
+            byte[] firstBytes = ReadAll(first);
+
+            using UnmanagedMem second = restored.ToUnmanagedMemory();
+
+            CollectionAssert.AreEqual(firstBytes, ReadAll(second),
+                "Second conversion produces byte identical memory");
+            AssertIdentity(restored, FileIdentity.FromUnmanagedMemory(second),
+                "Second round trip is stable");
+        }
+
+        [TestMethod]
+        public void RoundTrip_LongSymlinkTarget()
+        {
+            foreach (int length in new List<int> { 1023, 1024, 1025, 65536 })
+            {
+                string target = "/MySpace/" + new string('x', length);
+                FileIdentity original = new("1234567890abcdef", FileTypeOD.SYMLNK, target);
+
+                FileIdentity restored = RoundTrip(original);
+
+                Assert.AreEqual(target.Length, restored.symlinkTarget?.Length,
+                    "Nothing truncated at target length " + length);
+                AssertIdentity(original, restored, "Long symlinkTarget is reversible");
+            }
+        }
+
+        [TestMethod]
+        public void FromUnmanagedMemory_LegacyLayoutWithoutTargetSection_IsRead()
+        {
+            // Identity written before symlinkTarget existed - hand built in the old layout
+            const string fileID = "1234567890abcdef";
+            byte[] fileIDBytes = Encoding.UTF8.GetBytes(fileID);
+            uint legacySize = HEADER_SIZE + (uint)fileIDBytes.Length;
+
+            using UnmanagedMem unmanagedMem = new(legacySize);
+            nint ptr = unmanagedMem.GetPointer();
+            Marshal.WriteInt32(ptr, (int)FileTypeOD.DIR);
+            Marshal.WriteInt32(ptr + sizeof(int), fileIDBytes.Length);
+            Marshal.Copy(fileIDBytes, 0, ptr + (int)HEADER_SIZE, fileIDBytes.Length);
+
+            FileIdentity restored = FileIdentity.FromUnmanagedMemory(unmanagedMem);
+
+            Assert.AreEqual(FileTypeOD.DIR, restored.fileType, "fileType read from the legacy header");
+            Assert.AreEqual(fileID, restored.fileID, "fileID read from the legacy payload");
+            Assert.IsNull(restored.symlinkTarget, "Missing target section reads as null");
+        }
+
+        [TestMethod]
+        public void FromUnmanagedMemory_TruncatedTargetSection_ReadsAsEmpty()
+        {
+            // A length prefix whose payload does not fit must not read past the block
+            using UnmanagedMem unmanagedMem = new(HEADER_SIZE + 3 + sizeof(int));
+            nint ptr = unmanagedMem.GetPointer();
+            Marshal.WriteInt32(ptr, (int)FileTypeOD.SYMLNK);
+            Marshal.WriteInt32(ptr + sizeof(int), 3);
+            Marshal.Copy(Encoding.UTF8.GetBytes("abc"), 0, ptr + (int)HEADER_SIZE, 3);
+            Marshal.WriteInt32(ptr + (int)HEADER_SIZE + 3, 64);
+
+            FileIdentity restored = FileIdentity.FromUnmanagedMemory(unmanagedMem);
+
+            Assert.AreEqual("abc", restored.fileID, "fileID is still read");
+            Assert.AreEqual("", restored.symlinkTarget, "Over-long target does not run past the block");
+        }
+
+        [TestMethod]
+        public void FromUnmanagedMemory_NegativeTargetLength_ReturnsEmptyTarget()
+        {
+            using UnmanagedMem unmanagedMem = new(HEADER_SIZE + sizeof(int));
+            nint ptr = unmanagedMem.GetPointer();
+            Marshal.WriteInt32(ptr, (int)FileTypeOD.SYMLNK);
+            Marshal.WriteInt32(ptr + sizeof(int), 0);
+            Marshal.WriteInt32(ptr + (int)HEADER_SIZE, -1);
+
+            FileIdentity restored = FileIdentity.FromUnmanagedMemory(unmanagedMem);
+
+            Assert.AreEqual("", restored.fileID, "fileID is still read");
+            Assert.AreEqual("", restored.symlinkTarget, "Negative length is treated as no target data");
+        }
+
+        #endregion
+
         #region documented lossy / lenient behaviour
 
         [TestMethod]
@@ -438,13 +683,15 @@ namespace TestProject
             nint ptr = unmanagedMem.GetPointer();
 
             FileIdentity exactSize = FileIdentity.FromUnmanagedMemory(ptr, unmanagedMem.GetSize());
-            // The payload is bounded by the length prefix only, so reading with an
-            // over-reported size stays inside the block and ignores the extra bytes.
+            // The symlinkTarget section is optional and bounded by the reported size, so an
+            // over-reported size can no longer be told apart from a real (empty) target section.
+            // fileType and fileID stay correct either way.
             FileIdentity paddedSize = FileIdentity.FromUnmanagedMemory(
                 ptr, unmanagedMem.GetSize() + 32);
 
             AssertIdentity(original, exactSize, "Exact size reads the whole identity");
-            AssertIdentity(original, paddedSize, "Bytes after the string are ignored");
+            Assert.AreEqual(original.fileType, paddedSize.fileType, "Bytes after the string are ignored");
+            Assert.AreEqual(original.fileID, paddedSize.fileID, "Bytes after the string are ignored");
         }
 
         #endregion
