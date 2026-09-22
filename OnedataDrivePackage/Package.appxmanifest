@@ -8,8 +8,8 @@
   IgnorableNamespaces="uap rescap desktop3">
 
   <Identity
-    Name="d97aa3fc-e760-4a1a-b382-b0487c177db3-develop"
-    Publisher="CN=Andrej Gafrik"
+    Name="MasarykUniversity.OnedataDrive"
+    Publisher="CN=7009A658-F823-4851-A639-9DC428B5F494"
     Version="25.1.3.0" />
 
   <Properties>
@@ -32,7 +32,7 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="Onedata Drive Develop"
+        DisplayName="Onedata Drive"
         Description="Onedata Drive"
         BackgroundColor="transparent"
         Square150x150Logo="Images\Square150x150Logo.png"
