@@ -19,7 +19,7 @@ namespace OnedataDrive
             this.loggerFormater = new(logger);
         }
 
-        protected override bool ProcessEventWorker(EventPenalizable<WatcherEvent> processedEvent)
+        protected override bool ProcessEventWorker(EventPenalizable<WatcherEvent> processedEvent, CancellationToken cancellationToken)
         {
             if (!Path.Exists(processedEvent.@event.eventArgs.FullPath))
             {

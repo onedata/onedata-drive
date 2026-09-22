@@ -147,7 +147,7 @@ namespace OnedataDrive.Interfaces
                     bool eventCompleted = false;
                     try
                     {
-                        eventCompleted = ProcessEventWorker(processedEvent);
+                        eventCompleted = ProcessEventWorker(processedEvent, cancellationToken);
                     }
                     catch (Exception e) 
                     {
@@ -186,7 +186,7 @@ namespace OnedataDrive.Interfaces
                         filePath: spaceNameWPrefix);
         }
 
-        protected abstract bool ProcessEventWorker(EventPenalizable<T> processedEvent);
+        protected abstract bool ProcessEventWorker(EventPenalizable<T> processedEvent, CancellationToken cancellationToken);
        
     }
 }
