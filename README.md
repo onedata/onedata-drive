@@ -25,10 +25,8 @@
 - Compatible only with **Oneprovider 25.0+**
 
 ## Installation
-- If you encounter an `untrusted certificate` error during installation, it is likely because your current version of the application was signed using a self-signed certificate.
-    - In order to install the unsigned version of the application, you have to install the certificate from the installer.
-    - `Properties -> Digital Signatures -> Details -> View Certificate -> Install Certificate -> Local Machine -> Place all certificates in the following store -> Trusted People.`
-- Before the installation of the new version, **versions older than 0.5.x should be uninstalled**
+- Before the installation of a newer version, **versions older than 25.1.1 should be uninstalled.**
+- If you encounter an **untrusted certificate** error during installation, it is likely because the version of the application you are trying to install was signed using a self-signed certificate. It is advised to only install versions from the Microsoft Store.
 
 ## Running the app
 - in order to access files Onedata Drive must be running
