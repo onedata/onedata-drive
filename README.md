@@ -1,8 +1,10 @@
 # Onedata Drive
 
-**The application is currently under development. Available installation packages are alpha versions. It is not intended for use with production data!**
+**The application is currently under development. Available installation packages are beta versions. It is not intended for use with production data!**
 
 **We recommend running the application in `read-only` mode, as concurrent data modifications or unexpected crashes could lead to data corruption.**
+
+**The latest version of the application can be downloaded from the [Microsoft Store](https://apps.microsoft.com/detail/9p6h2nt9wqwm?hl=sk-SK&gl=SK)**
 
 <hr>
 
