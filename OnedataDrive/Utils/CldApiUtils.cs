@@ -3,6 +3,7 @@ using OnedataDrive.JSON_Object;
 using OnedataDrive.Utils;
 using System.Runtime.InteropServices;
 using System.Text;
+using Vanara.InteropServices;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
 
@@ -28,7 +29,13 @@ static class CldApiUtils
         PlaceholderExceptionGen(hresInfo, handle.path);
 
         CF_PLACEHOLDER_BASIC_INFO info = Marshal.PtrToStructure<CF_PLACEHOLDER_BASIC_INFO>(memory.GetPointer());
-        info.FileIdentity = Encoding.Unicode.GetBytes(Marshal.PtrToStringAuto((nint)(memory.GetPointer() + returnedLength - info.FileIdentityLength), (int)info.FileIdentityLength / 2) ?? "");
+
+        if (info.FileIdentityLength > 0)
+        {
+            IntPtr fileIdentityPtr = IntPtr.Add(memory.GetPointer(), Marshal.OffsetOf<CF_PLACEHOLDER_BASIC_INFO>(nameof(CF_PLACEHOLDER_BASIC_INFO.FileIdentity)).ToInt32());
+            info.FileIdentity = new byte[info.FileIdentityLength];
+            Marshal.Copy(fileIdentityPtr, info.FileIdentity, 0, (int)info.FileIdentityLength);
+        }
 
         return info;
     }
@@ -48,8 +55,16 @@ static class CldApiUtils
         HRESULT hresInfo = CfGetPlaceholderInfo(handle.GetDangerousHandle(), CF_PLACEHOLDER_INFO_CLASS.CF_PLACEHOLDER_INFO_STANDARD, memory.GetPointer(), BLOB_LENGTH, out uint returnedLength);
         PlaceholderExceptionGen(hresInfo, handle.path);
 
+        // Read the fixed part first to get FileIdentityLength
         CF_PLACEHOLDER_STANDARD_INFO info = Marshal.PtrToStructure<CF_PLACEHOLDER_STANDARD_INFO>(memory.GetPointer());
-        info.FileIdentity = Encoding.Unicode.GetBytes(Marshal.PtrToStringAuto((nint)(memory.GetPointer() + returnedLength - info.FileIdentityLength), (int)info.FileIdentityLength / 2) ?? "");
+
+        // Read the full FileIdentity based on actual length using Vanara extension
+        if (info.FileIdentityLength > 0)
+        {
+            IntPtr fileIdentityPtr = IntPtr.Add(memory.GetPointer(), Marshal.OffsetOf<CF_PLACEHOLDER_STANDARD_INFO>(nameof(CF_PLACEHOLDER_STANDARD_INFO.FileIdentity)).ToInt32());
+            info.FileIdentity = new byte[info.FileIdentityLength];
+            Marshal.Copy(fileIdentityPtr, info.FileIdentity, 0, (int)info.FileIdentityLength);
+        }
 
         return info;
     }
@@ -60,15 +75,6 @@ static class CldApiUtils
 
         HRESULT hresSync = CfSetInSyncState(handle.GetDangerousHandle(), CF_IN_SYNC_STATE.CF_IN_SYNC_STATE_IN_SYNC, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
         PlaceholderExceptionGen(hresSync, fullPath);
-    }
-
-    public static string GetFileIdFromPointer(nint pointer, uint length, int characterSize = 2)
-    {
-        if (length <= 0 || characterSize <= 0 || length % characterSize != 0 || pointer == IntPtr.Zero)
-        {
-            throw new ArgumentException($"length({length}) <= 0 || characterSize({characterSize}) <= 0 || length % characterSize != 0 || pointer({pointer}) == IntPtr.Zero");
-        }
-        return Marshal.PtrToStringAuto(pointer, (int)length / characterSize) ?? "";
     }
 
 

@@ -52,24 +52,66 @@ namespace OnedataDrive
 
             IntPtr unmanagedPointer = IntPtr.Zero;
             CF_OPERATION_PARAMETERS.TRANSFERDATA td;
-            CF_OPERATION_PARAMETERS op;
+            CF_OPERATION_PARAMETERS op; 
 
             try
             {
-                string fileIdentity = callback.fileIdentity;
+                FileIdentity fileIdentity = callback.fileIdentity;
                 SpaceFolder space = CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)];
 
-                FileAttribute fileInfo = await RestClient.GetFileAttribute(fileIdentity, space.providerInfos, token);
-                if (fileInfo.size != callback.fileSize)
+                FileAttribute fileAttribute;
+                if (fileIdentity.fileType == FileTypeOD.SYMLNK)
                 {
-                    throw new PlaceholderSizeException("Size of cloud file does not match local file size.");
-                    // TODO: update placeholder, so operation runs OK
+                    fileAttribute = SymlinkTargetResolver.ResolveSymlinkTarget(fileIdentity.symlinkTargetPath ?? "", space.providerInfos, token, out _);
+                    if (fileAttribute.fileType != FileTypeOD.REG)
+                    {
+                        throw new Exception($"Symlink target is not a regular file. Actual: {fileAttribute.fileType}");
+                    }
+                }
+                else
+                {
+                    fileAttribute = await RestClient.GetFileAttribute(fileIdentity.fileID, space.providerInfos, token);
+                }
+                
+                
+                if (fileAttribute.size != callback.fileSize)
+                {
+                    loggerFormater.LogFileOP(LogLevel.Warn, "FETCH DATA", $"Size mismatch detected (local: {callback.fileSize}, cloud: {fileAttribute.size}), restarting hydration", opID: opID);
+
+                    // Restart hydration due to file size mismatch
+                    CF_OPERATION_INFO restartOi = new()
+                    {
+                        Type = CF_OPERATION_TYPE.CF_OPERATION_TYPE_RESTART_HYDRATION,
+                        ConnectionKey = callback.connectionKey,
+                        TransferKey = callback.transferKey
+                    };
+                    restartOi.StructSize = (uint)Marshal.SizeOf(restartOi);
+
+                    CF_FS_METADATA fsMetadata = PlaceholderData.CreateFSMetadata(fileAttribute, directory: false);
+                    UnmanagedMem fsMetadataMem = new((uint)Marshal.SizeOf(typeof(CF_FS_METADATA)));
+                    Marshal.StructureToPtr(fsMetadata, fsMetadataMem.GetPointer(), false);
+
+                    CF_OPERATION_PARAMETERS.RESTARTHYDRATION rh = new()
+                    {
+                        Flags = CF_OPERATION_RESTART_HYDRATION_FLAGS.CF_OPERATION_RESTART_HYDRATION_FLAG_NONE,
+                        FsMetadata = fsMetadataMem.GetPointer(),
+                    };
+                    CF_OPERATION_PARAMETERS restartOp = CF_OPERATION_PARAMETERS.Create(rh);
+                    HRESULT restartHres = CfExecute(restartOi, ref restartOp);
+
+                    if (restartHres != HRESULT.S_OK)
+                    {
+                        throw new Exception($"Restart hydration CfExecute FAIL - HRES 0x{((uint)restartHres):X}: {restartHres}");
+                    }
+
+                    loggerFormater.LogFileOP(LogLevel.Info, "FETCH DATA", "Hydration restarted successfully", opID: opID);
+                    return;
                 }
 
                 using (LivelinessChcecker livelinessChcecker = new(10 * 1000, turnOffWhenDead: false))
                 using (Stream stream = await RestClient.GetStream(
                     CloudSync.spaces[PathUtils.GetSpaceName(callback.filePath)].providerInfos,
-                    callback.fileIdentity,
+                    callback.fileIdentity.fileID,
                     token,
                     callback.offset,
                     callback.fileSize - 1))

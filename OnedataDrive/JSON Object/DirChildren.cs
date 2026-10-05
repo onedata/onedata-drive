@@ -1,10 +1,14 @@
 namespace OnedataDrive.JSON_Object
 {
+    using System.Text.Json.Serialization;
+
     public class Child
     {
         public string fileId { get; set; }
         public string index { get; set; }
-        public string type { get; set; }
+        [JsonConverter(typeof(FileTypeODConverter))]
+        [JsonPropertyName("type")]
+        public FileTypeOD fileType { get; set; } = FileTypeOD.EMPTY;
         public string activePermissionsType { get; set; }
         public long posixPermissions { get; set; }
         public List<Acl> acl { get; set; }
@@ -45,7 +49,7 @@ namespace OnedataDrive.JSON_Object
         {
             this.fileId = "";
             this.index = "";
-            this.type = "";
+            this.fileType = FileTypeOD.EMPTY;
             this.activePermissionsType = "";
             this.acl = new();
             this.name = "";

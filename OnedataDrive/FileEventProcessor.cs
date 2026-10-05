@@ -7,6 +7,7 @@ using OnedataDrive.Utils;
 using System.Runtime.InteropServices.ComTypes;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.CldApi;
+using static Vanara.PInvoke.User32.RAWINPUT;
 
 namespace OnedataDrive
 {
@@ -75,7 +76,7 @@ namespace OnedataDrive
             }
         }
 
-        protected override bool ProcessEventWorker(EventPenalizable<FileEvent> processedEvent)
+        protected override bool ProcessEventWorker(EventPenalizable<FileEvent> processedEvent, CancellationToken cancellationToken)
         {
             bool eventCompleted = false;
             List<string> moreInfo = EventMoreInfo(processedEvent.@event);
@@ -101,13 +102,25 @@ namespace OnedataDrive
                             FileAttribute attribute = RestClient.GetFileAttribute(processedEvent.@event.fileId, providerInfos).Result;
 
                             logFormatter.LogFileOP(LogLevel.Info, "EVENT PROCESSOR", "Processing event - Create new",
-                                moreInfo: [$"New placeholder name: {attribute.name}", $"Type: {attribute.type}"], opID: processedEvent.@event.eventId, filePath: spaceNameWPrefix);
+                                moreInfo: [$"New placeholder name: {attribute.name}", $"Type: {attribute.fileType}"], opID: processedEvent.@event.eventId, filePath: spaceNameWPrefix);
 
                             TestIfCanBeCreated(attribute);
 
                             using (PlaceholderCreateInfoList createInfo = new())
                             {
                                 PlaceholderData placeholderData = new(attribute);
+                                try
+                                {
+                                    FileAttribute symlinkTarget = SymlinkTargetResolver.ResolveSymlinkTarget(attribute.symlinkValue, providerInfos, cancellationToken, out string resolvedTargetPath);
+                                    placeholderData.Type = symlinkTarget.fileType;
+                                    placeholderData.FileIdentity.symlinkTargetPath = attribute.symlinkValue;
+                                }
+                                catch (CanNotResolveSymlinkTarget)
+                                {
+                                    placeholderData.Type = FileTypeOD.REG;
+                                    placeholderData.FileIdentity.symlinkTargetPath = attribute.symlinkValue;
+                                }
+
                                 createInfo.Add(PlaceholderData.CreateInfo(placeholderData));
                                 CF_PLACEHOLDER_CREATE_INFO[] infoArr = createInfo.GetArray();
                                 HRESULT hres = CfCreatePlaceholders(parentFolder, infoArr, (uint)infoArr.Length,
@@ -218,7 +231,7 @@ namespace OnedataDrive
             }
 
             using CfHandle handle = new(placeholderPath, flags);
-            CF_PLACEHOLDER_BASIC_INFO standardInfo = CldApiUtils.GetBasicInfo(handle);
+            CF_PLACEHOLDER_BASIC_INFO basicInfo = CldApiUtils.GetBasicInfo(handle);
 
             CF_FILE_RANGE[] dehydrateRanges = [];
             if (!directory && processedEvent.@event.data.mtime != null)
@@ -273,7 +286,7 @@ namespace OnedataDrive
                     using CfHandle handleNewPath = new(newPath, flags);
 
                     HRESULT inSyncHres = CfSetInSyncState(handleNewPath.GetDangerousHandle(),
-                    standardInfo.InSyncState, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
+                    basicInfo.InSyncState, CF_SET_IN_SYNC_FLAGS.CF_SET_IN_SYNC_FLAG_NONE);
                     if (inSyncHres != HRESULT.S_OK)
                     {
                         throw new Exception($"CfSetInSync HRES number: {((int)inSyncHres)}" +

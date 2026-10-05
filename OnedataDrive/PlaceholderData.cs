@@ -9,19 +9,15 @@ namespace OnedataDrive
 {
     public class PlaceholderData
     {
-        public string FileIdentity;
+        public FileIdentity FileIdentity;
         public long Size;
         public long Atime;
         public long Mtime;
         public long Ctime;
         public string Name;
-        public string Type;
+        public FileTypeOD Type;
 
-        public const string REGULAR_FILE = "REG";
-        public const string DIRECTORY = "DIR";
-        public const string SYMLINK = "SYMLNK";
-
-        public PlaceholderData(string FileIdentity, string Name, long Size, long Atime, long Mtime, long Ctime, string Type = REGULAR_FILE)
+        public PlaceholderData(FileIdentity FileIdentity, string Name, long Size, long Atime, long Mtime, long Ctime, FileTypeOD Type = FileTypeOD.REG)
         {
             this.Size = Size;
             this.FileIdentity = FileIdentity;
@@ -35,22 +31,23 @@ namespace OnedataDrive
         public PlaceholderData(FileAttribute fileAttribute)
         {
             this.Size = fileAttribute.size;
-            this.FileIdentity = fileAttribute.file_id;
+            this.FileIdentity = new FileIdentity(fileAttribute.fileId, fileAttribute.fileType);
             this.Atime = fileAttribute.atime;
             this.Mtime = fileAttribute.mtime;
             this.Ctime = fileAttribute.ctime;
             this.Name = fileAttribute.name;
-            this.Type = fileAttribute.type;
+            this.Type = fileAttribute.fileType;
         }
 
         public const int ENCODING_SIZE = 2;
 
         public static CF_PLACEHOLDER_CREATE_INFO CreateRegInfo(PlaceholderData data)
         {
+            UnmanagedMem fileIdentityMem = data.FileIdentity.ToUnmanagedMemory();
             CF_PLACEHOLDER_CREATE_INFO info = new()
             {
-                FileIdentity = Marshal.StringToCoTaskMemUni(data.FileIdentity),
-                FileIdentityLength = (uint)(data.FileIdentity.Length * Marshal.SizeOf(data.FileIdentity[0])) * ENCODING_SIZE,
+                FileIdentity = fileIdentityMem.GetPointer(),
+                FileIdentityLength = fileIdentityMem.GetSize(),
                 RelativeFileName = data.Name,
                 Flags = CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_MARK_IN_SYNC | CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_SUPERSEDE,
                 FsMetadata = CreateFSMetadata(data)
@@ -60,10 +57,11 @@ namespace OnedataDrive
 
         public static CF_PLACEHOLDER_CREATE_INFO CreateDirInfo(PlaceholderData data)
         {
+            UnmanagedMem fileIdentityMem = data.FileIdentity.ToUnmanagedMemory();
             CF_PLACEHOLDER_CREATE_INFO info = new()
             {
-                FileIdentity = Marshal.StringToCoTaskMemUni(data.FileIdentity),
-                FileIdentityLength = (uint)(data.FileIdentity.Length * Marshal.SizeOf(data.FileIdentity[0])) * ENCODING_SIZE,
+                FileIdentity = fileIdentityMem.GetPointer(),
+                FileIdentityLength = fileIdentityMem.GetSize(),
                 RelativeFileName = data.Name,
                 Flags = CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_MARK_IN_SYNC | CF_PLACEHOLDER_CREATE_FLAGS.CF_PLACEHOLDER_CREATE_FLAG_SUPERSEDE,
                 FsMetadata = CreateFSMetadata(data, directory: true)
@@ -78,11 +76,11 @@ namespace OnedataDrive
         /// <returns></returns>
         public static CF_PLACEHOLDER_CREATE_INFO CreateInfo(PlaceholderData data)
         {
-            if (data.Type == PlaceholderData.REGULAR_FILE)
+            if (data.Type == FileTypeOD.REG)
             {
                 return CreateRegInfo(data);
             }
-            else if (data.Type == PlaceholderData.DIRECTORY)
+            else if (data.Type == FileTypeOD.DIR)
             {
                 return CreateDirInfo(data);
             }
@@ -147,7 +145,8 @@ namespace OnedataDrive
             foreach (Child child in children.children)
             {
                 string windowsCorrectName = NameConvertor.DistinctWindowsName(child, placeholderNames);
-                PlaceholderData data = new(child.fileId, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
+                PlaceholderData data = new(new FileIdentity(child.fileId, child.fileType), 
+                    windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.fileType);
                 placeholderCreateInfo.Add(CreateInfo(data));
                 placeholderNames.Add(windowsCorrectName.ToLower());
             }

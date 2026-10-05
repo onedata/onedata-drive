@@ -5,8 +5,8 @@ namespace OnedataDrive.Utils
     public class UnmanagedMem : IDisposable
     {
         private nint pointer = IntPtr.Zero;
+        private uint size = 0;
 
-        public UnmanagedMem() { }
         public UnmanagedMem(uint size)
         {
             _Allocate(size);
@@ -27,15 +27,7 @@ namespace OnedataDrive.Utils
             {
                 throw new UnmanagedMemoryException("Failed to allocate unmanaged memory.");
             }
-        }
-
-        public void Allocate(uint size)
-        {
-            if (pointer != IntPtr.Zero)
-            {
-                throw new UnmanagedMemoryException("Unmanaged memory is already allocated.");
-            }
-            _Allocate(size);
+            this.size = size;
         }
 
         public void Realloc(uint size)
@@ -61,6 +53,7 @@ namespace OnedataDrive.Utils
                 throw new UnmanagedMemoryException("Failed to reallocate unmanaged memory.");
             }
             this.pointer = newPointer;
+            this.size = size;
         }
 
         public nint GetPointer()
@@ -77,12 +70,18 @@ namespace OnedataDrive.Utils
             return pointer != IntPtr.Zero;
         }
 
+        public uint GetSize()
+        {
+            return size;
+        }
+
         public void Dispose()
         {
             if (this.pointer != IntPtr.Zero)
             {
                 Marshal.FreeCoTaskMem(this.pointer);
                 this.pointer = IntPtr.Zero;
+                this.size = 0;
             }
         }
     }

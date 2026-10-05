@@ -10,7 +10,7 @@ namespace OnedataDrive
 {
     public static class CloudSync
     {
-        public const string VERSION = "25.1.2";
+        public const string VERSION = "25.1.3";
         public const string APP_NAME = "Onedata Drive";
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public static Config configuration = new();
@@ -386,13 +386,13 @@ namespace OnedataDrive
                                 PlaceholderData placeholderData = new(fileInfo)
                                 {
                                     Name = spaceName,
-                                    Type = PlaceholderData.DIRECTORY
+                                    Type = FileTypeOD.DIR
                                 };
                                 info.Add(PlaceholderData.CreateDirInfo(placeholderData));
 
                                 placeholderAdded = true;
 
-                                spaceFolder = new(spaceName, fileInfo.file_id, space.Key,
+                                spaceFolder = new(spaceName, fileInfo.fileId, space.Key,
                                     new ProviderInfo(providerId, providerDomain), configuration.enableRefresh);
                             }
                             else

@@ -1,7 +1,5 @@
 ﻿using OnedataDrive.Interfaces;
-using System;
 using System.ComponentModel;
-using System.Diagnostics.Tracing;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -72,7 +70,7 @@ namespace OnedataDrive.JSON_Object
             if (newEvent.data.size != null) data.size = newEvent.data.size;
             if (newEvent.data.mtime != null) data.mtime = newEvent.data.mtime;
             if (!string.IsNullOrWhiteSpace(newEvent.data.name)) data.name = newEvent.data.name;
-            if (!string.IsNullOrWhiteSpace(newEvent.data.type)) data.type = newEvent.data.type;
+            if (newEvent.data.fileType != FileTypeOD.EMPTY) data.fileType = newEvent.data.fileType;
 
             isMerged = true;
         }
@@ -108,7 +106,11 @@ namespace OnedataDrive.JSON_Object
     public class FileEventData
     {
         public long? index { get; set; }
-        public string? type { get; set; }
+
+        [JsonConverter(typeof(FileTypeODConverter))]
+        [JsonPropertyName("type")]
+        public FileTypeOD fileType { get; set; } = FileTypeOD.EMPTY;
+
         public string? activePermissionsType { get; set; }
         public string? posixPermissions { get; set; }
         public string? acl { get; set; }

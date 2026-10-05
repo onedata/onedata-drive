@@ -8,7 +8,7 @@ namespace OnedataDrive
         public CF_CONNECTION_KEY connectionKey;
         public CF_TRANSFER_KEY transferKey;
         public long windowsFileId;
-        public string fileIdentity;
+        public FileIdentity fileIdentity;
         public uint fileIdentityLength;
         public string volumeDosName;
         public string normalizedPath;
@@ -22,11 +22,11 @@ namespace OnedataDrive
             this.fileIdentityLength = callbackInfo.FileIdentityLength;
             if (this.fileIdentityLength > 0)
             {
-                this.fileIdentity = Marshal.PtrToStringAuto(callbackInfo.FileIdentity, (int)callbackInfo.FileIdentityLength / 2) ?? "";
+                this.fileIdentity = FileIdentity.FromUnmanagedMemory(callbackInfo.FileIdentity, callbackInfo.FileIdentityLength);
             }
             else
             {
-                this.fileIdentity = "";
+                this.fileIdentity = new FileIdentity();
             }
             this.volumeDosName = callbackInfo.VolumeDosName;
             this.normalizedPath = callbackInfo.NormalizedPath;

@@ -82,17 +82,37 @@ namespace OnedataDrive
                         CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS flags = CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAGS.CF_OPERATION_TRANSFER_PLACEHOLDERS_FLAG_DISABLE_ON_DEMAND_POPULATION;
 
                         // fetch placeholders - done
-                        DirChildren dirChildren = await RestClient.GetFilesAndSubdirs(parentId, space.providerInfos, limit: PLACEHOLDER_BATCH_SIZE, nextPageToken: nextPageToken, cancelToken: token);
+                        DirChildren dirChildren = await RestClient.GetFilesAndSubdirs(callback.fileIdentity.fileID, space.providerInfos, limit: PLACEHOLDER_BATCH_SIZE, nextPageToken: nextPageToken, cancelToken: token);
                         nextPageToken = dirChildren.nextPageToken;
                         isLast = dirChildren.isLast;
 
                         // create placeholder create infos and make names distinct
                         using PlaceholderCreateInfoList placeholderCreateInfo = new();
                         foreach (Child child in dirChildren.children)
-                        {
+                        {   
+                            FileIdentity fileIdentity = new(child.fileId, child.fileType);
                             string windowsCorrectName = NameConvertor.DistinctWindowsName(child, placeholderNames);
-                            PlaceholderData data = new(child.fileId, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.type);
-                            if (data.Type != PlaceholderData.REGULAR_FILE && data.Type != PlaceholderData.DIRECTORY)
+                            PlaceholderData data = new(fileIdentity, windowsCorrectName, child.size, child.atime, child.mtime, child.ctime, child.fileType);
+                            if (data.Type == FileTypeOD.SYMLNK)
+                            {
+                                try
+                                {
+                                    FileAttribute symlinkTarget = SymlinkTargetResolver.ResolveSymlinkTarget(child.symlinkValue, space.providerInfos, token, out string resolvedTargetPath);
+                                    data.Type = symlinkTarget.fileType;
+                                    data.FileIdentity.symlinkTargetPath = child.symlinkValue;
+                                }
+                                catch (CanNotResolveSymlinkTarget)
+                                {
+                                    data.Type = FileTypeOD.REG;
+                                    data.FileIdentity.symlinkTargetPath = child.symlinkValue;
+                                }
+                                catch (ArgumentException)
+                                {
+                                    loggerFormater.LogFileOP(LogLevel.Error, "FETCH PLACEHOLDERS", "Failed to resolve symlink target", moreInfo: [$"Symlink value: {child.symlinkValue}", $"File name: {child.name}"], opID: opID);
+                                    throw;
+                                }
+                            }
+                            if (data.Type != FileTypeOD.REG && data.Type != FileTypeOD.DIR)
                             {
                                 continue;
                             }
